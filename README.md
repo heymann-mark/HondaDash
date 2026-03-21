@@ -147,12 +147,12 @@ Redline: **8200 RPM** (K20Z3, stock)
 
 | Component | Part | Status |
 |-----------|------|--------|
-| Coilovers | Tein Flex Z | Installed — Pro-Spec Autosport, Quincy (Andy) |
+| Coilovers | Tein Flex Z | Installed  |
 | Wheels | Enkei RPF1 18x9.5 +38 | Installed |
 | Tires | 245/40R18 | TBD brand |
 | Exhaust | APEXi WS3 cat-back | Installed |
 | ECU | Hondata FlashPro | Installed |
-| Steering rack | OEM replacement | Installed — Pro-Spec |
+| Steering rack | OEM replacement | Installed |
 | Shifter | Acuity components | Installed |
 | EDFC5 Active | TEIN controller | Pending install |
 | Front end | Facelift conversion (JP Auto bumper, Autoelements grille, Evan Fischer trim) | Ordered, to be painted Nighthawk Black Pearl |
@@ -160,16 +160,6 @@ Redline: **8200 RPM** (K20Z3, stock)
 | Engine swap | K24A2 TSX longblock (K20Z3 head hybrid) | Planned — targeting ~260whp |
 
 ---
-
-## SHOP
-
-**Pro-Spec Autosport**
-- Location: Quincy, MA
-- Contact: Andy
-- Work done: Coilovers, alignment, steering rack replacement
-
----
-
 ## TODO
 
 - [ ] Add chassis.html as third tab in MainActivity.kt
@@ -179,7 +169,7 @@ Redline: **8200 RPM** (K20Z3, stock)
 - [ ] Find better 3D model with detailed undercarriage
 - [ ] Physical tablet install — measure dash opening
 - [ ] Sort audio wiring (Bluetooth receiver module → factory speaker harness)
-- [ ] EDFC5 Active install with Andy
+- [ ] EDFC5 Active install
 - [ ] Facelift front end paint + install
 - [ ] Alcantara steering wheel wrap
 
