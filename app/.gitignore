@@ -1,1 +1,12 @@
-/build
+*.zip
+*.rar
+*.exe
+*.stl
+*.JPG
+app/src/main/assets/2007 Honda Civic Si L4-2.0L/
+app/src/main/assets/honda--civic--sedan-2009/
+original.zip
+.gradle/
+.idea/
+build/
+local.properties
