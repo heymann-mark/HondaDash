@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a0000;overflow:hidden;font-family:'Share Tech Mono',monospace;color:#fff;}
+
+.hbar{position:fixed;top:0;left:0;right:0;height:48px;background:rgba(0,0,0,0.95);border-bottom:1px solid #cc110033;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:0 16px;}
+.hbar-title{font-family:'Orbitron',monospace;font-size:13px;color:#cc2200;letter-spacing:3px;}
+.hbar-status{font-size:10px;letter-spacing:2px;padding:3px 10px;border:1px solid;}
+.hbar-status.idle{color:#ffffff33;border-color:#ffffff11;}
+.hbar-status.recording{color:#00ff41;border-color:#00ff4155;animation:blink 1.2s ease-in-out infinite;}
+.hbar-status.paused{color:#ffaa00;border-color:#ffaa0055;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.4;}}
+
+.current-trip{position:fixed;top:48px;left:0;right:0;background:rgba(5,0,0,0.97);border-bottom:1px solid #cc110022;z-index:20;padding:8px 16px;display:none;}
+.ct-label{font-size:9px;color:#cc110055;letter-spacing:3px;margin-bottom:6px;}
+.ct-stats{display:flex;gap:16px;flex-wrap:wrap;}
+.ct-stat{text-align:center;}
+.ct-val{font-family:'Orbitron',monospace;font-size:16px;color:#cc1100;line-height:1;}
+.ct-unit{font-size:8px;color:#ffffff33;letter-spacing:1px;margin-top:2px;}
+
+.trip-list{position:fixed;top:48px;left:0;right:0;bottom:60px;overflow-y:auto;padding:8px;}
+.trip-list.with-current{top:112px;}
+
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:80%;color:#ffffff22;letter-spacing:2px;font-size:11px;gap:8px;}
+
+/* TRIP CARD */
+.trip-card{background:rgba(10,0,0,0.6);border:1px solid #cc110022;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;position:relative;overflow:hidden;display:flex;height:110px;}
+.trip-card:hover{border-color:#cc110044;}
+.trip-card.selected{border-color:#cc2200;background:rgba(20,0,0,0.8);}
+.trip-card.select-mode .tc-sel{display:flex;}
+
+/* Thumbnail map on left */
+.tc-map{width:140px;flex-shrink:0;position:relative;background:#050000;}
+.tc-map canvas{width:100%!important;height:100%!important;}
+.tc-map-overlay{position:absolute;inset:0;pointer-events:none;border-right:1px solid #cc110022;}
+
+/* Stats on right */
+.tc-body{flex:1;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;}
+.tc-header{display:flex;justify-content:space-between;align-items:flex-start;}
+.tc-date{font-size:10px;color:#cc1100;letter-spacing:1px;}
+.tc-dist{font-family:'Orbitron',monospace;font-size:20px;color:#cc1100;}
+.tc-dist span{font-size:9px;color:#cc110066;margin-left:2px;}
+.tc-stats{display:flex;gap:10px;flex-wrap:wrap;}
+.tc-stat{font-size:9px;color:#ffffff33;letter-spacing:1px;}
+.tc-stat b{color:#ffffff77;font-weight:normal;}
+.tc-badge{position:absolute;top:6px;right:6px;font-size:8px;padding:2px 5px;border:1px solid #4488ff55;color:#4488ff88;letter-spacing:1px;}
+.tc-sel{position:absolute;top:6px;left:148px;width:16px;height:16px;border:1px solid #cc2200;display:none;align-items:center;justify-content:center;background:#0a0000;z-index:5;}
+.trip-card.selected .tc-sel::after{content:'✓';color:#cc2200;font-size:10px;}
+
+/* DETAIL PANEL */
+.detail-panel{position:fixed;inset:0;background:#0a0000;z-index:50;transform:translateX(100%);transition:transform 0.3s;overflow-y:auto;padding-bottom:20px;}
+.detail-panel.open{transform:translateX(0);}
+.dp-header{background:rgba(0,0,0,0.95);border-bottom:1px solid #cc110033;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5;}
+.dp-back{background:transparent;border:1px solid #cc110044;color:#cc110088;font-family:'Share Tech Mono',monospace;font-size:11px;padding:5px 10px;cursor:pointer;letter-spacing:1px;}
+.dp-back:hover{border-color:#cc2200;color:#cc2200;}
+.dp-title{font-family:'Orbitron',monospace;font-size:11px;color:#cc1100;letter-spacing:2px;}
+#dp-map{height:220px;width:100%;background:#050000;}
+.dp-body{padding:12px 16px;}
+.dp-section{margin-bottom:16px;}
+.dp-sec-title{font-size:9px;color:#cc110055;letter-spacing:3px;margin-bottom:8px;border-bottom:1px solid #cc110022;padding-bottom:4px;}
+.dp-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.dp-stat{background:rgba(10,0,0,0.5);border:1px solid #cc110022;padding:10px 10px;}
+.dp-stat-val{font-family:'Orbitron',monospace;font-size:20px;color:#cc1100;line-height:1;}
+.dp-stat-lbl{font-size:8px;color:#ffffff33;letter-spacing:1px;margin-top:3px;}
+.dp-stat.big .dp-stat-val{font-size:28px;}
+
+/* MERGE BAR */
+.merge-bar{position:fixed;bottom:60px;left:0;right:0;background:rgba(0,0,0,0.97);border-top:1px solid #cc2200aa;z-index:40;padding:10px 16px;display:none;align-items:center;justify-content:space-between;}
+.merge-bar.show{display:flex;}
+.merge-info{font-size:11px;color:#cc1100;letter-spacing:1px;}
+.merge-info span{color:#ffffff88;}
+.merge-btns{display:flex;gap:8px;}
+.mbtn{background:transparent;border:1px solid;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;padding:6px 12px;cursor:pointer;}
+.mbtn.merge{border-color:#cc2200;color:#cc2200;}
+.mbtn.cancel{border-color:#ffffff22;color:#ffffff44;}
+
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;height:60px;background:rgba(0,0,0,0.95);border-top:1px solid #cc110022;z-index:30;display:flex;align-items:center;justify-content:center;gap:10px;}
+.btn{background:transparent;border:1px solid #cc110044;color:#ffffff55;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;padding:7px 14px;cursor:pointer;transition:all 0.15s;}
+.btn:hover{border-color:#cc2200;color:#cc2200;}
+.btn.danger{border-color:#ff000022;color:#ff000044;}
+.btn.danger:hover{border-color:#ff0000;color:#ff0000;}
+.scanlines{position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);pointer-events:none;z-index:100;}
+.mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib { display: none !important; }
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+
+<div class="hbar">
+  <div class="hbar-title">LOGBOOK</div>
+  <div class="hbar-status idle" id="status-badge">STANDBY</div>
+</div>
+
+<div class="current-trip" id="current-trip">
+  <div class="ct-label">● RECORDING</div>
+  <div class="ct-stats">
+    <div class="ct-stat"><div class="ct-val" id="ct-dist">0.0</div><div class="ct-unit">MI</div></div>
+    <div class="ct-stat"><div class="ct-val" id="ct-dur">0:00</div><div class="ct-unit">TIME</div></div>
+    <div class="ct-stat"><div class="ct-val" id="ct-spd">0</div><div class="ct-unit">TOP MPH</div></div>
+    <div class="ct-stat"><div class="ct-val" id="ct-rpm">0</div><div class="ct-unit">MAX RPM</div></div>
+    <div class="ct-stat"><div class="ct-val" id="ct-vtec">0</div><div class="ct-unit">VTEC</div></div>
+  </div>
+</div>
+
+<div class="trip-list" id="trip-list">
+  <div class="empty-state" id="empty-state">
+    <div style="font-size:28px;opacity:0.2;">◈</div>
+    <div>NO TRIPS RECORDED</div>
+    <div style="font-size:9px;color:#ffffff11;margin-top:4px;">DRIVE TO START LOGGING</div>
+  </div>
+</div>
+
+<div class="detail-panel" id="detail-panel">
+  <div class="dp-header">
+    <button class="dp-back" onclick="closeDetail()">[ ← BACK ]</button>
+    <div class="dp-title" id="dp-title">TRIP DETAILS</div>
+  </div>
+  <div id="dp-map"></div>
+  <div class="dp-body" id="dp-body"></div>
+</div>
+
+<div class="merge-bar" id="merge-bar">
+  <div class="merge-info"><span id="merge-count">0</span> TRIPS SELECTED</div>
+  <div class="merge-btns">
+    <button class="mbtn cancel" onclick="cancelSelect()">[ CANCEL ]</button>
+    <button class="mbtn merge" onclick="mergeSelected()">[ MERGE ]</button>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <button class="btn" onclick="toggleSelectMode()">[ SELECT ]</button>
+  <button class="btn" onclick="exportTrips()">[ EXPORT CSV ]</button>
+  <button class="btn danger" onclick="clearAll()">[ CLEAR ALL ]</button>
+</div>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoibWFya2hleW1hbm4iLCJhIjoiY21tejRoaXg5MDR4czJvcHp4YWF0bTg2byJ9.rla6beZVPZpv-ms6742DsQ';
+
+const STORAGE_KEY = 'hondadash_trips_v2';
+function loadTrips(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); }catch(e){ return []; } }
+function saveTrips(t){ localStorage.setItem(STORAGE_KEY, JSON.stringify(t)); }
+
+// ============ STATE ============
+const ST = {IDLE:'idle', RECORDING:'recording', PAUSED:'paused'};
+let state = ST.IDLE;
+let currentTrip = null;
+let pauseTimer = null;
+let autoEndTimer = null;
+let pathTimer = null;
+let selectMode = false;
+let selectedIds = new Set();
+let detailMap = null;
+let thumbnailMaps = {};
+
+function newTrip(){
+  return {
+    id: Date.now(),
+    startTime: Date.now(),
+    endTime: null,
+    distance: 0,
+    duration: 0,
+    topSpeed: 0,
+    avgSpeed: 0,
+    maxRPM: 0,
+    maxCoolant: 0,
+    vtecCount: 0,
+    vtecWasOn: false,
+    path: [],           // [[lng,lat], ...] recorded every 5s
+    speedSamples: [],
+    lastLat: null,
+    lastLng: null,
+    merged: false,
+    mergedFrom: [],
+  };
+}
+
+// ============ RECORDING ============
+function startTrip(){
+  if(state === ST.RECORDING) return;
+  currentTrip = newTrip();
+  state = ST.RECORDING;
+  updateBadge();
+  document.getElementById('current-trip').style.display = 'block';
+  document.getElementById('trip-list').classList.add('with-current');
+  // Record GPS path every 5 seconds
+  pathTimer = setInterval(recordPathPoint, 5000);
+}
+
+function recordPathPoint(){
+  if(!currentTrip || state !== ST.RECORDING) return;
+  if(currentTrip.lastLat && currentTrip.lastLng){
+    currentTrip.path.push([currentTrip.lastLng, currentTrip.lastLat]);
+  }
+}
+
+function pauseTrip(){
+  if(state !== ST.RECORDING) return;
+  state = ST.PAUSED;
+  updateBadge();
+  autoEndTimer = setTimeout(()=>{ if(state===ST.PAUSED) endTrip(); }, 15*60*1000);
+}
+
+function resumeTrip(){
+  if(state !== ST.PAUSED) return;
+  clearTimeout(autoEndTimer);
+  state = ST.RECORDING;
+  updateBadge();
+}
+
+function endTrip(){
+  if(!currentTrip || state===ST.IDLE) return;
+  clearTimeout(pauseTimer);
+  clearTimeout(autoEndTimer);
+  clearInterval(pathTimer);
+  // Record final point
+  if(currentTrip.lastLat && currentTrip.lastLng){
+    currentTrip.path.push([currentTrip.lastLng, currentTrip.lastLat]);
+  }
+  currentTrip.endTime = Date.now();
+  currentTrip.duration = Math.round((currentTrip.endTime - currentTrip.startTime)/1000);
+  if(currentTrip.speedSamples.length > 0){
+    currentTrip.avgSpeed = Math.round(currentTrip.speedSamples.reduce((a,b)=>a+b,0)/currentTrip.speedSamples.length);
+  }
+  if(currentTrip.distance > 0.05){
+    const trips = loadTrips();
+    trips.unshift(currentTrip);
+    saveTrips(trips);
+    renderTripList();
+  }
+  currentTrip = null;
+  state = ST.IDLE;
+  updateBadge();
+  document.getElementById('current-trip').style.display = 'none';
+  document.getElementById('trip-list').classList.remove('with-current');
+}
+
+// ============ DATA BRIDGE ============
+let stopCheckTimer = null;
+
+window.updateTripData = function(spd, rpm, clt, lat, lng){
+  const speed = parseFloat(spd)||0;
+  const rpmVal = parseFloat(rpm)||0;
+  const cltVal = parseFloat(clt)||0;
+  const latF = parseFloat(lat)||null;
+  const lngF = parseFloat(lng)||null;
+
+  // Auto start
+  if(speed > 5 && state === ST.IDLE){
+    if(!stopCheckTimer){
+      stopCheckTimer = setTimeout(()=>{ if(speed > 5) startTrip(); stopCheckTimer=null; }, 10000);
+    }
+  } else if(speed <= 3 && state === ST.IDLE){
+    clearTimeout(stopCheckTimer); stopCheckTimer=null;
+  }
+
+  if(state === ST.RECORDING){
+    if(rpmVal > currentTrip.maxRPM) currentTrip.maxRPM = Math.round(rpmVal);
+    if(cltVal > currentTrip.maxCoolant) currentTrip.maxCoolant = Math.round(cltVal);
+    if(speed > currentTrip.topSpeed) currentTrip.topSpeed = Math.round(speed);
+    if(speed > 0) currentTrip.speedSamples.push(speed);
+    const vtecOn = rpmVal >= 5800;
+    if(vtecOn && !currentTrip.vtecWasOn) currentTrip.vtecCount++;
+    currentTrip.vtecWasOn = vtecOn;
+    if(latF && lngF && currentTrip.lastLat && currentTrip.lastLng){
+      currentTrip.distance += haversine(currentTrip.lastLat, currentTrip.lastLng, latF, lngF);
+    }
+    if(latF) currentTrip.lastLat = latF;
+    if(lngF) currentTrip.lastLng = lngF;
+    if(speed < 3){
+      if(!pauseTimer) pauseTimer = setTimeout(()=>{ pauseTrip(); pauseTimer=null; }, 2*60*1000);
+    } else {
+      clearTimeout(pauseTimer); pauseTimer=null;
+    }
+    updateCurrentUI();
+  } else if(state === ST.PAUSED && speed > 5){
+    resumeTrip();
+  }
+};
+
+function haversine(lat1,lon1,lat2,lon2){
+  const R=3958.8,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function updateBadge(){
+  const el = document.getElementById('status-badge');
+  el.className = 'hbar-status';
+  if(state===ST.RECORDING){el.classList.add('recording');el.textContent='● REC';}
+  else if(state===ST.PAUSED){el.classList.add('paused');el.textContent='‖ PAUSED';}
+  else{el.classList.add('idle');el.textContent='STANDBY';}
+}
+
+function updateCurrentUI(){
+  if(!currentTrip) return;
+  const dur = Math.round((Date.now()-currentTrip.startTime)/1000);
+  const m=Math.floor(dur/60),s=dur%60;
+  document.getElementById('ct-dist').textContent = currentTrip.distance.toFixed(1);
+  document.getElementById('ct-dur').textContent = m+':'+(s<10?'0':'')+s;
+  document.getElementById('ct-spd').textContent = currentTrip.topSpeed||0;
+  document.getElementById('ct-rpm').textContent = currentTrip.maxRPM||0;
+  document.getElementById('ct-vtec').textContent = currentTrip.vtecCount||0;
+}
+setInterval(()=>{ if(state!==ST.IDLE) updateCurrentUI(); }, 1000);
+
+// ============ RENDER TRIPS ============
+function renderTripList(){
+  const trips = loadTrips();
+  const list = document.getElementById('trip-list');
+  list.querySelectorAll('.trip-card').forEach(c=>c.remove());
+  // destroy old thumbnail maps
+  Object.values(thumbnailMaps).forEach(m=>{ try{m.remove();}catch(e){} });
+  thumbnailMaps = {};
+
+  if(!trips.length){ document.getElementById('empty-state').style.display='flex'; return; }
+  document.getElementById('empty-state').style.display='none';
+
+  trips.forEach((trip,idx) => {
+    const card = document.createElement('div');
+    card.className = 'trip-card'+(selectedIds.has(trip.id)?' selected':'')+(selectMode?' select-mode':'');
+    card.dataset.id = trip.id;
+
+    const date = new Date(trip.startTime);
+    const dateStr = date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const timeStr = date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    const mapId = 'thumb-'+trip.id;
+
+    card.innerHTML = `
+      <div class="tc-map" id="${mapId}">
+        <div class="tc-map-overlay"></div>
+      </div>
+      <div class="tc-sel"></div>
+      ${trip.merged?'<div class="tc-badge">MERGED</div>':''}
+      <div class="tc-body">
+        <div class="tc-header">
+          <div class="tc-date">${dateStr} ${timeStr}</div>
+          <div class="tc-dist">${trip.distance.toFixed(1)}<span>MI</span></div>
+        </div>
+        <div class="tc-stats">
+          <div class="tc-stat">TIME <b>${formatDur(trip.duration)}</b></div>
+          <div class="tc-stat">TOP <b>${trip.topSpeed}MPH</b></div>
+          <div class="tc-stat">AVG <b>${trip.avgSpeed}MPH</b></div>
+          <div class="tc-stat">RPM <b>${trip.maxRPM}</b></div>
+          <div class="tc-stat">VTEC <b>${trip.vtecCount}×</b></div>
+        </div>
+      </div>`;
+
+    card.onclick = () => {
+      if(selectMode){ toggleSelect(trip.id, card); return; }
+      openDetail(trip);
+    };
+
+    list.appendChild(card);
+
+    // Render thumbnail map after DOM insert
+    setTimeout(()=> renderThumbnail(trip, mapId), 100 + idx*50);
+  });
+}
+
+function renderThumbnail(trip, containerId){
+  const el = document.getElementById(containerId);
+  if(!el || !trip.path || trip.path.length < 2) {
+    // No path — show placeholder
+    if(el) el.style.background='#050000';
+    return;
+  }
+  try {
+    const m = new mapboxgl.Map({
+      container: containerId,
+      style: 'mapbox://styles/mapbox/dark-v11',
+      interactive: false,
+      attributionControl: false,
+    });
+    thumbnailMaps[containerId] = m;
+    m.on('load', ()=>{
+      m.addSource('route-'+trip.id, {type:'geojson', data:{type:'Feature', geometry:{type:'LineString', coordinates:trip.path}}});
+      m.addLayer({id:'rl-'+trip.id, type:'line', source:'route-'+trip.id, paint:{'line-color':'#cc2200','line-width':2,'line-opacity':0.9}});
+      // Fit to path
+      const bounds = trip.path.reduce((b,c)=>b.extend(c), new mapboxgl.LngLatBounds(trip.path[0],trip.path[0]));
+      m.fitBounds(bounds, {padding:12, animate:false});
+      // Start dot
+      m.addLayer({id:'start-'+trip.id, type:'circle', source:'route-'+trip.id, paint:{'circle-color':'#00ff41','circle-radius':4}});
+    });
+  } catch(e){ console.log('Thumbnail error:', e); }
+}
+
+// ============ DETAIL VIEW ============
+function openDetail(trip){
+  const date = new Date(trip.startTime);
+  document.getElementById('dp-title').textContent = date.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' // ' + date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+
+  // Build detail map
+  const mapEl = document.getElementById('dp-map');
+  mapEl.innerHTML = '';
+  if(detailMap){ try{detailMap.remove();}catch(e){} detailMap=null; }
+
+  document.getElementById('dp-body').innerHTML = `
+    <div class="dp-section">
+      <div class="dp-sec-title">OVERVIEW</div>
+      <div class="dp-grid">
+        <div class="dp-stat big"><div class="dp-stat-val">${trip.distance.toFixed(1)}</div><div class="dp-stat-lbl">MILES</div></div>
+        <div class="dp-stat big"><div class="dp-stat-val">${formatDur(trip.duration)}</div><div class="dp-stat-lbl">DURATION</div></div>
+        <div class="dp-stat big"><div class="dp-stat-val">${trip.avgSpeed}</div><div class="dp-stat-lbl">AVG MPH</div></div>
+      </div>
+    </div>
+    <div class="dp-section">
+      <div class="dp-sec-title">PERFORMANCE</div>
+      <div class="dp-grid">
+        <div class="dp-stat"><div class="dp-stat-val">${trip.topSpeed}</div><div class="dp-stat-lbl">TOP SPEED MPH</div></div>
+        <div class="dp-stat"><div class="dp-stat-val">${trip.maxRPM}</div><div class="dp-stat-lbl">MAX RPM</div></div>
+        <div class="dp-stat"><div class="dp-stat-val">${trip.vtecCount}</div><div class="dp-stat-lbl">VTEC EVENTS</div></div>
+      </div>
+    </div>
+    <div class="dp-section">
+      <div class="dp-sec-title">ENGINE</div>
+      <div class="dp-grid">
+        <div class="dp-stat"><div class="dp-stat-val">${trip.maxCoolant}</div><div class="dp-stat-lbl">MAX COOLANT °F</div></div>
+        <div class="dp-stat"><div class="dp-stat-val">${new Date(trip.startTime).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</div><div class="dp-stat-lbl">START</div></div>
+        <div class="dp-stat"><div class="dp-stat-val">${trip.endTime?new Date(trip.endTime).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'—'}</div><div class="dp-stat-lbl">END</div></div>
+      </div>
+    </div>`;
+
+  document.getElementById('detail-panel').classList.add('open');
+
+  // Render detail map after panel opens
+  setTimeout(()=>{
+    if(trip.path && trip.path.length >= 2){
+      detailMap = new mapboxgl.Map({
+        container: 'dp-map',
+        style: 'mapbox://styles/mapbox/dark-v11',
+        attributionControl: false,
+      });
+      detailMap.on('load',()=>{
+        detailMap.addSource('dr',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:trip.path}}});
+        detailMap.addLayer({id:'drl',type:'line',source:'dr',paint:{'line-color':'#cc2200','line-width':3,'line-opacity':0.9}});
+        // Start marker green dot
+        const startEl = document.createElement('div');
+        startEl.style.cssText='width:10px;height:10px;border-radius:50%;background:#00ff41;border:2px solid #ffffff44;';
+        new mapboxgl.Marker({element:startEl}).setLngLat(trip.path[0]).addTo(detailMap);
+        // End marker red dot
+        const endEl = document.createElement('div');
+        endEl.style.cssText='width:10px;height:10px;border-radius:50%;background:#cc2200;border:2px solid #ffffff44;';
+        new mapboxgl.Marker({element:endEl}).setLngLat(trip.path[trip.path.length-1]).addTo(detailMap);
+        const bounds = trip.path.reduce((b,c)=>b.extend(c), new mapboxgl.LngLatBounds(trip.path[0],trip.path[0]));
+        detailMap.fitBounds(bounds,{padding:30});
+      });
+    } else {
+      document.getElementById('dp-map').innerHTML = '<div style="height:220px;display:flex;align-items:center;justify-content:center;color:#ffffff22;font-size:11px;letter-spacing:2px;">NO GPS PATH RECORDED</div>';
+    }
+  }, 350);
+}
+
+function closeDetail(){
+  document.getElementById('detail-panel').classList.remove('open');
+  if(detailMap){ try{detailMap.remove();}catch(e){} detailMap=null; }
+}
+
+// ============ SELECT + MERGE ============
+function toggleSelectMode(){
+  selectMode=!selectMode; selectedIds.clear();
+  if(!selectMode) document.getElementById('merge-bar').classList.remove('show');
+  renderTripList();
+}
+function cancelSelect(){ selectMode=false; selectedIds.clear(); document.getElementById('merge-bar').classList.remove('show'); renderTripList(); }
+function toggleSelect(id,card){
+  if(selectedIds.has(id)){selectedIds.delete(id);card.classList.remove('selected');}
+  else{selectedIds.add(id);card.classList.add('selected');}
+  const n=selectedIds.size;
+  if(n>=2){document.getElementById('merge-bar').classList.add('show');document.getElementById('merge-count').textContent=n;}
+  else document.getElementById('merge-bar').classList.remove('show');
+}
+function mergeSelected(){
+  if(selectedIds.size<2) return;
+  const trips=loadTrips();
+  const toMerge=trips.filter(t=>selectedIds.has(t.id)).sort((a,b)=>a.startTime-b.startTime);
+  const merged={
+    id:Date.now(),startTime:toMerge[0].startTime,endTime:toMerge[toMerge.length-1].endTime,
+    distance:toMerge.reduce((s,t)=>s+t.distance,0),
+    duration:toMerge.reduce((s,t)=>s+t.duration,0),
+    topSpeed:Math.max(...toMerge.map(t=>t.topSpeed)),
+    avgSpeed:Math.round(toMerge.reduce((s,t)=>s+(t.avgSpeed*(t.duration||1)),0)/toMerge.reduce((s,t)=>s+(t.duration||1),0)),
+    maxRPM:Math.max(...toMerge.map(t=>t.maxRPM)),
+    maxCoolant:Math.max(...toMerge.map(t=>t.maxCoolant)),
+    vtecCount:toMerge.reduce((s,t)=>s+t.vtecCount,0),
+    path:[...toMerge.flatMap(t=>t.path||[])],
+    merged:true,mergedFrom:toMerge.map(t=>t.id),speedSamples:[],lastLat:null,lastLng:null,vtecWasOn:false,
+  };
+  const remaining=trips.filter(t=>!selectedIds.has(t.id));
+  remaining.unshift(merged);
+  saveTrips(remaining);
+  cancelSelect();
+  renderTripList();
+}
+
+function formatDur(s){
+  if(!s) return '0:00';
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+  if(h>0) return h+'h '+m+'m';
+  return m+':'+(sec<10?'0':'')+sec;
+}
+
+function exportTrips(){
+  const trips=loadTrips();
+  if(!trips.length){return;}
+  const csv=['Date,Time,Miles,Duration,Top MPH,Avg MPH,Max RPM,VTEC Count,Max Coolant F'];
+  trips.forEach(t=>{
+    const d=new Date(t.startTime);
+    csv.push([d.toLocaleDateString(),d.toLocaleTimeString(),t.distance.toFixed(2),formatDur(t.duration),t.topSpeed,t.avgSpeed,t.maxRPM,t.vtecCount,t.maxCoolant].join(','));
+  });
+  const blob=new Blob([csv.join('\n')],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='civic_trips.csv';a.click();
+  URL.revokeObjectURL(url);
+}
+
+function clearAll(){
+  if(!confirm('Delete all trip history?')) return;
+  saveTrips([]);
+  Object.values(thumbnailMaps).forEach(m=>{try{m.remove();}catch(e){}});
+  thumbnailMaps={};
+  renderTripList();
+}
+
+// ============ DEMO DATA ============
+function seedDemo(){
+  if(loadTrips().length>0) return;
+  const makePath=(startLat,startLng,points)=>{
+    const path=[[startLng,startLat]];
+    for(let i=1;i<points;i++) path.push([startLng+i*0.001+(Math.random()-0.5)*0.0005, startLat+i*0.0008+(Math.random()-0.5)*0.0005]);
+    return path;
+  };
+  saveTrips([
+    {id:1,startTime:Date.now()-86400000,endTime:Date.now()-83800000,distance:12.4,duration:2340,topSpeed:78,avgSpeed:52,maxRPM:7200,maxCoolant:198,vtecCount:3,path:makePath(42.376,-71.234,40),merged:false,mergedFrom:[],speedSamples:[],lastLat:null,lastLng:null,vtecWasOn:false},
+    {id:2,startTime:Date.now()-172800000,endTime:Date.now()-172000000,distance:4.1,duration:840,topSpeed:55,avgSpeed:38,maxRPM:5400,maxCoolant:192,vtecCount:0,path:makePath(42.380,-71.240,15),merged:false,mergedFrom:[],speedSamples:[],lastLat:null,lastLng:null,vtecWasOn:false},
+    {id:3,startTime:Date.now()-259200000,endTime:Date.now()-253800000,distance:28.7,duration:5400,topSpeed:82,avgSpeed:61,maxRPM:7800,maxCoolant:205,vtecCount:7,path:makePath(42.370,-71.220,80),merged:false,mergedFrom:[],speedSamples:[],lastLat:null,lastLng:null,vtecWasOn:false},
+  ]);
+}
+
+seedDemo();
+renderTripList();
+</script>
+</body>
+</html>

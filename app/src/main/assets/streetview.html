@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { background:#0a0000; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; }
+#map { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; background:#0a0000; }
+.mapboxgl-ctrl-logo,.mapboxgl-ctrl-attrib { display:none !important; }
+.leaflet-control-attribution { display:none !important; }
+#canvas-wrap { position:fixed; top:0; left:0; width:100%; height:100%; z-index:1; pointer-events:none; }
+canvas { display:block; }
+.scanlines { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px); pointer-events:none; z-index:10; }
+.hbar { position:fixed; top:0; left:0; right:0; height:56px; border-bottom:1px solid #cc000033; background:rgba(10,0,0,0.85); z-index:20; display:flex; align-items:center; justify-content:space-between; padding:0 20px; }
+.hbar-title { font-family:'Orbitron',monospace; font-size:22px; color:#ff4422; letter-spacing:3px; }
+.hbar-sub { font-size:16px; letter-spacing:2px; color:#ffffff; }
+.hbar-sub.ok       { color:#00ff41; }
+.hbar-sub.warning  { color:#ffaa00; }
+.hbar-sub.critical { color:#ff2200; }
+.loading { position:fixed; inset:0; background:rgba(10,0,0,0.95); z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+.loading-text { font-size:22px; color:#ffffff; letter-spacing:3px; }
+.loading-bar-track { width:300px; height:3px; background:#330000; }
+.loading-bar-fill { height:3px; background:#cc2200; width:0%; transition:width 0.3s; }
+@keyframes sensorpulse-warning  { 0%,100%{box-shadow:0 0 6px #ffaa00,0 0 12px #ffaa0088;opacity:0.8;transform:translate(-50%,-50%) scale(1)} 50%{box-shadow:0 0 20px #ffcc00;opacity:1;transform:translate(-50%,-50%) scale(1.3)} }
+@keyframes sensorpulse-critical { 0%,100%{box-shadow:0 0 6px #ffcc00,0 0 12px #ffcc0088;opacity:0.7;transform:translate(-50%,-50%) scale(1)} 50%{box-shadow:0 0 24px #ffcc00;opacity:1;transform:translate(-50%,-50%) scale(1.4)} }
+.sensor-dot { position:fixed; width:20px; height:20px; border-radius:50%; cursor:pointer; z-index:15; transform:translate(-50%,-50%); display:none; }
+.sensor-dot.ok       { background:#001a00; border:2px solid #00ff41; box-shadow:0 0 6px #00ff4155; }
+.sensor-dot.warning  { background:#3a2000; border:2px solid #ffaa00; animation:sensorpulse-warning  1.4s ease-in-out infinite; }
+.sensor-dot.critical { background:#3a2000; border:2px solid #ffcc00; animation:sensorpulse-critical 0.9s ease-in-out infinite; }
+.info-panel { position:fixed; left:0; top:56px; bottom:0; width:360px; background:rgba(5,0,0,0.96); border-right:1px solid #cc110033; z-index:30; transform:translateX(-100%); transition:transform 0.3s; padding:20px; overflow-y:auto; }
+.info-panel.open { transform:translateX(0); }
+.info-close { background:transparent; border:1px solid #ffffff44; color:#ffffff; font-family:'Share Tech Mono',monospace; font-size:16px; padding:8px 16px; cursor:pointer; letter-spacing:1px; margin-bottom:16px; display:block; width:100%; }
+.info-code { font-family:'Orbitron',monospace; font-size:44px; margin-bottom:6px; }
+.info-code.warning  { color:#ffaa00; }
+.info-code.critical { color:#ffcc00; }
+.info-name { font-size:20px; color:#ffffff; letter-spacing:1px; margin-bottom:10px; line-height:1.4; }
+.info-severity { display:inline-block; font-size:15px; padding:5px 14px; border:1px solid; letter-spacing:3px; margin-bottom:12px; }
+.info-severity.warning  { color:#ffaa00; border-color:#ffaa0077; background:rgba(255,170,0,0.1); }
+.info-severity.critical { color:#ffcc00; border-color:#ffcc0077; background:rgba(255,204,0,0.12); }
+.info-severity.ok       { color:#00ff41; border-color:#00ff4177; background:rgba(0,255,65,0.05); }
+.info-desc   { font-size:15px; color:#ffffff88; line-height:1.9; margin-bottom:12px; }
+.info-effect { font-size:14px; color:#ffaa0088; line-height:1.8; margin-bottom:12px; font-style:italic; }
+.info-divider { height:1px; background:#ffffff11; margin:12px 0; }
+.info-sensor-label { font-size:13px; color:#ffffff55; letter-spacing:2px; margin-bottom:5px; }
+.info-sensor-val { font-family:'Orbitron',monospace; font-size:28px; color:#ffffff; margin-bottom:12px; }
+.info-location-text { font-size:14px; color:#ffffff66; line-height:1.8; }
+.info-codes-list { margin-top:8px; }
+.info-code-item { font-size:13px; color:#ffffff44; padding:4px 0; border-bottom:1px solid #ffffff08; cursor:pointer; transition:color 0.15s; }
+.info-code-item:hover { color:#ffaa00; }
+.info-code-item.active-code { color:#ffaa00; }
+.test-panel { position:fixed; right:0; top:56px; width:210px; background:rgba(5,0,0,0.92); border-left:1px solid #ffffff11; z-index:25; display:flex; flex-direction:column; gap:6px; padding:12px; bottom:60px; overflow-y:auto; }
+.test-label { font-size:13px; color:#ffffff; letter-spacing:2px; padding:4px 0; border-bottom:1px solid #ffffff11; margin-bottom:4px; }
+.test-btn { background:transparent; border:1px solid #ffffff22; color:#ffffff; font-family:'Share Tech Mono',monospace; font-size:15px; letter-spacing:1px; padding:12px 14px; cursor:pointer; text-align:left; transition:all 0.2s; }
+.test-btn:hover    { border-color:#ffaa00; color:#ffaa00; }
+.test-btn.warning  { border-color:#ffaa00; color:#ffaa00; background:rgba(255,170,0,0.08); }
+.test-btn.critical { border-color:#ffcc00; color:#ffcc00; background:rgba(255,204,0,0.1); }
+.test-clear { border-color:#ffffff11; color:#ffffff55; font-size:13px; margin-top:4px; }
+.test-clear:hover { border-color:#ffffff44; color:#ffffff88; }
+.bottom-bar { position:fixed; bottom:0; left:0; right:0; height:60px; background:rgba(5,0,0,0.9); border-top:1px solid #cc110022; z-index:20; display:flex; align-items:center; justify-content:center; gap:16px; }
+.bot-btn { background:transparent; border:1px solid #ffffff33; color:#ffffff; font-family:'Share Tech Mono',monospace; font-size:16px; letter-spacing:2px; padding:8px 20px; cursor:pointer; transition:all 0.15s; }
+.bot-btn:hover  { border-color:#ff4422; color:#ff4422; }
+.bot-btn.active { border-color:#ff4422; color:#ff4422; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="canvas-wrap"></div>
+<div class="scanlines"></div>
+<div class="hbar">
+  <div class="hbar-title">K20Z3 // 3D DIAGNOSTIC</div>
+  <div class="hbar-sub ok" id="status-text">LOADING...</div>
+</div>
+<div class="loading" id="loading">
+  <div class="loading-text">LOADING 3D MODEL</div>
+  <div class="loading-bar-track"><div class="loading-bar-fill" id="load-bar"></div></div>
+  <div class="loading-text" id="load-pct">0%</div>
+</div>
+<div id="sensor-o2"    class="sensor-dot ok" onclick="showSensor('o2')"></div>
+<div id="sensor-clt"   class="sensor-dot ok" onclick="showSensor('clt')"></div>
+<div id="sensor-tps"   class="sensor-dot ok" onclick="showSensor('tps')"></div>
+<div id="sensor-map"   class="sensor-dot ok" onclick="showSensor('map')"></div>
+<div id="sensor-vtec"  class="sensor-dot ok" onclick="showSensor('vtec')"></div>
+<div id="sensor-knock" class="sensor-dot ok" onclick="showSensor('knock')"></div>
+<div class="info-panel" id="info-panel">
+  <button class="info-close" onclick="closePanel()">[ CLOSE ]</button>
+  <div class="info-code warning" id="info-code">P0000</div>
+  <div class="info-name" id="info-name">SENSOR NAME</div>
+  <div class="info-severity ok" id="info-severity">OK</div>
+  <div class="info-desc" id="info-desc">--</div>
+  <div class="info-effect" id="info-effect"></div>
+  <div class="info-divider"></div>
+  <div class="info-sensor-label">LIVE VALUE</div>
+  <div class="info-sensor-val" id="info-val">--</div>
+  <div class="info-divider"></div>
+  <div class="info-sensor-label">LOCATION</div>
+  <div class="info-location-text" id="info-location">--</div>
+  <div class="info-divider"></div>
+  <div class="info-sensor-label">ALL CODES FOR THIS SENSOR</div>
+  <div class="info-codes-list" id="info-codes-list"></div>
+</div>
+<div class="test-panel">
+  <div class="test-label">⚠ FAULT SIM</div>
+  <button class="test-btn" id="test-o2"    onclick="triggerFault('o2')">O2 SENSOR</button>
+  <button class="test-btn" id="test-clt"   onclick="triggerFault('clt')">COOLANT</button>
+  <button class="test-btn" id="test-tps"   onclick="triggerFault('tps')">THROTTLE</button>
+  <button class="test-btn" id="test-map"   onclick="triggerFault('map')">MAP SENSOR</button>
+  <button class="test-btn" id="test-vtec"  onclick="triggerFault('vtec')">VTEC</button>
+  <button class="test-btn" id="test-knock" onclick="triggerFault('knock')">KNOCK</button>
+  <button class="test-btn test-clear" onclick="clearAllFaults()">✕ CLEAR ALL</button>
+</div>
+<div class="bottom-bar">
+  <button class="bot-btn active" id="btn-rotate"  onclick="toggleRotate()">[ AUTO ROTATE ]</button>
+  <button class="bot-btn"        onclick="resetCamera()">[ RESET VIEW ]</button>
+  <button class="bot-btn active" id="btn-sensors" onclick="toggleSensors()">[ SENSORS ON ]</button>
+</div>
+
+<script>
+const sensorDB = {
+  o2:    { name:'O2 SENSOR (Secondary)',     location:'Exhaust manifold, downstream of cat',   val:'0.82V',
+    codes:[{code:'P0136',severity:'warning', desc:'O2 sensor circuit malfunction.',             effect:'Fuel trim off. Emissions increased.'},
+           {code:'P0137',severity:'warning', desc:'O2 sensor circuit low voltage.',             effect:'ECU may over-fuel. Rich condition.'},
+           {code:'P0138',severity:'warning', desc:'O2 sensor circuit high voltage.',            effect:'Lean condition. May damage cat.'},
+           {code:'P0141',severity:'warning', desc:'O2 sensor heater circuit malfunction.',      effect:'Slower closed-loop on cold start.'}]},
+  clt:   { name:'COOLANT TEMP SENSOR (ECT)', location:'Engine block, near thermostat housing', val:'192°F',
+    codes:[{code:'P0115',severity:'warning', desc:'ECT sensor circuit malfunction.',            effect:'ECU defaults to 176°F. Rich running.'},
+           {code:'P0117',severity:'warning', desc:'ECT sensor circuit low input.',              effect:'ECU thinks overheating. May limit power.'},
+           {code:'P0118',severity:'warning', desc:'ECT sensor circuit high input.',             effect:'ECU thinks cold. Runs rich.'}]},
+  tps:   { name:'THROTTLE POSITION SENSOR',  location:'Throttle body, driver side of intake',  val:'38%',
+    codes:[{code:'P0122',severity:'critical',desc:'TPS circuit low input. Below 0.17V.',        effect:'No throttle reading. Stalling, limp mode.'},
+           {code:'P0123',severity:'critical',desc:'TPS circuit high input. Above 4.80V.',       effect:'May command full throttle. Stop driving.'},
+           {code:'P0121',severity:'warning', desc:'TPS range/performance problem.',             effect:'Hesitation on acceleration.'}]},
+  map:   { name:'MAP SENSOR',                location:'Intake manifold, top of engine',         val:'14.2 psi',
+    codes:[{code:'P0107',severity:'critical',desc:'MAP sensor circuit low input.',              effect:'Fueling severely off. Rough running.'},
+           {code:'P0108',severity:'critical',desc:'MAP sensor circuit high input.',             effect:'Severe over-fueling, cat damage.'},
+           {code:'P0106',severity:'warning', desc:'MAP sensor range/performance problem.',      effect:'Inaccurate fueling at load.'}]},
+  vtec:  { name:'VTEC SOLENOID',             location:'Cylinder head, VTEC oil control valve',  val:'INACTIVE',
+    codes:[{code:'P2646',severity:'critical',desc:'VTEC oil pressure switch circuit low.',      effect:'VTEC will not engage above 5500 RPM.'},
+           {code:'P2647',severity:'critical',desc:'VTEC oil pressure switch circuit high.',     effect:'VTEC may engage at wrong RPM.'}]},
+  knock: { name:'KNOCK SENSOR',              location:'Engine block, between cylinders 2 and 3',val:'0 counts',
+    codes:[{code:'P0325',severity:'warning', desc:'Knock sensor circuit malfunction (Bank 1).',  effect:'ECU retards timing. Power loss.'},
+           {code:'P0326',severity:'warning', desc:'Knock sensor range/performance problem.',     effect:'ECU retards timing. Performance reduced.'}]},
+};
+
+const faultIndex   = {o2:0,clt:0,tps:0,map:0,vtec:0,knock:0};
+const activeFaults = {};
+let sensorsVisible = true, autoRotate = true, carRotY = 0;
+let scene, camera, renderer, carModel;
+const sensorWorldPos = {};
+
+const orbit = {
+  phi:1.1, theta:0, radius:4,
+  targetPhi:1.1, targetTheta:0, targetRadius:4,
+  dragging:false, lastX:0, lastY:0
+};
+
+function setStatus(t,l){ const e=document.getElementById('status-text'); e.textContent=t; e.className='hbar-sub '+l; }
+
+function initThree() {
+  const wrap = document.getElementById('canvas-wrap');
+  const W = window.innerWidth, H = window.innerHeight;
+
+  renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  renderer.setClearColor(0x000000, 0);
+  wrap.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(45, W/H, 0.01, 1000);
+  updateCameraFromOrbit();
+
+  scene.add(new THREE.AmbientLight(0x110000, 1.5));
+  const key = new THREE.DirectionalLight(0xff3300, 5.0); key.position.set(3,6,4);   scene.add(key);
+  const fill= new THREE.DirectionalLight(0xff2200, 2.0); fill.position.set(-4,2,-3);scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xff0000, 3.0); rim.position.set(0,-1,-6); scene.add(rim);
+  const top = new THREE.DirectionalLight(0xff4400, 1.5); top.position.set(0,8,0);   scene.add(top);
+  scene.add(new THREE.HemisphereLight(0xff2200, 0x050000, 0.8));
+
+  // pointer events on canvas-wrap so map doesn't steal input
+  const wrap2 = document.getElementById('canvas-wrap');
+  wrap2.style.pointerEvents = 'auto';
+  setupOrbitControls(wrap2);
+
+  window.addEventListener('resize', () => {
+    const W2=window.innerWidth, H2=window.innerHeight;
+    camera.aspect=W2/H2; camera.updateProjectionMatrix();
+    renderer.setSize(W2,H2);
+  });
+
+  const loader = new THREE.GLTFLoader();
+  loader.load(
+    'honda__civic__sedan_2009.glb',
+    (gltf) => {
+      const model = gltf.scene;
+
+      model.traverse(c => {
+        if (!c.isMesh) return;
+        const mats = Array.isArray(c.material) ? c.material : [c.material];
+        mats.forEach(m => {
+          if (m.isMeshStandardMaterial || m.isMeshPhysicalMaterial) {
+            m.color.set(0x1a0000);
+            m.roughness = 0.25;
+            m.metalness = 0.85;
+            m.needsUpdate = true;
+          }
+        });
+      });
+
+      const box    = new THREE.Box3().setFromObject(model);
+      const size   = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const scale  = 2.2 / Math.max(size.x, size.y, size.z);
+      model.scale.setScalar(scale);
+      model.position.copy(center.multiplyScalar(-scale));
+      scene.add(model);
+      carModel = model;
+
+      // Civic FA5: negative Z = front (engine bay), positive Z = rear (exhaust)
+      // bbox: x(-0.484..0.484) y(-0.356..0.356) z(-1.1..1.1)
+      // engine bay:  z ~ -0.55 to -0.3,  y ~ 0.0 to 0.15
+      // exhaust rear: z ~ +0.75,          y ~ -0.15
+
+      sensorWorldPos['o2']    = new THREE.Vector3( 0.15,  -0.12,  0.78);
+      sensorWorldPos['clt']   = new THREE.Vector3(-0.10,  -0.20,  0.78);
+      sensorWorldPos['tps']   = new THREE.Vector3( 0.00,  -0.16,  0.78);
+      sensorWorldPos['map']   = new THREE.Vector3( 0.10,  -0.20,  0.78);
+      sensorWorldPos['vtec']  = new THREE.Vector3(-0.05,  -0.10,  0.78);
+      sensorWorldPos['knock'] = new THREE.Vector3( 0.18,  -0.10,  0.78);
+
+      console.log('MODEL LOADED OK');
+      const loadEl = document.getElementById('loading');
+      console.log('loading el:', loadEl);
+      loadEl.style.display = 'none';
+      console.log('loading hidden');
+      setStatus('DIAGNOSTIC READY', 'ok');
+      document.querySelectorAll('.sensor-dot').forEach(d => d.style.display='block');
+      animate();
+      console.log('animate started');
+    },
+    (p) => {
+      const pct = p.total > 0 ? Math.round((p.loaded/p.total)*100) : 0;
+      document.getElementById('load-bar').style.width  = pct+'%';
+      document.getElementById('load-pct').textContent  = pct+'%';
+    },
+    (err) => {
+      document.getElementById('loading').innerHTML =
+        '<div class="loading-text" style="color:#ff2200">MODEL LOAD FAILED</div>' +
+        '<div class="loading-text" style="font-size:16px;margin-top:12px">'+err+'</div>';
+    }
+  );
+}
+
+function updateCameraFromOrbit() {
+  const x = orbit.radius * Math.sin(orbit.phi) * Math.sin(orbit.theta);
+  const y = orbit.radius * Math.cos(orbit.phi);
+  const z = orbit.radius * Math.sin(orbit.phi) * Math.cos(orbit.theta);
+  camera.position.set(x, y+0.3, z);
+  camera.lookAt(0, 0.3, 0);
+}
+
+function setupOrbitControls(canvas) {
+  canvas.addEventListener('mousedown', e => {
+    orbit.dragging=true; orbit.lastX=e.clientX; orbit.lastY=e.clientY;
+    if (autoRotate) { autoRotate=false; document.getElementById('btn-rotate').classList.remove('active'); }
+  });
+  window.addEventListener('mousemove', e => {
+    if (!orbit.dragging) return;
+    orbit.targetTheta -= (e.clientX-orbit.lastX)*0.008;
+    orbit.targetPhi    = Math.max(0.15,Math.min(Math.PI-0.15,orbit.targetPhi+(e.clientY-orbit.lastY)*0.008));
+    orbit.lastX=e.clientX; orbit.lastY=e.clientY;
+  });
+  window.addEventListener('mouseup', () => { orbit.dragging=false; });
+
+  let lx=0,ly=0,lpd=0;
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length===1) {
+      orbit.dragging=true; lx=e.touches[0].clientX; ly=e.touches[0].clientY;
+      if (autoRotate) { autoRotate=false; document.getElementById('btn-rotate').classList.remove('active'); }
+    } else if (e.touches.length===2) {
+      lpd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    }
+    e.preventDefault();
+  },{passive:false});
+  canvas.addEventListener('touchmove', e => {
+    if (e.touches.length===1 && orbit.dragging) {
+      orbit.targetTheta -= (e.touches[0].clientX-lx)*0.008;
+      orbit.targetPhi    = Math.max(0.15,Math.min(Math.PI-0.15,orbit.targetPhi+(e.touches[0].clientY-ly)*0.008));
+      lx=e.touches[0].clientX; ly=e.touches[0].clientY;
+    } else if (e.touches.length===2) {
+      const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      orbit.targetRadius=Math.max(1.5,Math.min(10,orbit.targetRadius*(lpd/d))); lpd=d;
+    }
+    e.preventDefault();
+  },{passive:false});
+  canvas.addEventListener('touchend', () => { orbit.dragging=false; });
+  canvas.addEventListener('wheel', e => {
+    orbit.targetRadius=Math.max(1.5,Math.min(10,orbit.targetRadius+e.deltaY*0.005));
+    e.preventDefault();
+  },{passive:false});
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  if (autoRotate && carModel) {
+    carRotY += 0.008;
+    carModel.rotation.y = carRotY;
+    orbit.targetTheta = carRotY;
+  }
+  orbit.phi    += (orbit.targetPhi    - orbit.phi)    * 0.1;
+  orbit.theta  += (orbit.targetTheta  - orbit.theta)  * 0.1;
+  orbit.radius += (orbit.targetRadius - orbit.radius) * 0.1;
+  updateCameraFromOrbit();
+  updateSensorPositions();
+  renderer.render(scene, camera);
+}
+
+function updateSensorPositions() {
+  if (!carModel || !camera) return;
+  const W=window.innerWidth, H=window.innerHeight;
+  Object.entries(sensorWorldPos).forEach(([key,basePos]) => {
+    const dot=document.getElementById('sensor-'+key); if (!dot) return;
+    const vec=basePos.clone();
+    vec.applyEuler(new THREE.Euler(0,carRotY,0));
+    vec.project(camera);
+    dot.style.left=((vec.x*0.5+0.5)*W)+'px';
+    dot.style.top=((-vec.y*0.5+0.5)*H)+'px';
+    dot.style.display=(sensorsVisible&&vec.z>0&&vec.z<1)?'block':'none';
+  });
+}
+
+function showSensor(key) {
+  const s=sensorDB[key],fault=activeFaults[key],dtc=fault||s.codes[0];
+  document.getElementById('info-code').textContent=fault?dtc.code:'——';
+  document.getElementById('info-code').className='info-code '+(fault?dtc.severity:'warning');
+  document.getElementById('info-name').textContent=s.name;
+  document.getElementById('info-val').textContent=s.val;
+  document.getElementById('info-location').textContent=s.location;
+  const sevEl=document.getElementById('info-severity');
+  sevEl.textContent=fault?dtc.severity.toUpperCase():'OK';
+  sevEl.className='info-severity '+(fault?dtc.severity:'ok');
+  document.getElementById('info-desc').textContent=fault?dtc.desc:'No faults detected.';
+  document.getElementById('info-effect').textContent=fault?'⚠ '+dtc.effect:'';
+  const list=document.getElementById('info-codes-list'); list.innerHTML='';
+  s.codes.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='info-code-item'+(fault&&fault.code===c.code?' active-code':'');
+    div.textContent=c.code+' — '+c.desc.substring(0,50)+'...';
+    div.onclick=()=>showSpecificCode(key,c.code);
+    list.appendChild(div);
+  });
+  document.getElementById('info-panel').classList.add('open');
+}
+function showSpecificCode(key,code){
+  const dtc=sensorDB[key].codes.find(c=>c.code===code); if(!dtc) return;
+  activeFaults[key]=dtc; setDotState(key,dtc.severity);
+  document.getElementById('test-'+key).className='test-btn '+dtc.severity;
+  showSensor(key); updateStatusBar();
+}
+function setDotState(key,state){ const d=document.getElementById('sensor-'+key); if(d) d.className='sensor-dot '+state; }
+function triggerFault(key){
+  const s=sensorDB[key],idx=faultIndex[key]%s.codes.length; faultIndex[key]++;
+  const dtc=s.codes[idx]; activeFaults[key]=dtc; setDotState(key,dtc.severity);
+  document.getElementById('test-'+key).className='test-btn '+dtc.severity;
+  showSensor(key); updateStatusBar();
+}
+function updateStatusBar(){
+  const faults=Object.values(activeFaults);
+  if(!faults.length){ setStatus('DIAGNOSTIC READY','ok'); return; }
+  const crit=faults.some(f=>f.severity==='critical');
+  const codes=Object.entries(activeFaults).map(([k,f])=>f.code).join(' | ');
+  setStatus(crit?'⚠ CRITICAL: '+codes:'⚠ FAULT: '+codes,crit?'critical':'warning');
+}
+function clearAllFaults(){
+  Object.keys(sensorDB).forEach(k=>{
+    delete activeFaults[k]; faultIndex[k]=0; setDotState(k,'ok');
+    const b=document.getElementById('test-'+k); if(b) b.className='test-btn';
+  });
+  setStatus('DIAGNOSTIC READY','ok'); closePanel();
+}
+function closePanel()   { document.getElementById('info-panel').classList.remove('open'); }
+function toggleRotate() {
+  autoRotate=!autoRotate;
+  document.getElementById('btn-rotate').classList.toggle('active',autoRotate);
+  if(!autoRotate) orbit.targetTheta=orbit.theta;
+}
+function resetCamera()  {
+  autoRotate=true; carRotY=0;
+  orbit.targetPhi=1.1; orbit.targetTheta=0; orbit.targetRadius=4;
+  document.getElementById('btn-rotate').classList.add('active');
+}
+function toggleSensors(){
+  sensorsVisible=!sensorsVisible;
+  document.getElementById('btn-sensors').classList.toggle('active',sensorsVisible);
+  document.querySelectorAll('.sensor-dot').forEach(d=>{ d.style.display=sensorsVisible?'block':'none'; });
+}
+function updateDTC(codes){
+  clearAllFaults(); if(!codes||!codes.length) return;
+  codes.forEach(code=>{
+    Object.entries(sensorDB).forEach(([key,s])=>{
+      const match=s.codes.find(c=>c.code===code);
+      if(match){ activeFaults[key]=match; setDotState(key,match.severity); document.getElementById('test-'+key).className='test-btn '+match.severity; }
+    });
+  });
+  updateStatusBar();
+}
+
+initThree();
+
+// ── Leaflet + OpenStreetMap dark background (no API key needed) ──
+const leafletCSS = document.createElement('link');
+leafletCSS.rel = 'stylesheet';
+leafletCSS.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+document.head.appendChild(leafletCSS);
+
+const leafletScript = document.createElement('script');
+leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+leafletScript.onload = () => {
+  const leafMap = L.map('map', {
+    center: [42.3762, -71.2368],
+    zoom: 17,
+    zoomControl: false,
+    attributionControl: false,
+    dragging: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    touchZoom: false,
+  });
+
+  // dark tile layer from CartoDB
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+  }).addTo(leafMap);
+};
+document.head.appendChild(leafletScript);
+</script>
+</body>
+</html>

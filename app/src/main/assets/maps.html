@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#fff; overflow:hidden; font-family:'Share Tech Mono',monospace; }
+
+#map { position:fixed; inset:0; }
+
+/* CP2077 red overlay filter on map */
+#map-tint { position:fixed; inset:0; background:rgba(80,0,0,0.18); pointer-events:none; z-index:5; mix-blend-mode:multiply; }
+.scanlines { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px); pointer-events:none; z-index:6; }
+
+/* HUD overlay */
+.hud { position:fixed; top:0; left:0; right:0; z-index:20; pointer-events:none; }
+.hud-bar { background:rgba(0,0,0,0.75); border-bottom:1px solid #cc110033; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; }
+.hud-title { font-family:'Orbitron',monospace; font-size:13px; color:#cc2200; letter-spacing:3px; }
+.hud-coords { font-size:10px; color:#ffffff44; letter-spacing:1px; }
+.hud-speed { font-family:'Orbitron',monospace; font-size:13px; color:#cc1100; letter-spacing:2px; }
+
+/* Speed + accuracy bubble */
+.speed-bubble { position:fixed; bottom:80px; left:16px; z-index:20; background:rgba(0,0,0,0.85); border:1px solid #cc110033; padding:10px 14px; text-align:center; }
+.sb-val { font-family:'Orbitron',monospace; font-size:32px; color:#cc1100; line-height:1; }
+.sb-unit { font-size:9px; color:#cc110066; letter-spacing:2px; margin-top:2px; }
+
+/* Accuracy dot */
+.acc-dot { position:fixed; bottom:80px; right:16px; z-index:20; background:rgba(0,0,0,0.85); border:1px solid #cc110033; padding:8px 12px; font-size:10px; color:#ffffff55; letter-spacing:1px; text-align:center; }
+.acc-val { font-size:11px; color:#00ff41; }
+
+/* Search bar */
+.search-wrap { position:fixed; top:60px; left:16px; right:16px; z-index:20; display:flex; gap:8px; }
+.search-input { flex:1; background:rgba(0,0,0,0.88); border:1px solid #cc110044; color:#ffffffcc; font-family:'Share Tech Mono',monospace; font-size:13px; padding:8px 12px; letter-spacing:1px; outline:none; }
+.search-input::placeholder { color:#ffffff33; }
+.search-input:focus { border-color:#cc2200; }
+.search-btn { background:transparent; border:1px solid #cc110066; color:#cc1100; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:2px; padding:8px 14px; cursor:pointer; white-space:nowrap; }
+.search-btn:hover { border-color:#cc2200; color:#cc2200; }
+
+/* Search results */
+.search-results { position:fixed; top:108px; left:16px; right:16px; z-index:20; background:rgba(0,0,0,0.95); border:1px solid #cc110033; display:none; max-height:200px; overflow-y:auto; }
+.search-result { padding:10px 12px; border-bottom:1px solid #cc110011; cursor:pointer; font-size:11px; color:#ffffffaa; letter-spacing:1px; line-height:1.5; }
+.search-result:hover { background:rgba(204,34,0,0.1); color:#cc2200; }
+.search-result .sr-name { color:#ffffffcc; }
+.search-result .sr-addr { font-size:10px; color:#ffffff44; margin-top:2px; }
+
+/* Control buttons */
+.map-controls { position:fixed; right:16px; top:50%; transform:translateY(-50%); z-index:20; display:flex; flex-direction:column; gap:6px; }
+.map-btn { background:rgba(0,0,0,0.88); border:1px solid #cc110033; color:#cc110077; font-family:'Share Tech Mono',monospace; font-size:14px; width:40px; height:40px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+.map-btn:hover { border-color:#cc2200; color:#cc2200; }
+
+/* Route info bar */
+.route-bar { position:fixed; bottom:16px; left:16px; right:16px; z-index:20; background:rgba(0,0,0,0.88); border:1px solid #cc110033; padding:10px 14px; display:none; }
+.rb-dest { font-size:11px; color:#cc1100; letter-spacing:2px; margin-bottom:4px; }
+.rb-info { display:flex; gap:20px; }
+.rb-item { font-size:10px; color:#ffffff55; letter-spacing:1px; }
+.rb-item span { color:#ffffffcc; font-family:'Orbitron',monospace; font-size:12px; }
+.rb-clear { float:right; background:transparent; border:1px solid #cc110033; color:#cc110055; font-family:'Share Tech Mono',monospace; font-size:10px; padding:3px 8px; cursor:pointer; }
+.rb-clear:hover { border-color:#cc2200; color:#cc2200; }
+
+/* Center on me button */
+.center-btn { position:fixed; right:16px; bottom:80px; z-index:20; background:rgba(0,0,0,0.88); border:1px solid #cc110044; color:#cc110077; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1px; padding:8px 12px; cursor:pointer; }
+.center-btn:hover { border-color:#cc2200; color:#cc2200; }
+
+/* Custom marker */
+.user-marker {
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#cc2200;
+  border:2px solid #ff4422;
+  box-shadow:0 0 0 0 rgba(204,34,0,0.7);
+  animation:marker-pulse 2s ease-out infinite;
+  cursor:default;
+}
+@keyframes marker-pulse {
+  0%   { box-shadow:0 0 0 0 rgba(204,34,0,0.7); }
+  70%  { box-shadow:0 0 0 14px rgba(204,34,0,0); }
+  100% { box-shadow:0 0 0 0 rgba(204,34,0,0); }
+}
+
+/* Error msg */
+.error-msg { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.9); border:1px solid #cc220044; padding:16px 24px; z-index:30; font-size:12px; color:#cc1100; letter-spacing:1px; text-align:center; display:none; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="map-tint"></div>
+<div class="scanlines"></div>
+
+<div class="hud">
+  <div class="hud-bar">
+    <div class="hud-title">NAV</div>
+    <div class="hud-coords" id="hud-coords">ACQUIRING GPS...</div>
+    <div class="hud-speed"><span id="hud-spd">0</span> MPH</div>
+  </div>
+</div>
+
+<div class="search-wrap">
+  <input class="search-input" id="search-input" type="text" placeholder="SEARCH DESTINATION..." autocomplete="off">
+  <button class="search-btn" onclick="doSearch()">[ GO ]</button>
+</div>
+<div class="search-results" id="search-results"></div>
+
+<div class="speed-bubble">
+  <div class="sb-val" id="speed-val">0</div>
+  <div class="sb-unit">MPH</div>
+</div>
+
+<div class="acc-dot">
+  <div>GPS</div>
+  <div class="acc-val" id="acc-val">—</div>
+</div>
+
+<div class="map-controls">
+  <button class="map-btn" onclick="map.zoomIn()" title="Zoom In">+</button>
+  <button class="map-btn" onclick="map.zoomOut()" title="Zoom Out">−</button>
+  <button class="map-btn" onclick="toggleTilt()" title="Toggle 3D">3D</button>
+  <button class="map-btn" onclick="toggleStyle()" title="Toggle Style">★</button>
+</div>
+
+<button class="center-btn" id="center-btn" onclick="centerOnMe()">[ ◎ CENTER ]</button>
+
+<div class="route-bar" id="route-bar">
+  <button class="rb-clear" onclick="clearRoute()">[ × ]</button>
+  <div class="rb-dest" id="rb-dest">—</div>
+  <div class="rb-info">
+    <div class="rb-item">DISTANCE <span id="rb-dist">—</span></div>
+    <div class="rb-item">ETA <span id="rb-eta">—</span></div>
+  </div>
+</div>
+
+<div class="error-msg" id="error-msg"></div>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoibWFya2hleW1hbm4iLCJhIjoiY21tejRoaXg5MDR4czJvcHp4YWF0bTg2byJ9.rla6beZVPZpv-ms6742DsQ';
+
+// CP2077 dark style
+const STYLES = [
+  'mapbox://styles/mapbox/streets-v12',
+  'mapbox://styles/mapbox/navigation-night-v1',
+  'mapbox://styles/mapbox/satellite-streets-v12'
+];
+let styleIdx = 0;
+
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: STYLES[0],
+  center: [-71.2340, 42.3765], // Waltham MA default
+  zoom: 14,
+  pitch: 0,
+  bearing: 0,
+  scrollZoom: true,
+});
+
+// User location marker
+let userMarker = null;
+let userCoords = null;
+let watchId = null;
+let routeDestCoords = null;
+let tiltOn = false;
+
+// Start watching GPS
+function startGPS(){
+  if(!navigator.geolocation){
+    showError('GPS NOT AVAILABLE');
+    return;
+  }
+  watchId = navigator.geolocation.watchPosition(
+    onPosition,
+    onGPSError,
+    { enableHighAccuracy:true, maximumAge:1000, timeout:10000 }
+  );
+}
+
+function onPosition(pos){
+  const { latitude:lat, longitude:lng, speed, accuracy } = pos.coords;
+  userCoords = [lng, lat];
+
+  // Speed in MPH
+  const mph = speed ? Math.round(speed * 2.23694) : 0;
+  document.getElementById('speed-val').textContent = mph;
+  document.getElementById('hud-spd').textContent = mph;
+  document.getElementById('hud-coords').textContent =
+    lat.toFixed(5) + ', ' + lng.toFixed(5);
+  document.getElementById('acc-val').textContent =
+    Math.round(accuracy) + 'M';
+
+  // Update or create marker
+  if(!userMarker){
+    const el = document.createElement('div');
+    el.className = 'user-marker';
+    userMarker = new mapboxgl.Marker({element:el})
+      .setLngLat(userCoords)
+      .addTo(map);
+    map.setCenter(userCoords);
+  } else {
+    userMarker.setLngLat(userCoords);
+  }
+
+  // Rotate map to heading if moving
+  if(pos.coords.heading && mph > 5){
+    map.setBearing(pos.coords.heading);
+  }
+}
+
+function onGPSError(err){
+  document.getElementById('hud-coords').textContent = 'GPS ERROR: ' + err.message.toUpperCase();
+  document.getElementById('acc-val').textContent = 'ERR';
+}
+
+function centerOnMe(){
+  if(userCoords) map.flyTo({ center:userCoords, zoom:15, speed:1.5 });
+}
+
+function toggleTilt(){
+  tiltOn = !tiltOn;
+  map.easeTo({ pitch: tiltOn ? 60 : 0, duration:600 });
+}
+
+function toggleStyle(){
+  styleIdx = (styleIdx + 1) % STYLES.length;
+  map.setStyle(STYLES[styleIdx]);
+  // Re-add route after style change
+  map.once('style.load', ()=>{ if(routeDestCoords) drawRoute(routeDestCoords); });
+}
+
+// ============ SEARCH ============
+async function doSearch(){
+  const q = document.getElementById('search-input').value.trim();
+  if(!q) return;
+
+  const center = userCoords ? userCoords.join(',') : '-71.2340,42.3765';
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?proximity=${center}&country=US&access_token=${mapboxgl.accessToken}`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    showResults(data.features || []);
+  } catch(e){
+    showError('SEARCH FAILED');
+  }
+}
+
+// Autocomplete on keystroke with debounce
+let searchTimeout = null;
+document.getElementById('search-input').addEventListener('input', e=>{
+  clearTimeout(searchTimeout);
+  const q = e.target.value.trim();
+  if(q.length < 2){ document.getElementById('search-results').style.display='none'; return; }
+  searchTimeout = setTimeout(()=> doSearch(), 300);
+});
+
+document.getElementById('search-input').addEventListener('keydown', e=>{
+  if(e.key==='Enter') doSearch();
+});
+
+// Autocomplete as you type
+let acTimeout = null;
+document.getElementById('search-input').addEventListener('input', e=>{
+  clearTimeout(acTimeout);
+  const q = e.target.value.trim();
+  if(q.length < 3){ document.getElementById('search-results').style.display='none'; return; }
+  acTimeout = setTimeout(()=> doSearch(), 350);
+});
+
+function showResults(features){
+  const el = document.getElementById('search-results');
+  el.innerHTML = '';
+  if(!features.length){
+    el.innerHTML = '<div class="search-result">NO RESULTS</div>';
+    el.style.display = 'block';
+    return;
+  }
+  features.slice(0,5).forEach(f=>{
+    const row = document.createElement('div');
+    row.className = 'search-result';
+    row.innerHTML = `<div class="sr-name">${f.text}</div><div class="sr-addr">${f.place_name}</div>`;
+    row.onclick = () => selectDest(f);
+    el.appendChild(row);
+  });
+  el.style.display = 'block';
+}
+
+function selectDest(feature){
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('search-input').value = feature.place_name;
+  const coords = feature.center;
+  map.flyTo({ center:coords, zoom:14 });
+  routeDestCoords = coords;
+  drawRoute(coords);
+  document.getElementById('rb-dest').textContent = feature.text.toUpperCase();
+  document.getElementById('route-bar').style.display = 'block';
+}
+
+// ============ ROUTING ============
+async function drawRoute(destCoords){
+  if(!userCoords){ showError('GPS REQUIRED FOR ROUTING'); return; }
+
+  const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${userCoords[0]},${userCoords[1]};${destCoords[0]},${destCoords[1]}?geometries=geojson&overview=full&access_token=${mapboxgl.accessToken}`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if(!data.routes || !data.routes.length){ showError('NO ROUTE FOUND'); return; }
+
+    const route = data.routes[0];
+    const distMi = (route.distance * 0.000621371).toFixed(1);
+    const etaMin = Math.round(route.duration / 60);
+    document.getElementById('rb-dist').textContent = distMi + ' MI';
+    document.getElementById('rb-eta').textContent = etaMin + ' MIN';
+
+    // Remove existing route layer
+    if(map.getSource('route')) map.removeLayer('route-line').removeSource('route');
+
+    map.addSource('route', { type:'geojson', data:{ type:'Feature', geometry:route.geometry } });
+    map.addLayer({
+      id:'route-line',
+      type:'line',
+      source:'route',
+      layout:{ 'line-join':'round', 'line-cap':'round' },
+      paint:{
+        'line-color':'#cc2200',
+        'line-width':5,
+        'line-opacity':0.85,
+        'line-blur':0.5
+      }
+    });
+
+    // Fit map to route
+    const coords = route.geometry.coordinates;
+    const bounds = coords.reduce((b,c)=>b.extend(c), new mapboxgl.LngLatBounds(coords[0],coords[0]));
+    map.fitBounds(bounds, { padding:60 });
+
+  } catch(e){
+    showError('ROUTING FAILED');
+  }
+}
+
+function clearRoute(){
+  routeDestCoords = null;
+  document.getElementById('route-bar').style.display = 'none';
+  document.getElementById('search-input').value = '';
+  if(map.getSource('route')){
+    map.removeLayer('route-line');
+    map.removeSource('route');
+  }
+}
+
+function showError(msg){
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(()=>el.style.display='none', 3000);
+}
+
+// Hide search results when clicking map
+map.on('click', ()=>{ document.getElementById('search-results').style.display='none'; });
+
+// Start GPS on load
+map.on('load', startGPS);
+</script>
+</body>
+</html>
