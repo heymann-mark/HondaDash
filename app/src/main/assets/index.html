@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
@@ -36,6 +37,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
 <iframe id="frame-maps" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-music" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-datalog" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-trips" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-hondata" class="page-frame" src="about:blank"></iframe>
 
 <nav class="app-nav">
@@ -44,6 +46,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
   <button class="nav-btn" onclick="switchPage('maps')">MAPS</button>
   <button class="nav-btn" onclick="switchPage('music')">MUSIC</button>
   <button class="nav-btn" onclick="switchPage('datalog')">DATALOG</button>
+  <button class="nav-btn" onclick="switchPage('trips')">TRIPS</button>
   <button class="nav-btn" onclick="switchPage('hondata')">HONDATA</button>
 </nav>
 
@@ -54,12 +57,13 @@ const pages = {
   maps:    { src:'streetview.html',  loaded:false },
   music:   { src:'music.html',      loaded:false },
   datalog: { src:'datalog.html',    loaded:false },
+  trips:   { src:'trips.html',      loaded:false },
   hondata: { src:'hondata.html',    loaded:false }
 };
 
 let currentPage = 'gauges';
 
-// Handle Spotify auth callback — if we landed here with a ?code=, pass it to music page
+// Handle Spotify auth callback  -  if we landed here with a ?code=, pass it to music page
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('code')) {
   // Load music iframe with the auth code

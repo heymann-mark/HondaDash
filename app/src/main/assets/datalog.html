@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
@@ -74,7 +75,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech
 
 <div class="status-bar">
   <div class="status-dot" id="conn-dot"></div>
-  <div class="status-text" id="conn-text">FLASHPRO NOT CONNECTED — SIMULATED DATA</div>
+  <div class="status-text" id="conn-text">FLASHPRO NOT CONNECTED  -  SIMULATED DATA</div>
   <div class="status-dot" id="rec-dot"></div>
   <div class="status-time" id="rec-time">00:00.0</div>
 </div>
@@ -225,7 +226,7 @@ function updateGauges() {
   if (params.rpm.val > 7500) document.getElementById('gb-rpm').style.background = '#ff0000';
   else document.getElementById('gb-rpm').style.background = '#cc2200';
 
-  // AFR — green when stoich, red when rich/lean
+  // AFR  -  green when stoich, red when rich/lean
   document.getElementById('g-afr').textContent = params.afr.val;
   const afrPct = ((params.afr.val - 10) / 10) * 100;
   document.getElementById('gb-afr').style.width = afrPct + '%';
@@ -354,8 +355,8 @@ function saveLog() {
   a.download = 'datalog_' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.csv';
   a.click();
   URL.revokeObjectURL(url);
-  document.getElementById('conn-text').textContent = 'LOG SAVED — ' + recLog.length + ' SAMPLES';
-  setTimeout(() => { document.getElementById('conn-text').textContent = 'FLASHPRO NOT CONNECTED — SIMULATED DATA'; }, 3000);
+  document.getElementById('conn-text').textContent = 'LOG SAVED  -  ' + recLog.length + ' SAMPLES';
+  setTimeout(() => { document.getElementById('conn-text').textContent = 'FLASHPRO NOT CONNECTED  -  SIMULATED DATA'; }, 3000);
 }
 
 // Called by Kotlin when FlashPro sends real data

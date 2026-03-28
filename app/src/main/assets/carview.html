@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700&display=swap');
@@ -138,7 +139,7 @@ canvas { display:block; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 
-// SENSOR DATABASE — real Honda K20 DTC codes with severity and effects
+// SENSOR DATABASE  -  real Honda K20 DTC codes with severity and effects
 const sensorDB = {
   o2: {
     name: 'O2 SENSOR (Secondary)',
@@ -170,7 +171,7 @@ const sensorDB = {
     pos: {x:0.1, y:0.55, z:0.85},
     codes: [
       { code:'P0122', severity:'critical', desc:'Throttle position sensor circuit low input. Signal voltage below 0.17V.', effect:'ECU cannot read throttle position. May cause stalling, hesitation, or limp mode. Unsafe to drive.' },
-      { code:'P0123', severity:'critical', desc:'Throttle position sensor circuit high input. Signal voltage above 4.80V.', effect:'ECU may command full throttle. Dangerous — vehicle may accelerate unexpectedly. Stop driving immediately.' },
+      { code:'P0123', severity:'critical', desc:'Throttle position sensor circuit high input. Signal voltage above 4.80V.', effect:'ECU may command full throttle. Dangerous  -  vehicle may accelerate unexpectedly. Stop driving immediately.' },
       { code:'P0121', severity:'warning', desc:'Throttle position sensor range/performance problem. Signal inconsistent with MAP sensor reading.', effect:'Hesitation on acceleration. Temporary fuel enrichment disabled. Possible stalling under load.' },
     ]
   },
@@ -180,7 +181,7 @@ const sensorDB = {
     val: '14.2 psi',
     pos: {x:0.2, y:0.55, z:0.85},
     codes: [
-      { code:'P0107', severity:'critical', desc:'MAP sensor circuit low input. Voltage below 0.25V — sensor may be unplugged or shorted.', effect:'ECU assumes sea level pressure. Fueling severely off. Rough running, possible stalling, no power.' },
+      { code:'P0107', severity:'critical', desc:'MAP sensor circuit low input. Voltage below 0.25V  -  sensor may be unplugged or shorted.', effect:'ECU assumes sea level pressure. Fueling severely off. Rough running, possible stalling, no power.' },
       { code:'P0108', severity:'critical', desc:'MAP sensor circuit high input. Voltage above 4.90V.', effect:'ECU thinks boost/vacuum is extreme. Severe over-fueling, black smoke, catalytic converter damage.' },
       { code:'P0106', severity:'warning', desc:'MAP sensor range/performance problem. Signal not matching expected values at current RPM and load.', effect:'Inaccurate fueling at load. Hesitation, poor fuel economy. May not be driveable under hard acceleration.' },
     ]
@@ -191,7 +192,7 @@ const sensorDB = {
     val: 'INACTIVE',
     pos: {x:0.1, y:0.55, z:1.25},
     codes: [
-      { code:'P2646', severity:'critical', desc:'VTEC rocker arm oil pressure switch circuit low voltage. Switch stuck off or no oil pressure detected at VTEC circuit.', effect:'VTEC will not engage. Power loss above 5500 RPM. Possible insufficient oil pressure at valvetrain — fix immediately to avoid engine damage.' },
+      { code:'P2646', severity:'critical', desc:'VTEC rocker arm oil pressure switch circuit low voltage. Switch stuck off or no oil pressure detected at VTEC circuit.', effect:'VTEC will not engage. Power loss above 5500 RPM. Possible insufficient oil pressure at valvetrain  -  fix immediately to avoid engine damage.' },
       { code:'P2647', severity:'critical', desc:'VTEC rocker arm oil pressure switch circuit high voltage. Switch stuck on or short circuit detected.', effect:'VTEC may engage at wrong RPM. Valvetrain instability possible. Risk of engine damage if oil pressure is actually low.' },
     ]
   },
@@ -202,7 +203,7 @@ const sensorDB = {
     pos: {x:-0.1, y:0.15, z:1.0},
     codes: [
       { code:'P0325', severity:'warning', desc:'Knock sensor circuit malfunction (Bank 1). Sensor signal not within expected range.', effect:'ECU switches to low-octane ignition timing map as a precaution. Significant power loss, poor fuel economy.' },
-      { code:'P0326', severity:'warning', desc:'Knock sensor range/performance problem. Sensor detecting implausible signal levels.', effect:'Same as P0325 — ECU retards timing. Vehicle safe to drive but performance greatly reduced.' },
+      { code:'P0326', severity:'warning', desc:'Knock sensor range/performance problem. Sensor detecting implausible signal levels.', effect:'Same as P0325  -  ECU retards timing. Vehicle safe to drive but performance greatly reduced.' },
     ]
   }
 };
@@ -362,7 +363,7 @@ function showSensor(key){
   s.codes.forEach(c => {
     const div = document.createElement('div');
     div.className = 'info-code-item' + (fault && fault.code===c.code ? ' active-code' : '');
-    div.textContent = c.code + ' — ' + c.desc.substring(0, 50) + '...';
+    div.textContent = c.code + '  -  ' + c.desc.substring(0, 50) + '...';
     div.onclick = () => showSpecificCode(key, c.code);
     list.appendChild(div);
   });

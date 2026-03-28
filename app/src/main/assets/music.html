@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <script src="config.js"></script>
 <style>
@@ -525,7 +526,7 @@ function homeSearch(q){
       data.tracks.items.forEach(t=>{
         if(!t)return;
         const img=t.album.images[2]||t.album.images[0];
-        h+=`<div class="home-card" onclick="playTrack('${esc(t.uri)}')"><img class="home-card-art" src="${img?esc(img.url):''}"><div class="home-card-name">${esc(t.name)} — ${esc(t.artists[0].name)}</div></div>`;
+        h+=`<div class="home-card" onclick="playTrack('${esc(t.uri)}')"><img class="home-card-art" src="${img?esc(img.url):''}"><div class="home-card-name">${esc(t.name)}  -  ${esc(t.artists[0].name)}</div></div>`;
       });
     }
     if(data.playlists&&data.playlists.items.length){
@@ -581,7 +582,7 @@ async function loadHome(){
   }
 
   // Featured playlists (New Music Friday etc)
-  // Featured — search for popular playlists since featured endpoint is deprecated
+  // Featured  -  search for popular playlists since featured endpoint is deprecated
   const feat=await spAPI('/search?q=New+Music+Friday&type=playlist&limit=10');
   if(feat&&feat.playlists&&feat.playlists.items){
     document.getElementById('featured-title').textContent="New Music Friday & more";
@@ -648,7 +649,7 @@ async function loadHome(){
     } else fillRow('top-artists-row',null);
   }catch(e){fillRow('top-artists-row',null);}
 
-  // Browse — use search for genre playlists since browse endpoint may be deprecated
+  // Browse  -  use search for genre playlists since browse endpoint may be deprecated
   try{
     const genres=['Pop','Rock','Hip-Hop','R&B','Electronic','Country','Jazz','Classical','Indie','Latin'];
     let html='';
@@ -659,7 +660,7 @@ async function loadHome(){
     fillRow('categories-grid',html);
   }catch(e){fillRow('categories-grid',null);}
 
-  // New releases — use search for new albums since browse endpoint is deprecated
+  // New releases  -  use search for new albums since browse endpoint is deprecated
   try{
     const nr=await spAPI('/search?q=tag:new&type=album&limit=15');
     if(nr&&nr.albums&&nr.albums.items&&nr.albums.items.length){

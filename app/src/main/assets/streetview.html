@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.17.0/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.17.0/mapbox-gl.js"></script>
@@ -282,7 +283,7 @@ function initMap() {
       imports: [{
         id: 'basemap',
         url: 'mapbox://styles/mapbox/standard',
-        config: { lightPreset: 'day', showRoadLabels: true, showPointOfInterestLabels: false }
+        config: { lightPreset: 'night', showRoadLabels: true, showPointOfInterestLabels: false }
       }],
       sources: {
         'route-source': {
@@ -438,8 +439,8 @@ function initMap() {
           brakeSrc.setModels({ 'civic-brake': { uri: CAR_MODEL_BRAKE, position: carPos, orientation: carOri } });
         }
 
-        // Waze-style follow: offset center forward so car sits in lower third
-        const offsetMeters = 120;
+        // Waze-style follow: offset scales with zoom so car stays in lower third
+        const offsetMeters = 120 * Math.pow(2, 17 - camZoom);
         const bRad2 = (carBearing + camOrbitY) * Math.PI / 180;
         const oLngCam = (offsetMeters / 111320) * Math.sin(bRad2) / Math.cos(carLat * Math.PI / 180);
         const oLatCam = (offsetMeters / 110540) * Math.cos(bRad2);

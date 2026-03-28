@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
@@ -151,7 +152,7 @@ html.redlining .rl-warn { opacity:1 !important; }
 <!-- GAUGE PICKER BUTTON -->
 <button class="picker-btn" id="picker-btn" onclick="openPicker()">⚙ GAUGES</button>
 
-<!-- GAUGE GRID — built dynamically -->
+<!-- GAUGE GRID  -  built dynamically -->
 <div class="gauge-grid" id="gauge-grid"></div>
 
 <!-- GAUGE PICKER SIDEBAR -->
@@ -256,7 +257,7 @@ function rebuildGrid(){
 
   grid.innerHTML = '';
 
-  // RPM box — always first, full width
+  // RPM box  -  always first, full width
   const rpmBox = buildRPMBox();
   rpmBox.style.gridColumn = `1 / -1`;
   grid.appendChild(rpmBox);
@@ -321,7 +322,7 @@ function buildGaugeBox(def){
     <div class="g-corner bl"></div><div class="g-corner br"></div>
     <div class="gbox-live" id="live-${def.id}" style="opacity:1;">
       <div class="g-label">${def.label}</div>
-      <div class="g-val" id="val-${def.id}">—</div>
+      <div class="g-val" id="val-${def.id}">--</div>
       <div class="g-unit">${def.unit}</div>
       <div class="g-bar-track"><div class="g-bar-fill" id="bar-${def.id}" style="width:0%"></div></div>
     </div>
@@ -565,7 +566,7 @@ function updateGauges(r,s,c,t,o2,ia,ig,sf,lf,bv,id){
   setC('val-clt', c>215?'#ff4400':'#cc1100');
   setC('val-batt', bv<12.5?'#ff4400':'#cc1100');
 
-  // INJECTOR FIRING — K20Z3 firing order: 1-3-4-2
+  // INJECTOR FIRING  -  K20Z3 firing order: 1-3-4-2
   updateInjectors(r, r>=VTEC_RPM);
 
   // RPM bars

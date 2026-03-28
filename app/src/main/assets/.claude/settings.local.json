@@ -10,7 +10,11 @@
       "Bash(mv \"app/src/main/assets/479f88-2008+Honda+Civic+Type+R+\\(FD2\\)V1.3.rar\" scratch/)",
       "Bash(mv \"app/src/main/assets/AceSetup.exe\" scratch/)",
       "Bash(mv \"app/src/main/assets/honda--civic--sedan-2009.zip\" scratch/)",
-      "Bash(mv \"app/src/main/assets/K24.stl\" scratch/)"
+      "Bash(mv \"app/src/main/assets/K24.stl\" scratch/)",
+      "Bash(cd:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(python -c \":*)",
+      "Bash(python:*)"
     ]
   }
 }

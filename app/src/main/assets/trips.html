@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
-<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.17.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.17.0/mapbox-gl.js"></script>
+<script src="config.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -60,7 +62,11 @@ body{background:#0a0000;overflow:hidden;font-family:'Share Tech Mono',monospace;
 .dp-back{background:transparent;border:1px solid #cc110044;color:#cc110088;font-family:'Share Tech Mono',monospace;font-size:11px;padding:5px 10px;cursor:pointer;letter-spacing:1px;}
 .dp-back:hover{border-color:#cc2200;color:#cc2200;}
 .dp-title{font-family:'Orbitron',monospace;font-size:11px;color:#cc1100;letter-spacing:2px;}
-#dp-map{height:220px;width:100%;background:#050000;}
+#dp-map{height:50vh;width:100%;background:#050000;transition:height 0.3s;}
+#dp-map.expanded{height:85vh;}
+.dp-drag{width:100%;padding:12px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#0a0000;border-bottom:1px solid #cc110022;}
+.dp-drag::after{content:'';display:block;width:50px;height:5px;background:#ffffff33;border-radius:3px;}
+.dp-drag:hover::after{background:#cc2200;}
 .dp-body{padding:12px 16px;}
 .dp-section{margin-bottom:16px;}
 .dp-sec-title{font-size:9px;color:#cc110055;letter-spacing:3px;margin-bottom:8px;border-bottom:1px solid #cc110022;padding-bottom:4px;}
@@ -122,6 +128,7 @@ body{background:#0a0000;overflow:hidden;font-family:'Share Tech Mono',monospace;
     <div class="dp-title" id="dp-title">TRIP DETAILS</div>
   </div>
   <div id="dp-map"></div>
+  <div class="dp-drag" onclick="toggleMapSize()"></div>
   <div class="dp-body" id="dp-body"></div>
 </div>
 
@@ -140,7 +147,7 @@ body{background:#0a0000;overflow:hidden;font-family:'Share Tech Mono',monospace;
 </div>
 
 <script>
-mapboxgl.accessToken = 'pk.eyJ1IjoibWFya2hleW1hbm4iLCJhIjoiY21tejRoaXg5MDR4czJvcHp4YWF0bTg2byJ9.rla6beZVPZpv-ms6742DsQ';
+mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const STORAGE_KEY = 'hondadash_trips_v2';
 function loadTrips(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); }catch(e){ return []; } }
@@ -366,7 +373,7 @@ function renderTripList(){
 function renderThumbnail(trip, containerId){
   const el = document.getElementById(containerId);
   if(!el || !trip.path || trip.path.length < 2) {
-    // No path — show placeholder
+    // No path  -  show placeholder
     if(el) el.style.background='#050000';
     return;
   }
@@ -422,7 +429,7 @@ function openDetail(trip){
       <div class="dp-grid">
         <div class="dp-stat"><div class="dp-stat-val">${trip.maxCoolant}</div><div class="dp-stat-lbl">MAX COOLANT °F</div></div>
         <div class="dp-stat"><div class="dp-stat-val">${new Date(trip.startTime).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</div><div class="dp-stat-lbl">START</div></div>
-        <div class="dp-stat"><div class="dp-stat-val">${trip.endTime?new Date(trip.endTime).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'—'}</div><div class="dp-stat-lbl">END</div></div>
+        <div class="dp-stat"><div class="dp-stat-val">${trip.endTime?new Date(trip.endTime).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):' - '}</div><div class="dp-stat-lbl">END</div></div>
       </div>
     </div>`;
 
@@ -454,6 +461,12 @@ function openDetail(trip){
       document.getElementById('dp-map').innerHTML = '<div style="height:220px;display:flex;align-items:center;justify-content:center;color:#ffffff22;font-size:11px;letter-spacing:2px;">NO GPS PATH RECORDED</div>';
     }
   }, 350);
+}
+
+function toggleMapSize(){
+  const map=document.getElementById('dp-map');
+  map.classList.toggle('expanded');
+  if(detailMap)setTimeout(()=>detailMap.resize(),350);
 }
 
 function closeDetail(){
