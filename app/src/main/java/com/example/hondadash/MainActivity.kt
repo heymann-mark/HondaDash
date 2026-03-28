@@ -2,6 +2,7 @@ package com.example.hondadash
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebChromeClient
@@ -38,6 +39,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WebView.setWebContentsDebuggingEnabled(true)
+
         val root = FrameLayout(this)
         root.setBackgroundColor(Color.parseColor("#0a0000"))
 
@@ -55,27 +57,22 @@ class MainActivity : ComponentActivity() {
             ViewGroup.LayoutParams.MATCH_PARENT
         ).also { it.bottomMargin = NAV_HEIGHT }
 
-        // GAUGES
         dashWebView = createAssetWebView()
         dashWebView.loadUrl("file:///android_asset/dashboard.html")
         root.addView(dashWebView, wvLP())
 
-        // VEHICLE — full internet WebView with GLB asset interceptor
         carWebView = createCarWebView()
         carWebView.visibility = android.view.View.GONE
         root.addView(carWebView, wvLP())
 
-        // ENGINE
         engineWebView = createAssetWebView()
         engineWebView.visibility = android.view.View.GONE
         root.addView(engineWebView, wvLP())
 
-        // MAPS
         mapsWebView = createInternetWebView()
         mapsWebView.visibility = android.view.View.GONE
         root.addView(mapsWebView, wvLP())
 
-        // TRIPS
         tripsWebView = createInternetWebView()
         tripsWebView.visibility = android.view.View.GONE
         root.addView(tripsWebView, wvLP())
@@ -100,7 +97,7 @@ class MainActivity : ComponentActivity() {
 
         when (screen) {
             "car" -> if (!carLoaded) {
-                val html = assets.open("streetview.html").bufferedReader().readText()
+                val html = assets.open("carview.html").bufferedReader().readText()
                 carWebView.loadDataWithBaseURL("https://localhost/", html, "text/html", "UTF-8", null)
                 carLoaded = true
             }
@@ -109,7 +106,8 @@ class MainActivity : ComponentActivity() {
                 engineLoaded = true
             }
             "maps" -> if (!mapsLoaded) {
-                mapsWebView.loadUrl("file:///android_asset/maps.html")
+                val html = assets.open("streetview.html").bufferedReader().readText()
+                mapsWebView.loadDataWithBaseURL("https://localhost/", html, "text/html", "UTF-8", null)
                 mapsLoaded = true
             }
             "trips" -> if (!tripsLoaded) {
@@ -128,8 +126,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // VEHICLE WebView — identical to internet WebView but intercepts .glb and GLTFLoader.js from assets.
-    // Everything else (Mapbox tiles, CDN scripts) hits the internet normally.
     @SuppressLint("SetJavaScriptEnabled")
     private fun createCarWebView(): WebView {
         val wv = WebView(this)
@@ -155,14 +151,18 @@ class MainActivity : ComponentActivity() {
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                 val url = request.url.toString()
                 val fileName = url.substringAfterLast("/").substringBefore("?")
+                Log.d("INTERCEPT", "url=$url fileName=$fileName")
+
                 val isLocalAsset = fileName.endsWith(".glb") || fileName == "GLTFLoader.js"
                 if (!isLocalAsset) return super.shouldInterceptRequest(view, request)
+
                 return try {
+                    Log.d("INTERCEPT", "Serving from assets: $fileName")
                     val stream: InputStream = assets.open(fileName)
                     val mime = when {
                         fileName.endsWith(".glb") -> "model/gltf-binary"
                         fileName.endsWith(".js")  -> "application/javascript"
-                        else -> "application/octet-stream"
+                        else                      -> "application/octet-stream"
                     }
                     WebResourceResponse(mime, "UTF-8", 200, "OK",
                         mapOf(
@@ -173,6 +173,7 @@ class MainActivity : ComponentActivity() {
                         stream
                     )
                 } catch (e: Exception) {
+                    Log.e("INTERCEPT", "Failed to open asset: $fileName — ${e.message}")
                     super.shouldInterceptRequest(view, request)
                 }
             }
@@ -210,7 +211,7 @@ class MainActivity : ComponentActivity() {
                         fileName.endsWith(".png")  -> "image/png"
                         fileName.endsWith(".jpg")  -> "image/jpeg"
                         fileName.endsWith(".mp3")  -> "audio/mpeg"
-                        else -> "application/octet-stream"
+                        else                       -> "application/octet-stream"
                     }
                     WebResourceResponse(mime, "UTF-8", 200, "OK",
                         mapOf("Access-Control-Allow-Origin" to "*", "Cache-Control" to "no-cache"),

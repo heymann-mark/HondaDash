@@ -5,7 +5,7 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700&display=swap');
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:#0a0000; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; }
+body { background:#020008 url(sky.png) center 20% / 100% auto no-repeat; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; }
 canvas { display:block; }
 .scanlines { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 4px); pointer-events:none; z-index:10; }
 
@@ -144,7 +144,7 @@ const sensorDB = {
     name: 'O2 SENSOR (Secondary)',
     location: 'Exhaust manifold, downstream of catalytic converter',
     val: '0.82V',
-    pos: {x:0.3, y:0.15, z:-0.8},
+    pos: {x:0.0, y:0.45, z:1.4},
     codes: [
       { code:'P0136', severity:'warning', desc:'O2 sensor circuit malfunction (Bank 1, Sensor 2). Sensor signal out of normal range.', effect:'Fuel trim may be off. Emissions increased. Engine runs but may run slightly rich or lean.' },
       { code:'P0137', severity:'warning', desc:'O2 sensor circuit low voltage (Bank 1, Sensor 2). Sensor reading unusually low.', effect:'ECU may over-fueling. Possible rich running condition and increased fuel consumption.' },
@@ -156,7 +156,7 @@ const sensorDB = {
     name: 'COOLANT TEMP SENSOR (ECT)',
     location: 'Engine block, near thermostat housing',
     val: '192°F',
-    pos: {x:-0.2, y:0.3, z:0.2},
+    pos: {x:-0.1, y:0.35, z:1.0},
     codes: [
       { code:'P0115', severity:'warning', desc:'Engine coolant temperature sensor circuit malfunction. Signal outside expected range.', effect:'ECU assumes default coolant temp of 176°F. May cause rich running, rough idle, failed emissions.' },
       { code:'P0117', severity:'warning', desc:'ECT sensor circuit low input. Voltage below minimum threshold.', effect:'ECU thinks engine is overheating. May limit power, enrich fuel mixture, activate cooling fan.' },
@@ -167,7 +167,7 @@ const sensorDB = {
     name: 'THROTTLE POSITION SENSOR',
     location: 'Throttle body, driver side of intake',
     val: '38%',
-    pos: {x:0.1, y:0.35, z:0.5},
+    pos: {x:0.1, y:0.55, z:0.85},
     codes: [
       { code:'P0122', severity:'critical', desc:'Throttle position sensor circuit low input. Signal voltage below 0.17V.', effect:'ECU cannot read throttle position. May cause stalling, hesitation, or limp mode. Unsafe to drive.' },
       { code:'P0123', severity:'critical', desc:'Throttle position sensor circuit high input. Signal voltage above 4.80V.', effect:'ECU may command full throttle. Dangerous — vehicle may accelerate unexpectedly. Stop driving immediately.' },
@@ -178,7 +178,7 @@ const sensorDB = {
     name: 'MAP SENSOR',
     location: 'Intake manifold, top of engine',
     val: '14.2 psi',
-    pos: {x:-0.1, y:0.4, z:0.3},
+    pos: {x:0.2, y:0.55, z:0.85},
     codes: [
       { code:'P0107', severity:'critical', desc:'MAP sensor circuit low input. Voltage below 0.25V — sensor may be unplugged or shorted.', effect:'ECU assumes sea level pressure. Fueling severely off. Rough running, possible stalling, no power.' },
       { code:'P0108', severity:'critical', desc:'MAP sensor circuit high input. Voltage above 4.90V.', effect:'ECU thinks boost/vacuum is extreme. Severe over-fueling, black smoke, catalytic converter damage.' },
@@ -189,7 +189,7 @@ const sensorDB = {
     name: 'VTEC SOLENOID',
     location: 'Cylinder head, VTEC oil control valve (top of engine)',
     val: 'INACTIVE',
-    pos: {x:0.0, y:0.45, z:0.0},
+    pos: {x:0.1, y:0.55, z:1.25},
     codes: [
       { code:'P2646', severity:'critical', desc:'VTEC rocker arm oil pressure switch circuit low voltage. Switch stuck off or no oil pressure detected at VTEC circuit.', effect:'VTEC will not engage. Power loss above 5500 RPM. Possible insufficient oil pressure at valvetrain — fix immediately to avoid engine damage.' },
       { code:'P2647', severity:'critical', desc:'VTEC rocker arm oil pressure switch circuit high voltage. Switch stuck on or short circuit detected.', effect:'VTEC may engage at wrong RPM. Valvetrain instability possible. Risk of engine damage if oil pressure is actually low.' },
@@ -199,7 +199,7 @@ const sensorDB = {
     name: 'KNOCK SENSOR',
     location: 'Engine block, between cylinders 2 and 3',
     val: '0 counts',
-    pos: {x:0.2, y:0.2, z:0.1},
+    pos: {x:-0.1, y:0.15, z:1.0},
     codes: [
       { code:'P0325', severity:'warning', desc:'Knock sensor circuit malfunction (Bank 1). Sensor signal not within expected range.', effect:'ECU switches to low-octane ignition timing map as a precaution. Significant power loss, poor fuel economy.' },
       { code:'P0326', severity:'warning', desc:'Knock sensor range/performance problem. Sensor detecting implausible signal levels.', effect:'Same as P0325 — ECU retards timing. Vehicle safe to drive but performance greatly reduced.' },
@@ -215,35 +215,43 @@ const container = document.getElementById('canvas-container');
 const W = container.clientWidth, H = container.clientHeight;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0000);
-scene.fog = new THREE.Fog(0x0a0000, 8, 20);
+// background handled by CSS sky image
+
 const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 100);
 camera.position.set(0, 1.5, 5);
-const renderer = new THREE.WebGLRenderer({ antialias:true });
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
 renderer.setSize(W, H);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.8;
+renderer.toneMappingExposure = 1.4;
+renderer.setClearColor(0x000000, 0);
 container.appendChild(renderer.domElement);
 
-scene.add(new THREE.AmbientLight(0x330000, 0.5));
-const keyLight = new THREE.DirectionalLight(0xff2200, 1.2);
+
+
+
+
+scene.add(new THREE.AmbientLight(0xffffff, 6.0));
+const keyLight = new THREE.DirectionalLight(0xffffff, 7.0);
 keyLight.position.set(5, 8, 5); keyLight.castShadow=true; scene.add(keyLight);
-const fillLight = new THREE.DirectionalLight(0x110000, 0.4);
+const fillLight = new THREE.DirectionalLight(0x4466aa, 3.0);
 fillLight.position.set(-5, 3, -5); scene.add(fillLight);
-const rimLight = new THREE.DirectionalLight(0xff0000, 0.6);
+const rimLight = new THREE.DirectionalLight(0xff8855, 2.5);
 rimLight.position.set(0, -2, -6); scene.add(rimLight);
-scene.add(new THREE.GridHelper(20, 40, 0x330000, 0x220000));
+const topLight = new THREE.DirectionalLight(0xffffff, 2.0);
+topLight.position.set(0, 10, 0); scene.add(topLight);
+scene.add(new THREE.GridHelper(20, 40, 0x223355, 0x112244));
+
 
 const script = document.createElement('script');
-script.src = 'file:///android_asset/GLTFLoader.js';
+script.src = 'GLTFLoader.js';
 document.head.appendChild(script);
 
 script.onload = () => {
   const gltfLoader = new THREE.GLTFLoader();
   gltfLoader.load(
-    'file:///android_asset/honda__civic__sedan_2009.glb',
+    '2007_honda_civic_green_brake.glb',
     (gltf) => {
       const model = gltf.scene;
       const box = new THREE.Box3().setFromObject(model);
@@ -252,7 +260,7 @@ script.onload = () => {
       const scale = 3.5 / Math.max(size.x, size.y, size.z);
       model.scale.setScalar(scale);
       model.position.sub(center.multiplyScalar(scale));
-      model.position.y += 0.1;
+      model.position.y += 0.5;
       model.traverse(c=>{ if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
       scene.add(model);
       window.carModel = model;
@@ -335,7 +343,7 @@ function showSensor(key){
   const dtc = fault || s.codes[0];
   const sev = fault ? dtc.severity : 'ok';
 
-  document.getElementById('info-code').textContent = fault ? dtc.code : '——';
+  document.getElementById('info-code').textContent = fault ? dtc.code : '__';
   document.getElementById('info-code').className = 'info-code ' + (fault ? dtc.severity : 'warning');
   document.getElementById('info-name').textContent = s.name;
   document.getElementById('info-val').textContent = s.val;
