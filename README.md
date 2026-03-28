@@ -87,14 +87,29 @@ Runs on a Nexus 7 tablet mounted in the dash.
 
 ### 4. MUSIC (music.html)
 - Spotify Web Playback SDK — streams music through the browser
-- Real-time audio visualizer via tab audio capture (digital stream, not mic)
-- Multi-layer animated album art background (deep blur + mid + front layers)
-- Floating particles that react to audio energy
-- Audio-reactive color pulse overlay
+- **Home screen** — profile, filter pills (All/Music/Podcasts/Audiobooks), quick-play grid, playlists, top tracks, top artists, genre browse, new releases, search
+- **Mini player bar** — always visible with album art, track info, volume, play/pause
+- **Now-playing view** — tap mini player to expand, with animated multi-layer album art, floating particles, audio-reactive color pulse, synced lyrics, visualizer bar
+- Real-time audio visualizer via tab audio capture (digital stream)
 - Synced lyrics from LRCLIB (LRC format with timestamps)
-- Browse: search tracks/playlists, liked songs, recently played
-- Volume slider with mute toggle
-- Prev / Play-Pause / Next / Seek controls
+- Browse: search, liked songs, playlists, recently played, genre playlists
+- Volume slider with mute toggle, prev/play-pause/next/seek
+
+### 5. DATALOG (datalog.html)
+- Real-time ECU datalogging for FlashPro via USB OTG
+- 4 hero gauges: RPM, AFR, MAP, Coolant Temp — color-coded with bar indicators
+- Multi-trace scrolling graph with 12 toggleable parameters (RPM, AFR, MAP, ECT, TPS, IAT, Ignition, Knock, Speed, VTEC, Injector %, Battery)
+- REC button — records sessions, exports as CSV for tuner review
+- Simulated spirited drive data for testing without FlashPro connected
+- `updateFromFlashPro(data)` function ready for Kotlin USB bridge
+- Companion to Hondata FlashPro Manager app for deep tuning
+
+### 6. HONDATA (hondata.html)
+- FlashPro map management page
+- Stock / Map 1 (Sport) selector with active indicator
+- Map 1 details: VTEC point, rev limit, fuel, timing, speed limiter changes
+- Vehicle profile: complete engine/intake/exhaust/injector/fuel setup for tuners
+- Links to Hondata website and forums
 
 ---
 
@@ -106,7 +121,9 @@ Runs on a Nexus 7 tablet mounted in the dash.
 | `dashboard.html` | Gauge dashboard with boot sequence |
 | `carview.html` | 3D car diagnostic viewer |
 | `streetview.html` | Waze-style navigation map |
-| `music.html` | Spotify player + visualizer + lyrics |
+| `music.html` | Spotify player + visualizer + lyrics + home screen |
+| `datalog.html` | Real-time ECU datalogging with graphs |
+| `hondata.html` | FlashPro map management + vehicle profile |
 | `chassis.html` | Undercarriage schematic with build specs |
 | `config.js` | API keys (Mapbox, Spotify, etc.) |
 | `GLTFLoader.js` | Three.js GLB model loader |

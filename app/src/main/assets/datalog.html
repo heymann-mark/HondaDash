@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; background:#0a0000; color:#fff; }
+
+/* Status bar */
+.status-bar {
+  height:32px; background:#0d0000; border-bottom:1px solid #cc110033;
+  display:flex; align-items:center; padding:0 16px; gap:16px;
+}
+.status-dot { width:8px; height:8px; border-radius:50%; background:#cc220044; }
+.status-dot.connected { background:#00ff41; box-shadow:0 0 6px #00ff41; }
+.status-dot.recording { background:#cc2200; box-shadow:0 0 6px #cc2200; animation:pulse-rec 1s infinite; }
+@keyframes pulse-rec { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.status-text { font-size:10px; color:#ffffff44; letter-spacing:2px; flex:1; }
+.status-time { font-size:10px; color:#cc220066; letter-spacing:1px; font-family:'Orbitron',monospace; }
+
+/* Gauges row */
+.gauges-row {
+  display:flex; height:140px; border-bottom:1px solid #cc110022;
+}
+.gauge-cell {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border-right:1px solid #cc110022; position:relative;
+}
+.gauge-cell:last-child { border-right:none; }
+.gauge-label { font-size:9px; color:#ffffff33; letter-spacing:2px; margin-bottom:4px; }
+.gauge-value { font-family:'Orbitron',monospace; font-size:36px; color:#ffffffdd; letter-spacing:2px; }
+.gauge-unit { font-size:10px; color:#ffffff22; letter-spacing:1px; margin-top:2px; }
+.gauge-bar { position:absolute; bottom:0; left:0; right:0; height:3px; background:#cc110011; }
+.gauge-bar-fill { height:3px; background:#cc2200; transition:width 0.15s; }
+
+/* Colors for each parameter */
+.gauge-cell[data-param="rpm"] .gauge-value { color:#cc2200; }
+.gauge-cell[data-param="afr"] .gauge-value { color:#00cc88; }
+.gauge-cell[data-param="map"] .gauge-value { color:#4488ff; }
+.gauge-cell[data-param="ect"] .gauge-value { color:#ffaa00; }
+
+/* Graph area */
+.graph-area {
+  position:relative; flex:1; height:calc(100vh - 32px - 140px - 44px);
+}
+.graph-canvas { width:100%; height:100%; }
+
+/* Parameter toggles */
+.param-bar {
+  height:44px; background:#0d0000; border-top:1px solid #cc110022;
+  display:flex; align-items:center; padding:0 8px; gap:4px; overflow-x:auto;
+}
+.param-bar::-webkit-scrollbar { display:none; }
+.param-toggle {
+  background:transparent; border:1px solid #ffffff11; color:#ffffff44;
+  font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px;
+  padding:4px 10px; cursor:pointer; white-space:nowrap; border-radius:3px;
+  transition:all 0.15s; flex-shrink:0;
+}
+.param-toggle.active { border-color:var(--c); color:var(--c); background:rgba(255,255,255,0.03); }
+.param-toggle:hover { border-color:#ffffff33; }
+
+.rec-btn {
+  background:transparent; border:1px solid #cc220044; color:#cc220066;
+  font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px;
+  padding:4px 14px; cursor:pointer; margin-left:auto; flex-shrink:0; border-radius:3px;
+}
+.rec-btn:hover { border-color:#cc2200; color:#cc2200; }
+.rec-btn.active { border-color:#cc2200; color:#cc2200; background:rgba(204,34,0,0.1); }
+</style>
+</head>
+<body>
+
+<div class="status-bar">
+  <div class="status-dot" id="conn-dot"></div>
+  <div class="status-text" id="conn-text">FLASHPRO NOT CONNECTED — SIMULATED DATA</div>
+  <div class="status-dot" id="rec-dot"></div>
+  <div class="status-time" id="rec-time">00:00.0</div>
+</div>
+
+<div class="gauges-row">
+  <div class="gauge-cell" data-param="rpm">
+    <div class="gauge-label">RPM</div>
+    <div class="gauge-value" id="g-rpm">0</div>
+    <div class="gauge-unit">REV/MIN</div>
+    <div class="gauge-bar"><div class="gauge-bar-fill" id="gb-rpm" style="width:0%"></div></div>
+  </div>
+  <div class="gauge-cell" data-param="afr">
+    <div class="gauge-label">AFR</div>
+    <div class="gauge-value" id="g-afr">14.7</div>
+    <div class="gauge-unit">LAMBDA</div>
+    <div class="gauge-bar"><div class="gauge-bar-fill" id="gb-afr" style="width:50%;background:#00cc88"></div></div>
+  </div>
+  <div class="gauge-cell" data-param="map">
+    <div class="gauge-label">MAP</div>
+    <div class="gauge-value" id="g-map">101</div>
+    <div class="gauge-unit">KPA</div>
+    <div class="gauge-bar"><div class="gauge-bar-fill" id="gb-map" style="width:0%;background:#4488ff"></div></div>
+  </div>
+  <div class="gauge-cell" data-param="ect">
+    <div class="gauge-label">ECT</div>
+    <div class="gauge-value" id="g-ect">185</div>
+    <div class="gauge-unit">&deg;F</div>
+    <div class="gauge-bar"><div class="gauge-bar-fill" id="gb-ect" style="width:0%;background:#ffaa00"></div></div>
+  </div>
+</div>
+
+<div class="graph-area">
+  <canvas class="graph-canvas" id="graph"></canvas>
+</div>
+
+<div class="param-bar">
+  <button class="param-toggle active" style="--c:#cc2200" onclick="toggleParam(this,'rpm')">RPM</button>
+  <button class="param-toggle active" style="--c:#00cc88" onclick="toggleParam(this,'afr')">AFR</button>
+  <button class="param-toggle active" style="--c:#4488ff" onclick="toggleParam(this,'map')">MAP</button>
+  <button class="param-toggle active" style="--c:#ffaa00" onclick="toggleParam(this,'ect')">ECT</button>
+  <button class="param-toggle" style="--c:#ff44aa" onclick="toggleParam(this,'tps')">TPS</button>
+  <button class="param-toggle" style="--c:#44ffcc" onclick="toggleParam(this,'iat')">IAT</button>
+  <button class="param-toggle" style="--c:#ff8844" onclick="toggleParam(this,'ign')">IGN</button>
+  <button class="param-toggle" style="--c:#aa88ff" onclick="toggleParam(this,'knock')">KNOCK</button>
+  <button class="param-toggle" style="--c:#88ff44" onclick="toggleParam(this,'vss')">VSS</button>
+  <button class="param-toggle" style="--c:#ff4444" onclick="toggleParam(this,'vtec')">VTEC</button>
+  <button class="param-toggle" style="--c:#ffff44" onclick="toggleParam(this,'inj')">INJ%</button>
+  <button class="param-toggle" style="--c:#44aaff" onclick="toggleParam(this,'batt')">BATT</button>
+  <button class="rec-btn" id="rec-btn" onclick="toggleRec()">REC</button>
+</div>
+
+<script>
+// ============ PARAMETERS ============
+const params = {
+  rpm:   { color:'#cc2200', min:0, max:9000, unit:'RPM', val:0, history:[], visible:true },
+  afr:   { color:'#00cc88', min:10, max:20, unit:'AFR', val:14.7, history:[], visible:true },
+  map:   { color:'#4488ff', min:0, max:250, unit:'kPa', val:101, history:[], visible:true },
+  ect:   { color:'#ffaa00', min:100, max:250, unit:'°F', val:185, history:[], visible:true },
+  tps:   { color:'#ff44aa', min:0, max:100, unit:'%', val:0, history:[], visible:false },
+  iat:   { color:'#44ffcc', min:30, max:180, unit:'°F', val:75, history:[], visible:false },
+  ign:   { color:'#ff8844', min:-10, max:50, unit:'°', val:15, history:[], visible:false },
+  knock: { color:'#aa88ff', min:0, max:10, unit:'cnt', val:0, history:[], visible:false },
+  vss:   { color:'#88ff44', min:0, max:160, unit:'MPH', val:0, history:[], visible:false },
+  vtec:  { color:'#ff4444', min:0, max:1, unit:'', val:0, history:[], visible:false },
+  inj:   { color:'#ffff44', min:0, max:100, unit:'%', val:0, history:[], visible:false },
+  batt:  { color:'#44aaff', min:10, max:16, unit:'V', val:12.6, history:[], visible:false },
+};
+
+const MAX_HISTORY = 600; // 10 minutes at 1Hz
+let recording = false;
+let recStart = 0;
+let recLog = [];
+
+// ============ SIMULATION ============
+let simTime = 0;
+let simGear = 1;
+let simRPM = 800;
+let simSpeed = 0;
+let simThrottle = 0;
+
+function simUpdate() {
+  simTime += 0.1;
+
+  // Simulate a spirited drive
+  const cycle = simTime % 30; // 30 second cycle
+
+  if (cycle < 8) {
+    // Accelerating
+    simThrottle = 60 + Math.sin(simTime * 0.5) * 30;
+    simRPM = Math.min(8000, simRPM + (simThrottle * 3));
+    if (simRPM > 7500) { simRPM = 3500; simGear = Math.min(6, simGear + 1); }
+  } else if (cycle < 12) {
+    // Cruising
+    simThrottle = 15 + Math.sin(simTime * 2) * 5;
+    simRPM = 3000 + Math.sin(simTime * 0.3) * 500;
+  } else if (cycle < 18) {
+    // Hard acceleration
+    simThrottle = 85 + Math.sin(simTime * 0.8) * 15;
+    simRPM = Math.min(8200, simRPM + (simThrottle * 5));
+    if (simRPM > 7800) { simRPM = 4000; simGear = Math.min(6, simGear + 1); }
+  } else if (cycle < 22) {
+    // Braking / decel
+    simThrottle = 0;
+    simRPM = Math.max(800, simRPM - 400);
+    simGear = Math.max(1, Math.floor(simRPM / 1500));
+  } else {
+    // Idle / low speed
+    simThrottle = 5 + Math.random() * 3;
+    simRPM = 800 + Math.sin(simTime * 3) * 50;
+    simGear = 1;
+    simSpeed = Math.max(0, simSpeed - 2);
+  }
+
+  simSpeed = Math.max(0, Math.min(150, simRPM * simGear * 0.003));
+  const vtecOn = simRPM > 5800 ? 1 : 0;
+  const knock = simRPM > 7000 && simThrottle > 80 ? Math.floor(Math.random() * 3) : 0;
+
+  params.rpm.val = Math.round(simRPM);
+  params.afr.val = parseFloat((14.7 - (simThrottle / 100) * 2.5 + Math.sin(simTime * 2) * 0.3).toFixed(1));
+  params.map.val = Math.round(30 + simThrottle * 1.7 + Math.random() * 5);
+  params.ect.val = Math.round(185 + Math.sin(simTime * 0.05) * 10 + (simThrottle > 50 ? 5 : 0));
+  params.tps.val = Math.round(simThrottle);
+  params.iat.val = Math.round(75 + Math.sin(simTime * 0.1) * 8);
+  params.ign.val = parseFloat((15 + (simRPM / 1000) * 2 - knock * 3 + Math.sin(simTime) * 2).toFixed(1));
+  params.knock.val = knock;
+  params.vss.val = Math.round(simSpeed);
+  params.vtec.val = vtecOn;
+  params.inj.val = Math.round(simThrottle * 0.6 + simRPM / 200 + Math.random() * 5);
+  params.batt.val = parseFloat((12.4 + Math.sin(simTime * 0.2) * 0.3 + (simRPM > 1500 ? 1.2 : 0)).toFixed(1));
+
+  // Push to history
+  Object.values(params).forEach(p => {
+    p.history.push(p.val);
+    if (p.history.length > MAX_HISTORY) p.history.shift();
+  });
+
+  // Recording
+  if (recording) {
+    recLog.push({ t: Date.now() - recStart, ...Object.fromEntries(Object.entries(params).map(([k,v]) => [k, v.val])) });
+  }
+}
+
+// ============ UI UPDATE ============
+function updateGauges() {
+  // RPM
+  document.getElementById('g-rpm').textContent = params.rpm.val;
+  document.getElementById('gb-rpm').style.width = ((params.rpm.val / 9000) * 100) + '%';
+  if (params.rpm.val > 7500) document.getElementById('gb-rpm').style.background = '#ff0000';
+  else document.getElementById('gb-rpm').style.background = '#cc2200';
+
+  // AFR — green when stoich, red when rich/lean
+  document.getElementById('g-afr').textContent = params.afr.val;
+  const afrPct = ((params.afr.val - 10) / 10) * 100;
+  document.getElementById('gb-afr').style.width = afrPct + '%';
+  const afrDiff = Math.abs(params.afr.val - 14.7);
+  document.getElementById('g-afr').style.color = afrDiff < 0.5 ? '#00cc88' : afrDiff < 1.5 ? '#ffaa00' : '#cc2200';
+
+  // MAP
+  document.getElementById('g-map').textContent = params.map.val;
+  document.getElementById('gb-map').style.width = ((params.map.val / 250) * 100) + '%';
+
+  // ECT
+  document.getElementById('g-ect').textContent = params.ect.val;
+  document.getElementById('gb-ect').style.width = (((params.ect.val - 100) / 150) * 100) + '%';
+  if (params.ect.val > 220) document.getElementById('g-ect').style.color = '#cc2200';
+  else document.getElementById('g-ect').style.color = '#ffaa00';
+
+  // Recording timer
+  if (recording) {
+    const elapsed = (Date.now() - recStart) / 1000;
+    const min = Math.floor(elapsed / 60);
+    const sec = Math.floor(elapsed % 60);
+    const tenths = Math.floor((elapsed * 10) % 10);
+    document.getElementById('rec-time').textContent = String(min).padStart(2,'0') + ':' + String(sec).padStart(2,'0') + '.' + tenths;
+  }
+}
+
+// ============ GRAPH ============
+const canvas = document.getElementById('graph');
+const ctx = canvas.getContext('2d');
+
+function resizeGraph() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+}
+resizeGraph();
+window.addEventListener('resize', resizeGraph);
+
+function drawGraph() {
+  const W = canvas.width, H = canvas.height;
+  ctx.fillStyle = '#0a0000';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = '#ffffff08';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 5; i++) {
+    const y = (i / 5) * H;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  // Vertical time markers
+  const visiblePoints = Math.min(300, Math.max(...Object.values(params).map(p => p.history.length)));
+  for (let i = 0; i < visiblePoints; i += 30) {
+    const x = (i / Math.max(1, visiblePoints - 1)) * W;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+
+  // Draw each visible parameter
+  Object.entries(params).forEach(([key, p]) => {
+    if (!p.visible || p.history.length < 2) return;
+    const points = p.history.slice(-300); // last 5 minutes at 1Hz
+    const len = points.length;
+
+    ctx.beginPath();
+    ctx.strokeStyle = p.color;
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 4;
+
+    for (let i = 0; i < len; i++) {
+      const x = (i / (Math.max(1, len - 1))) * W;
+      const norm = (points[i] - p.min) / (p.max - p.min);
+      const y = H - (Math.max(0, Math.min(1, norm)) * (H - 20)) - 10;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Label on right edge
+    const lastVal = points[len - 1];
+    const lastNorm = (lastVal - p.min) / (p.max - p.min);
+    const lastY = H - (Math.max(0, Math.min(1, lastNorm)) * (H - 20)) - 10;
+    ctx.fillStyle = p.color;
+    ctx.font = '10px Share Tech Mono';
+    ctx.fillText(key.toUpperCase() + ' ' + lastVal, W - 70, lastY - 4);
+  });
+}
+
+// ============ CONTROLS ============
+function toggleParam(btn, key) {
+  params[key].visible = !params[key].visible;
+  btn.classList.toggle('active', params[key].visible);
+}
+
+function toggleRec() {
+  recording = !recording;
+  const btn = document.getElementById('rec-btn');
+  const dot = document.getElementById('rec-dot');
+  btn.classList.toggle('active', recording);
+
+  if (recording) {
+    recStart = Date.now();
+    recLog = [];
+    btn.textContent = 'STOP';
+    dot.classList.add('recording');
+  } else {
+    btn.textContent = 'REC';
+    dot.classList.remove('recording');
+    if (recLog.length > 0) {
+      // Save log as downloadable CSV
+      saveLog();
+    }
+  }
+}
+
+function saveLog() {
+  const keys = Object.keys(params);
+  let csv = 'time_ms,' + keys.join(',') + '\n';
+  recLog.forEach(row => {
+    csv += row.t + ',' + keys.map(k => row[k]).join(',') + '\n';
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'datalog_' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById('conn-text').textContent = 'LOG SAVED — ' + recLog.length + ' SAMPLES';
+  setTimeout(() => { document.getElementById('conn-text').textContent = 'FLASHPRO NOT CONNECTED — SIMULATED DATA'; }, 3000);
+}
+
+// Called by Kotlin when FlashPro sends real data
+function updateFromFlashPro(data) {
+  Object.entries(data).forEach(([k, v]) => {
+    if (params[k]) params[k].val = v;
+  });
+  document.getElementById('conn-dot').classList.add('connected');
+  document.getElementById('conn-text').textContent = 'FLASHPRO CONNECTED';
+}
+
+// ============ MAIN LOOP ============
+function loop() {
+  simUpdate();
+  updateGauges();
+  drawGraph();
+  requestAnimationFrame(loop);
+}
+
+// Run sim at ~10Hz
+setInterval(simUpdate, 100);
+// Render at 60fps
+requestAnimationFrame(function render() {
+  updateGauges();
+  drawGraph();
+  requestAnimationFrame(render);
+});
+</script>
+</body>
+</html>

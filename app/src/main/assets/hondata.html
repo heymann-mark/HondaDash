@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100vw; height:100vh; overflow-y:auto; overflow-x:hidden; font-family:'Share Tech Mono',monospace; background:#0a0000; color:#ffffffcc; }
+
+.header {
+  padding:20px; border-bottom:1px solid #cc110033;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.header-title { font-family:'Orbitron',monospace; font-size:18px; color:#cc2200; letter-spacing:3px; }
+.header-sub { font-size:11px; color:#ffffff33; letter-spacing:2px; }
+
+/* Map selector */
+.map-selector {
+  display:flex; gap:12px; padding:20px;
+}
+.map-card {
+  flex:1; border:2px solid #cc220033; background:rgba(15,0,0,0.6);
+  padding:20px; cursor:pointer; transition:all 0.2s; position:relative;
+}
+.map-card:hover { border-color:#cc220066; }
+.map-card.active { border-color:#cc2200; background:rgba(204,34,0,0.08); }
+.map-card.active::after {
+  content:'ACTIVE'; position:absolute; top:10px; right:10px;
+  font-size:9px; color:#00ff41; letter-spacing:2px; border:1px solid #00ff4155; padding:2px 8px;
+}
+.map-name { font-family:'Orbitron',monospace; font-size:16px; color:#ffffffdd; letter-spacing:2px; margin-bottom:8px; }
+.map-desc { font-size:12px; color:#ffffff55; line-height:1.8; }
+.map-detail { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #ffffff08; }
+.map-detail-label { font-size:11px; color:#ffffff44; letter-spacing:1px; }
+.map-detail-val { font-size:11px; color:#cc2200aa; letter-spacing:1px; }
+
+/* Status */
+.flash-status {
+  margin:0 20px; padding:14px 20px; border:1px solid #ffffff11; background:rgba(10,0,0,0.5);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.flash-status-text { font-size:12px; color:#ffffff33; letter-spacing:2px; }
+.flash-btn {
+  background:transparent; border:1px solid #cc220044; color:#cc220066;
+  font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:2px;
+  padding:8px 20px; cursor:pointer; transition:all 0.15s;
+}
+.flash-btn:hover { border-color:#cc2200; color:#cc2200; }
+.flash-btn.disabled { opacity:0.3; pointer-events:none; }
+
+/* Section */
+.section {
+  padding:20px; border-top:1px solid #cc110022;
+}
+.section-title {
+  font-family:'Orbitron',monospace; font-size:13px; color:#cc2200; letter-spacing:3px;
+  margin-bottom:16px;
+}
+.section-sub {
+  font-size:11px; color:#ffffff22; letter-spacing:1px; margin-top:-10px; margin-bottom:16px;
+}
+
+/* Profile table */
+.profile-table { width:100%; }
+.profile-row {
+  display:flex; align-items:center; padding:10px 0; border-bottom:1px solid #ffffff08;
+}
+.profile-cat {
+  width:140px; flex-shrink:0; font-size:11px; color:#ffffff44; letter-spacing:1px; text-transform:uppercase;
+}
+.profile-val {
+  flex:1; font-size:13px; color:#ffffffcc; letter-spacing:0.5px;
+}
+.profile-note {
+  font-size:10px; color:#cc220066; margin-left:12px; flex-shrink:0;
+}
+
+/* Map 1 details */
+.changes-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.change-item {
+  border:1px solid #ffffff0a; padding:12px; background:rgba(10,0,0,0.3);
+}
+.change-label { font-size:10px; color:#ffffff33; letter-spacing:2px; margin-bottom:6px; }
+.change-vals { display:flex; align-items:center; gap:8px; }
+.change-from { font-size:13px; color:#ffffff44; }
+.change-arrow { font-size:10px; color:#cc220066; }
+.change-to { font-size:13px; color:#cc2200; }
+
+/* Hondata link */
+.web-link {
+  display:block; text-align:center; padding:16px; margin:20px;
+  border:1px solid #cc220033; color:#cc220088; font-size:12px; letter-spacing:2px;
+  text-decoration:none; transition:all 0.15s;
+}
+.web-link:hover { border-color:#cc2200; color:#cc2200; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">FLASHPRO // MAPS</div>
+    <div class="header-sub">K20Z3 // 2007 CIVIC SI FA5</div>
+  </div>
+  <div class="header-sub">FLASHPRO v1.x</div>
+</div>
+
+<!-- Map Selector -->
+<div class="map-selector">
+  <div class="map-card active" id="card-stock" onclick="selectMap('stock')">
+    <div class="map-name">STOCK</div>
+    <div class="map-desc">Factory Honda calibration</div>
+    <div style="margin-top:12px">
+      <div class="map-detail"><span class="map-detail-label">VTEC</span><span class="map-detail-val">5,800 RPM</span></div>
+      <div class="map-detail"><span class="map-detail-label">REV LIMIT</span><span class="map-detail-val">8,200 RPM</span></div>
+      <div class="map-detail"><span class="map-detail-label">FUEL</span><span class="map-detail-val">STOCK TABLES</span></div>
+      <div class="map-detail"><span class="map-detail-label">TIMING</span><span class="map-detail-val">STOCK TABLES</span></div>
+    </div>
+  </div>
+
+  <div class="map-card" id="card-map1" onclick="selectMap('map1')">
+    <div class="map-name">MAP 1 — SPORT</div>
+    <div class="map-desc">Bolt-ons calibration</div>
+    <div style="margin-top:12px">
+      <div class="map-detail"><span class="map-detail-label">VTEC</span><span class="map-detail-val">4,500 RPM</span></div>
+      <div class="map-detail"><span class="map-detail-label">REV LIMIT</span><span class="map-detail-val">8,400 RPM</span></div>
+      <div class="map-detail"><span class="map-detail-label">FUEL</span><span class="map-detail-val">ADJUSTED</span></div>
+      <div class="map-detail"><span class="map-detail-label">TIMING</span><span class="map-detail-val">+2° ADVANCE</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Flash Status -->
+<div class="flash-status">
+  <div class="flash-status-text">FLASHPRO NOT CONNECTED</div>
+  <button class="flash-btn disabled">FLASH MAP</button>
+</div>
+
+<!-- Map 1 Details -->
+<div class="section" id="map1-details" style="display:none">
+  <div class="section-title">MAP 1 CHANGES</div>
+  <div class="section-sub">Differences from stock calibration</div>
+
+  <div class="changes-grid">
+    <div class="change-item">
+      <div class="change-label">VTEC ENGAGEMENT</div>
+      <div class="change-vals">
+        <span class="change-from">5,800</span>
+        <span class="change-arrow">→</span>
+        <span class="change-to">4,500 RPM</span>
+      </div>
+    </div>
+    <div class="change-item">
+      <div class="change-label">REV LIMITER</div>
+      <div class="change-vals">
+        <span class="change-from">8,200</span>
+        <span class="change-arrow">→</span>
+        <span class="change-to">8,400 RPM</span>
+      </div>
+    </div>
+    <div class="change-item">
+      <div class="change-label">FUEL ENRICHMENT</div>
+      <div class="change-vals">
+        <span class="change-from">STOCK</span>
+        <span class="change-arrow">→</span>
+        <span class="change-to">+3% WOT</span>
+      </div>
+    </div>
+    <div class="change-item">
+      <div class="change-label">IGNITION TIMING</div>
+      <div class="change-vals">
+        <span class="change-from">STOCK</span>
+        <span class="change-arrow">→</span>
+        <span class="change-to">+2° HIGH RPM</span>
+      </div>
+    </div>
+    <div class="change-item">
+      <div class="change-label">SPEED LIMITER</div>
+      <div class="change-vals">
+        <span class="change-from">130 MPH</span>
+        <span class="change-arrow">→</span>
+        <span class="change-to">REMOVED</span>
+      </div>
+    </div>
+    <div class="change-item">
+      <div class="change-label">IDLE SPEED</div>
+      <div class="change-vals">
+        <span class="change-from">750</span>
+        <span class="change-arrow">→</span>
+        <span class="change-to">750 RPM (NO CHANGE)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Vehicle Profile -->
+<div class="section">
+  <div class="section-title">VEHICLE PROFILE</div>
+  <div class="section-sub">Your setup — what the tuner needs to know</div>
+
+  <div class="profile-table">
+    <div class="profile-row">
+      <div class="profile-cat">ENGINE</div>
+      <div class="profile-val">K20Z3 2.0L DOHC i-VTEC</div>
+      <div class="profile-note">STOCK INTERNALS</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">MILEAGE</div>
+      <div class="profile-val">~120,000 miles</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">ECU</div>
+      <div class="profile-val">Hondata FlashPro</div>
+      <div class="profile-note">INSTALLED</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">INTAKE</div>
+      <div class="profile-val">Stock airbox</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">HEADER</div>
+      <div class="profile-val">Stock exhaust manifold</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">CAT</div>
+      <div class="profile-val">Stock catalytic converter</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">CATBACK</div>
+      <div class="profile-val">APEXi WS3</div>
+      <div class="profile-note">INSTALLED</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">INJECTORS</div>
+      <div class="profile-val">Stock (310cc)</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">FUEL PUMP</div>
+      <div class="profile-val">Stock</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">FUEL TYPE</div>
+      <div class="profile-val">93 octane (premium)</div>
+      <div class="profile-note">CONFIRM</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">FORCED INDUCTION</div>
+      <div class="profile-val">N/A (naturally aspirated)</div>
+      <div class="profile-note">TURBO PLANNED</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">CAMS</div>
+      <div class="profile-val">Stock K20Z3 cams</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">THROTTLE BODY</div>
+      <div class="profile-val">Stock (64mm)</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">TRANSMISSION</div>
+      <div class="profile-val">Stock 6-speed manual</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">CLUTCH</div>
+      <div class="profile-val">Stock</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">ALTITUDE</div>
+      <div class="profile-val">Sea level (Boston area)</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">O2 SENSORS</div>
+      <div class="profile-val">Stock (primary + secondary)</div>
+    </div>
+    <div class="profile-row">
+      <div class="profile-cat">CHECK ENGINE</div>
+      <div class="profile-val">No active codes</div>
+      <div class="profile-note">VERIFY</div>
+    </div>
+  </div>
+</div>
+
+<!-- Links -->
+<a class="web-link" href="https://www.hondata.com/flashpro" target="_top">OPEN HONDATA.COM</a>
+<a class="web-link" href="https://www.hondata.com/forum" target="_top" style="margin-top:0">HONDATA FORUMS</a>
+
+<div style="height:40px"></div>
+
+<script>
+let activeMap = 'stock';
+
+function selectMap(map) {
+  activeMap = map;
+  document.getElementById('card-stock').classList.toggle('active', map === 'stock');
+  document.getElementById('card-map1').classList.toggle('active', map === 'map1');
+  document.getElementById('map1-details').style.display = map === 'map1' ? 'block' : 'none';
+}
+</script>
+</body>
+</html>
