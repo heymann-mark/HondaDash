@@ -105,8 +105,8 @@ html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Inter',san
 
 /* NP Lyrics */
 .np-lyrics {
-  position:relative; z-index:10; flex:1; overflow:hidden;
-  display:flex; flex-direction:column; justify-content:center; padding:0 40px;
+  position:relative; z-index:10; flex:1; overflow-y:auto; overflow-x:hidden;
+  padding:0 40px; -webkit-overflow-scrolling:touch;
 }
 .lyrics-line { font-size:28px; font-weight:800; color:rgba(255,255,255,0.1); line-height:1.6; transition:color 0.5s; padding:4px 0; }
 .lyrics-line.active { color:#fff; }
@@ -183,8 +183,8 @@ html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Inter',san
       <div class="profile-name" id="profile-name">--</div>
       <div class="profile-email" id="profile-email">--</div>
       <div class="profile-divider"></div>
-      <div class="profile-item" onclick="sessionStorage.clear();spotifyLogin()">Switch account</div>
-      <div class="profile-item" onclick="sessionStorage.clear();location.reload()">Log out</div>
+      <div class="profile-item" onclick="localStorage.clear();spotifyLogin()">Switch account</div>
+      <div class="profile-item" onclick="localStorage.clear();location.reload()">Log out</div>
     </div>
     <div class="home-pills">
       <button class="home-pill active" data-filter="all">All</button>
@@ -326,9 +326,9 @@ let accessToken=null;
 
 function generateCodeVerifier(){const a=new Uint8Array(64);crypto.getRandomValues(a);return btoa(String.fromCharCode(...a)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 async function generateCodeChallenge(v){const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));return btoa(String.fromCharCode(...new Uint8Array(d))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
-async function spotifyLogin(){const v=generateCodeVerifier();sessionStorage.setItem('spotify_verifier',v);const c=await generateCodeChallenge(v);window.top.location='https://accounts.spotify.com/authorize?'+new URLSearchParams({client_id:CLIENT_ID,response_type:'code',redirect_uri:REDIRECT_URI,scope:SCOPES,code_challenge_method:'S256',code_challenge:c});}
-async function handleCallback(){const code=new URLSearchParams(window.location.search).get('code');if(!code)return false;const res=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:CLIENT_ID,grant_type:'authorization_code',code,redirect_uri:REDIRECT_URI,code_verifier:sessionStorage.getItem('spotify_verifier')})});const data=await res.json();if(data.access_token){accessToken=data.access_token;sessionStorage.setItem('spotify_token',accessToken);window.history.replaceState({},'',window.location.pathname);return true;}return false;}
-async function spAPI(ep,method='GET',body=null){if(!accessToken)return null;const opts={method,headers:{'Authorization':'Bearer '+accessToken}};if(body){opts.body=JSON.stringify(body);opts.headers['Content-Type']='application/json';}const res=await fetch('https://api.spotify.com/v1'+ep,opts);if(res.status===204)return{};if(res.status===401){accessToken=null;sessionStorage.removeItem('spotify_token');return null;}if(!res.ok)return null;return res.json();}
+async function spotifyLogin(){const v=generateCodeVerifier();localStorage.setItem('spotify_verifier',v);const c=await generateCodeChallenge(v);window.top.location='https://accounts.spotify.com/authorize?'+new URLSearchParams({client_id:CLIENT_ID,response_type:'code',redirect_uri:REDIRECT_URI,scope:SCOPES,code_challenge_method:'S256',code_challenge:c});}
+async function handleCallback(){const code=new URLSearchParams(window.location.search).get('code');if(!code)return false;const res=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:CLIENT_ID,grant_type:'authorization_code',code,redirect_uri:REDIRECT_URI,code_verifier:localStorage.getItem('spotify_verifier')})});const data=await res.json();if(data.access_token){accessToken=data.access_token;localStorage.setItem('spotify_token',accessToken);window.history.replaceState({},'',window.location.pathname);return true;}return false;}
+async function spAPI(ep,method='GET',body=null){if(!accessToken)return null;const opts={method,headers:{'Authorization':'Bearer '+accessToken}};if(body){opts.body=JSON.stringify(body);opts.headers['Content-Type']='application/json';}const res=await fetch('https://api.spotify.com/v1'+ep,opts);if(res.status===204)return{};if(res.status===401){accessToken=null;localStorage.removeItem('spotify_token');return null;}if(!res.ok)return null;return res.json();}
 
 // ============ PLAYBACK SDK ============
 let player=null,deviceId=null,isPlaying=false,currentTrackId=null,sdkReady=false;
@@ -494,11 +494,12 @@ function parseSynced(lrc){
   renderLyrics();
 }
 function parsePlain(text){const lines=text.split('\n').filter(l=>l.trim());lyricsLines=lines;lyricsTimestamps=lines.map((_,i)=>(i/lines.length)*trackDuration);renderLyrics();}
-function renderLyrics(){document.getElementById('lyrics-view').innerHTML=lyricsLines.map((l,i)=>`<div class="lyrics-line" id="lyric-${i}">${l}</div>`).join('');}
+function renderLyrics(){document.getElementById('lyrics-view').innerHTML='<div style="height:50vh"></div>'+lyricsLines.map((l,i)=>`<div class="lyrics-line" id="lyric-${i}">${l}</div>`).join('')+'<div style="height:50vh"></div>';}
 
 function updateLyrics(){
   if(!lyricsLines.length)return;
-  let active=0;for(let i=0;i<lyricsTimestamps.length;i++)if(currentPosition>=lyricsTimestamps[i])active=i;
+  const ahead=currentPosition+1200;
+  let active=0;for(let i=0;i<lyricsTimestamps.length;i++)if(ahead>=lyricsTimestamps[i])active=i;
   for(let i=0;i<lyricsLines.length;i++){const el=document.getElementById('lyric-'+i);if(!el)continue;el.classList.remove('active','near','past');if(i===active)el.classList.add('active');else if(i>active&&i<=active+2)el.classList.add('near');else if(i<active)el.classList.add('past');}
   const activeEl=document.getElementById('lyric-'+active);
   if(activeEl){const view=document.getElementById('lyrics-view');view.scrollTo({top:activeEl.offsetTop-view.offsetHeight/2+activeEl.offsetHeight/2,behavior:'smooth'});}
@@ -786,8 +787,8 @@ function showPlayer(){
 async function init(){
   const code=new URLSearchParams(window.location.search).get('code');
   if(code){const ok=await handleCallback();if(ok){showPlayer();drawViz();return;}}
-  const stored=sessionStorage.getItem('spotify_token');
-  if(stored){accessToken=stored;const me=await spAPI('/me');if(me){showPlayer();drawViz();return;}sessionStorage.removeItem('spotify_token');}
+  const stored=localStorage.getItem('spotify_token');
+  if(stored){accessToken=stored;const me=await spAPI('/me');if(me){showPlayer();drawViz();return;}localStorage.removeItem('spotify_token');}
   drawViz();
 }
 init();
