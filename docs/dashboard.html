@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0000; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; }
+.ambient { position:fixed; inset:0; background:radial-gradient(ellipse 140% 60% at 50% 0%, rgba(160,0,0,0.22) 0%, transparent 65%); pointer-events:none; }
+.scanlines { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.18) 2px,rgba(0,0,0,0.18) 4px); pointer-events:none; z-index:40; }
+.honda-bg { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2; opacity:0; transition:opacity 1.2s; pointer-events:none; }
+.arc { position:fixed; top:0; left:0; width:100%; opacity:0; transition:opacity 0.6s; z-index:10; }
+.hbar { position:fixed; top:14px; left:4%; right:4%; height:12px; border:1px solid #cc000044; background:#cc000011; opacity:0; transition:opacity 0.4s; z-index:11; display:flex; align-items:center; padding:0 8px; }
+.hbar span { font-size:6px; color:#cc000077; letter-spacing:2px; }
+
+/* GAUGE PICKER BUTTON */
+.picker-btn { position:fixed; top:10px; right:4%; z-index:60; background:transparent; border:1px solid #cc220044; color:#cc110066; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; padding:4px 10px; cursor:pointer; opacity:0; transition:opacity 0.4s, border-color 0.2s, color 0.2s; }
+.picker-btn:hover { border-color:#cc2200; color:#cc2200; }
+.picker-btn.show { opacity:1; }
+
+/* GAUGE PICKER SIDEBAR */
+.picker-panel { position:fixed; right:0; top:0; bottom:0; width:260px; background:rgba(3,0,0,0.97); border-left:1px solid #cc110033; z-index:70; transform:translateX(100%); transition:transform 0.3s; overflow-y:auto; padding:16px; }
+.picker-panel.open { transform:translateX(0); }
+.picker-title { font-family:'Orbitron',monospace; font-size:12px; color:#cc2200; letter-spacing:3px; margin-bottom:4px; }
+.picker-sub { font-size:10px; color:#ffffff33; letter-spacing:1px; margin-bottom:14px; line-height:1.6; }
+.picker-close { background:transparent; border:1px solid #ffffff22; color:#ffffff55; font-family:'Share Tech Mono',monospace; font-size:11px; padding:5px; cursor:pointer; margin-bottom:14px; display:block; width:100%; letter-spacing:1px; }
+.picker-close:hover { border-color:#cc2200; color:#cc2200; }
+.picker-divider { height:1px; background:#ffffff11; margin:10px 0; }
+.gauge-item { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid #ffffff08; cursor:pointer; }
+.gauge-item:hover .gi-name { color:#cc2200; }
+.gi-info { flex:1; }
+.gi-name { font-size:12px; color:#ffffffcc; letter-spacing:1px; transition:color 0.15s; }
+.gi-unit { font-size:10px; color:#ffffff44; letter-spacing:1px; margin-top:2px; }
+.gi-toggle { width:36px; height:20px; border-radius:10px; background:#1a0000; border:1px solid #cc110033; position:relative; transition:background 0.2s, border-color 0.2s; flex-shrink:0; }
+.gi-toggle.on { background:#cc220033; border-color:#cc2200; }
+.gi-toggle::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#cc110055; transition:transform 0.2s, background 0.2s; }
+.gi-toggle.on::after { transform:translateX(16px); background:#cc2200; }
+.gi-rpm { font-size:10px; color:#cc110044; letter-spacing:1px; font-style:italic; }
+.picker-apply { background:transparent; border:1px solid #cc2200aa; color:#cc2200; font-family:'Share Tech Mono',monospace; font-size:12px; letter-spacing:2px; padding:8px; cursor:pointer; margin-top:14px; display:block; width:100%; transition:all 0.15s; }
+.picker-apply:hover { background:rgba(204,34,0,0.1); }
+
+/* GAUGE GRID */
+.gauge-grid { position:fixed; top:40px; left:1%; right:1%; bottom:4px; display:grid; gap:5px; z-index:10; opacity:0; transition:opacity 0.4s; }
+.gbox { border:1px solid #cc220033; background:rgba(10,0,0,0.5); position:relative; overflow:hidden; }
+.gbox-boot { position:absolute; inset:0; padding:6px; font-size:6px; color:#cc110055; line-height:1.6; overflow:hidden; opacity:1; transition:opacity 0.6s; }
+.gbox-live { position:absolute; inset:0; padding:10px 12px; display:flex; flex-direction:column; justify-content:space-between; opacity:0; transition:opacity 0.8s; }
+.g-corner { position:absolute; width:6px; height:6px; }
+.g-corner.tl{top:0;left:0;border-top:1px solid #cc220066;border-left:1px solid #cc220066;}
+.g-corner.tr{top:0;right:0;border-top:1px solid #cc220066;border-right:1px solid #cc220066;}
+.g-corner.bl{bottom:0;left:0;border-bottom:1px solid #cc220066;border-left:1px solid #cc220066;}
+.g-corner.br{bottom:0;right:0;border-bottom:1px solid #cc220066;border-right:1px solid #cc220066;}
+
+/* RPM gauge styles */
+.g-label-rpm { font-size:8px; color:#cc110066; letter-spacing:3px; margin-bottom:2px; transition:color 0.5s; }
+.g-val-rpm { font-family:'Orbitron',monospace; font-size:52px; font-weight:700; color:#cc1100; line-height:1; transition:color 0.5s; }
+.rl-warn { font-family:'Orbitron',monospace; font-size:9px; color:#ff0000; letter-spacing:3px; opacity:0; margin-top:2px; }
+.rpm-bars { display:flex; gap:2px; height:16px; align-items:flex-end; margin-top:4px; }
+.rpm-bar { flex:1; background:#cc110015; transition:background 0.3s; }
+.rpm-bar.on { background:#cc2200; }
+.rpm-bar.on.vtec { background:#4488ff !important; }
+.rpm-bar.red { background:#ff0000 !important; }
+.rpm-sim-btns { display:flex; gap:8px; opacity:0; transition:opacity 0.5s; flex-shrink:0; }
+.rpm-sim-btn { background:transparent; border:1px solid #cc2200aa; color:#cc2200cc; font-family:'Share Tech Mono',monospace; font-size:12px; letter-spacing:1px; padding:6px 14px; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+.rpm-sim-btn:hover { border-color:#ff2200; color:#ff2200; }
+.rpm-sim-btn.active { border-color:#ff0000; color:#ff0000; background:rgba(255,0,0,0.08); }
+.rpm-sim-btn.vtec-active { border-color:#4488ff; color:#4488ff; background:rgba(68,136,255,0.08); }
+
+/* Generic gauge styles */
+.g-label { font-size:clamp(8px,1.2vw,12px); color:#cc110088; letter-spacing:2px; margin-bottom:4px; }
+.g-val { font-family:'Orbitron',monospace; font-size:clamp(28px,4vw,52px); font-weight:700; color:#cc1100; line-height:1; }
+.g-unit { font-size:clamp(8px,1vw,11px); color:#cc110066; letter-spacing:2px; margin-top:4px; }
+.g-bar-track { height:2px; background:#cc110015; margin-top:8px; }
+.g-bar-fill { height:2px; background:#cc2200; transition:width 0.3s; }
+
+/* INJECTOR FIRING */
+.inj-row { display:flex; gap:10px; align-items:center; margin-top:6px; }
+.inj-wrap { display:flex; flex-direction:column; align-items:center; gap:3px; }
+.inj-label { font-size:7px; color:#cc110044; letter-spacing:1px; }
+.inj-body { width:18px; height:36px; border:1px solid #cc220033; background:#0a0000; border-radius:3px; position:relative; overflow:hidden; transition:border-color 0.05s; }
+.inj-body.fire { border-color:#ff4400aa; }
+.inj-body.fire-vtec { border-color:#4488ffaa; }
+.inj-flame { position:absolute; bottom:0; left:0; right:0; height:0%; background:linear-gradient(0deg,#ff2200,#ff6600); transition:height 0.05s; border-radius:0 0 2px 2px; }
+.inj-body.fire .inj-flame { height:100%; }
+.inj-body.fire-vtec .inj-flame { height:100%; background:linear-gradient(0deg,#0044ff,#4488ff); }
+.inj-order { font-size:8px; color:#cc110033; letter-spacing:1px; margin-left:4px; }
+
+/* REDLINE */
+.rl-overlay { position:fixed; inset:0; background:rgba(255,0,0,0); pointer-events:none; z-index:50; }
+.rl-border { position:fixed; inset:0; border:3px solid transparent; pointer-events:none; z-index:51; }
+.rl-strip { position:fixed; top:0; left:0; height:3px; width:0%; z-index:52; background:#ff0000; transition:width 0.2s; }
+
+/* VTEC */
+.vtec-bar { position:fixed; top:0; left:0; right:0; height:3px; z-index:53; background:linear-gradient(90deg,#0022ff,#4488ff,#aaccff); opacity:0; transition:opacity 0.5s; }
+#warp-canvas { position:fixed; inset:0; z-index:8; pointer-events:none; opacity:0; transition:opacity 0.8s; }
+.vtec-overlay { position:fixed; inset:0; z-index:65; pointer-events:none; display:flex; align-items:center; justify-content:center; opacity:0; }
+.vtec-text { font-family:'Orbitron',monospace; font-size:52px; font-weight:700; color:#ffffff; letter-spacing:8px; text-shadow:0 0 20px #4488ff,0 0 60px #4488ff,0 0 120px #2244ff; white-space:nowrap; transform:scaleX(0.1); }
+.vtec-subtext { font-family:'Share Tech Mono',monospace; font-size:16px; color:#88aaff; letter-spacing:6px; text-align:center; margin-top:8px; opacity:0; }
+
+/* BOOT */
+.srbox { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); border:1px solid #cc220077; padding:5px 14px; opacity:0; z-index:15; background:rgba(10,0,0,0.85); white-space:nowrap; }
+.srbox-title { font-size:9px; color:#cc2200aa; letter-spacing:3px; }
+.srbox-sub { font-size:6px; color:#cc110055; letter-spacing:1px; margin-top:2px; }
+.progwrap { position:fixed; top:calc(50% + 30px); left:50%; transform:translateX(-50%); width:280px; opacity:0; z-index:15; }
+.prog-meta { display:flex; justify-content:space-between; font-size:7px; color:#cc110055; margin-bottom:3px; }
+.prog-track { height:2px; background:#cc110018; }
+.prog-bar { height:2px; background:#cc2200; width:0%; position:relative; }
+.prog-bar::after { content:''; position:absolute; right:0; top:-2px; width:1px; height:6px; background:#ff2200; }
+
+@keyframes rlflash{0%,100%{border-color:#ff0000}50%{border-color:#ff4400}}
+@keyframes rloverlayflash{0%,100%{background:rgba(255,0,0,0.07)}50%{background:rgba(255,0,0,0.18)}}
+@keyframes rlshake{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+@keyframes rednumpulse{0%,100%{color:#ff0000}50%{color:#ff4400}}
+@keyframes rpmbarflash{0%,100%{opacity:1}50%{opacity:0.3}}
+@keyframes flicker{0%,100%{opacity:1}94%{opacity:1}95%{opacity:0.4}96%{opacity:1}}
+html.redlining body { animation:rlshake 0.08s infinite; }
+html.redlining .rl-overlay { animation:rloverlayflash 0.15s infinite; }
+html.redlining .rl-border { animation:rlflash 0.12s infinite; }
+html.redlining #val-rpm { animation:rednumpulse 0.1s infinite; }
+html.redlining .rpm-bar.red { animation:rpmbarflash 0.1s infinite; }
+html.redlining .rl-warn { opacity:1 !important; }
+.flicker { animation:flicker 4s infinite; }
+</style>
+</head>
+<body>
+<div class="ambient"></div>
+<div class="rl-strip" id="rl-strip"></div>
+<div class="rl-overlay"></div>
+<div class="rl-border"></div>
+<div class="scanlines"></div>
+<canvas id="warp-canvas"></canvas>
+<div class="vtec-bar" id="vtec-bar"></div>
+<div class="vtec-overlay" id="vtec-overlay">
+  <div>
+    <div class="vtec-text" id="vtec-text">VTEC ENGAGED</div>
+    <div class="vtec-subtext" id="vtec-subtext">i-VTEC CROSSOVER // 5800 RPM</div>
+  </div>
+</div>
+
+<div class="honda-bg" id="honda-bg">
+<svg width="520" height="417" viewBox="-1181 -632 2000 1605" xmlns="http://www.w3.org/2000/svg">
+<path fill="#880000" opacity="0.15" d="M-860.666,696.668c0,0-12.333-40.002-34-61.668S-1083.334,446.334-1108,421.667s-73-72.665-73-142.666c0-70,59-120,130.333-148.667S180.667-369,266.667-405s209.667-91.333,265.667-118S747-624.75,752.25-627.583S760.333-632,762.833-632s4.834,2.167,4.834,5s-1.834,6.75-2.417,8.667S716.667-473.667,678.667-425S622-355.667,440-291.667S-957.335,199.001-988.001,211.001s-100,33.333-100,84.667c0,41.333,41.333,73.334,53.333,84s338.667,316.999,338.667,316.999H-860.666z"/>
+<path fill="#880000" opacity="0.15" d="M-1004,365.5c0,0-29.667-27.5-33.667-31.5s-12.667-18.999-12.667-29.666s2-36.334,47-50.334S92.001-105.667,149.334-123.667S545.25-254,605.5-281c12.75-5.5,15-6.833,17-6.833s4.583,1.25,4.583,4.333s-1.417,5.417-2.5,7.167S565.5-155.5,531.5-118S467-54,405-38.5S-623.5,237-629.75,238.75s-13.5,7.5-13.5,15.25c0,12.75,10.5,13.75,10.5,13.75L-1004,365.5z"/>
+<path fill="#880000" opacity="0.15" d="M-982.5,384.5L-897,464l443.5-83.5c0,0-11.5-7.25-11.5-15.625s6.75-13.875,14.875-15.5s651.125-126.374,691.125-133.374s92.666-18.667,135.666-70.667S461.375,23.875,462.75,21.75s1.875-3.375,1.875-4.625s-0.75-4.375-4-4.375s-5,0.75-8.25,2S-982.5,384.5-982.5,384.5z"/>
+<path fill="#880000" opacity="0.15" d="M275,267.5c-1.817,0.413-1151.667,215.833-1151.667,215.833l99.667,92.166l531.835-66.999c0,0-10-3.666-10-14s9.833-14.167,15.5-15.167s273.667-40.335,305.167-45.002s83.333-15.5,127-61.5s86.668-97,88.334-99s1.915-3.248,1.915-4.248S281.5,266.5,279,266.5C278.334,266.5,276.833,267.084,275,267.5z"/>
+<polygon fill="#880000" opacity="0.15" points="-753.333,597 -646.666,697 57.334,697 -206,533"/>
+</svg>
+</div>
+
+<div class="hbar" id="hbar"><span>K20Z3 // YAUTJA INTERFACE // SYSTEM REBOOT // V4.2</span></div>
+
+<!-- GAUGE PICKER BUTTON -->
+<button class="picker-btn" id="picker-btn" onclick="openPicker()">⚙ GAUGES</button>
+
+<!-- GAUGE GRID  -  built dynamically -->
+<div class="gauge-grid" id="gauge-grid"></div>
+
+<!-- GAUGE PICKER SIDEBAR -->
+<div class="picker-panel" id="picker-panel">
+  <button class="picker-close" onclick="closePicker()">[ × CLOSE ]</button>
+  <div class="picker-title">GAUGE SELECT</div>
+  <div class="picker-sub">RPM always displayed. Toggle others on/off. Grid auto-adjusts.</div>
+  <div class="picker-divider"></div>
+  <div id="gauge-list"></div>
+  <button class="picker-apply" onclick="applyGauges()">[ APPLY ]</button>
+</div>
+
+<div class="srbox" id="srbox">
+  <div class="srbox-title">SYSTEM REBOOT</div>
+  <div class="srbox-sub" id="srstat">LOAD ADDRESS: 0x12000000 &nbsp;&nbsp;&nbsp; STATUS: IN PROGRESS</div>
+</div>
+<div class="progwrap" id="progwrap">
+  <div class="prog-meta"><span id="plbl">LOADING 0x00+100: 0x12000000</span><span id="ppct">0%</span></div>
+  <div class="prog-track"><div class="prog-bar" id="pbar"></div></div>
+</div>
+
+<script>
+// ============ GAUGE DEFINITIONS ============
+const GAUGE_DEFS = [
+  { id:'spd',   label:'Speed',           unit:'MPH',     min:0,   max:160,  val:0,   format:v=>Math.round(v) },
+  { id:'clt',   label:'Coolant Temp',    unit:'°F',      min:160, max:230,  val:0,   format:v=>Math.round(v), warn:215 },
+  { id:'tps',   label:'Throttle',        unit:'% OPEN',  min:0,   max:100,  val:0,   format:v=>Math.round(v) },
+  { id:'o2',    label:'O2 Sensor',       unit:'VOLTS',   min:0,   max:1.0,  val:0,   format:v=>v.toFixed(2) },
+  { id:'iat',   label:'Intake Air Temp', unit:'°F',      min:32,  max:200,  val:0,   format:v=>Math.round(v) },
+  { id:'ign',   label:'Ignition Timing', unit:'DEGREES', min:-10, max:45,   val:0,   format:v=>v.toFixed(1) },
+  { id:'stft',  label:'Short Fuel Trim', unit:'%',       min:-25, max:25,   val:0,   format:v=>v.toFixed(1) },
+  { id:'ltft',  label:'Long Fuel Trim',  unit:'%',       min:-25, max:25,   val:0,   format:v=>v.toFixed(1) },
+  { id:'batt',  label:'Battery Voltage', unit:'VOLTS',   min:11,  max:15,   val:0,   format:v=>v.toFixed(1) },
+  { id:'idc',   label:'Injector Duty',   unit:'%',       min:0,   max:100,  val:0,   format:v=>Math.round(v) },
+];
+
+// Default active gauges
+let activeGauges = ['spd','clt','tps','o2'];
+let pendingGauges = [...activeGauges];
+
+// ============ BUILD PICKER LIST ============
+function buildPickerList(){
+  const list = document.getElementById('gauge-list');
+  list.innerHTML = '';
+  GAUGE_DEFS.forEach(g => {
+    const on = pendingGauges.includes(g.id);
+    const row = document.createElement('div');
+    row.className = 'gauge-item';
+    row.innerHTML = `
+      <div class="gi-info">
+        <div class="gi-name">${g.label}</div>
+        <div class="gi-unit">${g.unit}</div>
+      </div>
+      <div class="gi-toggle ${on?'on':''}" id="tog-${g.id}"></div>
+    `;
+    row.onclick = () => {
+      const tog = document.getElementById('tog-'+g.id);
+      if(pendingGauges.includes(g.id)){
+        if(pendingGauges.length <= 1) return; // keep at least 1
+        pendingGauges = pendingGauges.filter(x=>x!==g.id);
+        tog.classList.remove('on');
+      } else {
+        if(pendingGauges.length >= 8) return; // max 8
+        pendingGauges.push(g.id);
+        tog.classList.add('on');
+      }
+    };
+    list.appendChild(row);
+  });
+}
+
+function openPicker(){
+  pendingGauges = [...activeGauges];
+  buildPickerList();
+  document.getElementById('picker-panel').classList.add('open');
+}
+
+function closePicker(){
+  document.getElementById('picker-panel').classList.remove('open');
+}
+
+function applyGauges(){
+  activeGauges = [...pendingGauges];
+  closePicker();
+  rebuildGrid();
+}
+
+// ============ BUILD GAUGE GRID ============
+function rebuildGrid(){
+  const grid = document.getElementById('gauge-grid');
+  const n = activeGauges.length;
+
+  // Grid layout: RPM always full top row, then auto-arrange rest
+  let cols, rows;
+  if(n <= 2)      { cols=2; rows=1; }
+  else if(n <= 4) { cols=2; rows=2; }
+  else if(n <= 6) { cols=3; rows=2; }
+  else            { cols=4; rows=2; }
+
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.style.gridTemplateRows = `1.4fr repeat(${rows}, 1fr)`;
+
+  grid.innerHTML = '';
+
+  // RPM box  -  always first, full width
+  const rpmBox = buildRPMBox();
+  rpmBox.style.gridColumn = `1 / -1`;
+  grid.appendChild(rpmBox);
+
+  // Other gauges
+  activeGauges.forEach(id => {
+    const def = GAUGE_DEFS.find(g=>g.id===id);
+    if(def) grid.appendChild(buildGaugeBox(def));
+  });
+
+  // Rebuild RPM bars
+  buildRPMBars();
+}
+
+function buildRPMBox(){
+  const div = document.createElement('div');
+  div.className = 'gbox flicker';
+  div.id = 'box-rpm';
+  div.innerHTML = `
+    <div class="g-corner tl"></div><div class="g-corner tr"></div>
+    <div class="g-corner bl"></div><div class="g-corner br"></div>
+    <div class="gbox-boot" id="boot-rpm"></div>
+    <div class="gbox-live" id="live-rpm" style="opacity:1;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div style="flex:1;">
+          <div class="g-label-rpm" id="rpm-label">ENGINE RPM // REDLINE 8200</div>
+          <div class="g-val-rpm" id="val-rpm">0</div>
+          <div class="rl-warn" id="rl-warn">⚠ REDLINE ⚠</div>
+        </div>
+        <div class="rpm-sim-btns" id="rpm-sim-btns" style="opacity:0;">
+          <button class="rpm-sim-btn" id="rl-btn" onclick="toggleRL()">REDLINE</button>
+          <button class="rpm-sim-btn" id="vtec-btn" onclick="simVTEC()">VTEC</button>
+          <button class="rpm-sim-btn" onclick="resetSim()">RESET</button>
+          <div style="display:flex;align-items:center;gap:6px;margin-left:4px;">
+            <input type="range" id="rpm-slider" min="800" max="8300" value="3240" step="100"
+              style="width:160px;accent-color:#cc2200;cursor:pointer;"
+              oninput="manualRPM(this.value)">
+            <span id="rpm-slider-val" style="font-size:11px;color:#cc2200cc;letter-spacing:1px;min-width:48px;">3240</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:12px;margin-top:4px;">
+        <div class="rpm-bars" id="rpm-bars" style="flex:1;"></div>
+        <div class="inj-row" id="inj-row">
+          <div class="inj-wrap"><div class="inj-body" id="inj-1"><div class="inj-flame"></div></div><div class="inj-label">1</div></div>
+          <div class="inj-wrap"><div class="inj-body" id="inj-3"><div class="inj-flame"></div></div><div class="inj-label">3</div></div>
+          <div class="inj-wrap"><div class="inj-body" id="inj-4"><div class="inj-flame"></div></div><div class="inj-label">4</div></div>
+          <div class="inj-wrap"><div class="inj-body" id="inj-2"><div class="inj-flame"></div></div><div class="inj-label">2</div></div>
+          <div class="inj-order" id="inj-order">1-3-4-2</div>
+        </div>
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+function buildGaugeBox(def){
+  const div = document.createElement('div');
+  div.className = 'gbox flicker';
+  div.innerHTML = `
+    <div class="g-corner tl"></div><div class="g-corner tr"></div>
+    <div class="g-corner bl"></div><div class="g-corner br"></div>
+    <div class="gbox-live" id="live-${def.id}" style="opacity:1;">
+      <div class="g-label">${def.label}</div>
+      <div class="g-val" id="val-${def.id}">--</div>
+      <div class="g-unit">${def.unit}</div>
+      <div class="g-bar-track"><div class="g-bar-fill" id="bar-${def.id}" style="width:0%"></div></div>
+    </div>
+  `;
+  return div;
+}
+
+function buildRPMBars(){
+  const bars = document.getElementById('rpm-bars');
+  if(!bars) return;
+  bars.innerHTML = '';
+  for(let i=0;i<32;i++){
+    const b = document.createElement('div');
+    b.className = 'rpm-bar';
+    bars.appendChild(b);
+  }
+}
+
+// ============ WARP ENGINE ============
+const warpCanvas = document.getElementById('warp-canvas');
+const wctx = warpCanvas.getContext('2d');
+function resizeWarp(){ warpCanvas.width=window.innerWidth; warpCanvas.height=window.innerHeight; }
+resizeWarp();
+window.addEventListener('resize', resizeWarp);
+
+const STAR_COUNT = 180;
+let stars = [];
+function initStars(){
+  stars = [];
+  for(let i=0;i<STAR_COUNT;i++){
+    stars.push({ angle:Math.random()*Math.PI*2, baseDist:Math.random()*0.15+0.01, dist:Math.random()*0.15+0.01, speed:Math.random()*0.004+0.002, length:Math.random()*0.25+0.05, width:Math.random()*1.2+0.3, alpha:Math.random()*0.7+0.3 });
+  }
+}
+initStars();
+
+let warpActive=false, warpIntensity=0, warpAnimId=null;
+
+function drawWarpFrame(){
+  const w=warpCanvas.width,h=warpCanvas.height,cx=w/2,cy=h/2;
+  wctx.clearRect(0,0,w,h);
+  if(warpIntensity<=0) return;
+  wctx.fillStyle=`rgba(0,0,15,${warpIntensity*0.25})`;
+  wctx.fillRect(0,0,w,h);
+  stars.forEach(s=>{
+    s.dist+=s.speed*(1+warpIntensity*3);
+    const maxDist=Math.sqrt(cx*cx+cy*cy)/Math.min(w,h)*2;
+    if(s.dist>maxDist){ s.dist=s.baseDist; s.angle=Math.random()*Math.PI*2; }
+    const stretch=warpIntensity*6+0.5;
+    const r1=s.dist*Math.min(w,h)*0.5;
+    const r2=r1*(1+s.length*stretch);
+    const x1=cx+Math.cos(s.angle)*r1,y1=cy+Math.sin(s.angle)*r1;
+    const x2=cx+Math.cos(s.angle)*r2,y2=cy+Math.sin(s.angle)*r2;
+    const grad=wctx.createLinearGradient(x1,y1,x2,y2);
+    grad.addColorStop(0,`rgba(100,160,255,0)`);
+    grad.addColorStop(0.4,`rgba(180,210,255,${s.alpha*warpIntensity*0.6})`);
+    grad.addColorStop(1,`rgba(255,255,255,${s.alpha*warpIntensity})`);
+    wctx.beginPath(); wctx.strokeStyle=grad; wctx.lineWidth=s.width*(0.5+warpIntensity);
+    wctx.moveTo(x1,y1); wctx.lineTo(x2,y2); wctx.stroke();
+  });
+  if(warpIntensity>0.3){
+    const grd=wctx.createRadialGradient(cx,cy,0,cx,cy,Math.min(w,h)*0.2*warpIntensity);
+    grd.addColorStop(0,`rgba(80,130,255,${warpIntensity*0.3})`);
+    grd.addColorStop(1,`rgba(0,0,80,0)`);
+    wctx.fillStyle=grd; wctx.fillRect(0,0,w,h);
+  }
+}
+
+function warpLoop(){
+  if(!warpActive&&warpIntensity<=0){ warpCanvas.style.opacity='0'; warpAnimId=null; return; }
+  warpIntensity=warpActive?Math.min(1,warpIntensity+0.04):Math.max(0,warpIntensity-0.03);
+  warpCanvas.style.opacity='1';
+  drawWarpFrame();
+  warpAnimId=requestAnimationFrame(warpLoop);
+}
+function startWarp(){ warpActive=true; if(!warpAnimId) warpAnimId=requestAnimationFrame(warpLoop); }
+function stopWarp(){ warpActive=false; if(!warpAnimId) warpAnimId=requestAnimationFrame(warpLoop); }
+
+// VTEC text
+function showVTECText(){
+  const ov=document.getElementById('vtec-overlay'),tx=document.getElementById('vtec-text'),sub=document.getElementById('vtec-subtext');
+  ov.style.opacity='1'; ov.style.transition='opacity 0.3s';
+  tx.style.transform='scaleX(0.1)'; tx.style.transition='none';
+  setTimeout(()=>{ tx.style.transition='transform 0.15s cubic-bezier(0.25,0.46,0.45,0.94)'; tx.style.transform='scaleX(1)'; },50);
+  setTimeout(()=>{ sub.style.opacity='1'; sub.style.transition='opacity 0.4s'; },200);
+  setTimeout(()=>{ ov.style.opacity='0'; sub.style.opacity='0'; },2500);
+}
+
+// ============ BOOT ============
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+function show(id){ document.getElementById(id).style.opacity='1'; }
+
+function setP(pct,lbl){
+  document.getElementById('pbar').style.width=Math.min(pct,100)+'%';
+  document.getElementById('ppct').textContent=Math.min(pct,100)+'%';
+  document.getElementById('plbl').textContent=lbl+': 0x'+Math.floor(pct*1000).toString(16).toUpperCase().padStart(8,'0');
+}
+
+async function boot(){
+  // play boot audio
+  try { const a=new Audio('file:///android_asset/bootAudio.mp3'); a.volume=0.8; a.play(); } catch(e){}
+
+  await delay(300); show('honda-bg');
+  await delay(400); show('hbar');
+  await delay(300); show('gauge-grid');
+
+  // Boot text in each box will be added after grid is built
+  await delay(200); show('srbox'); show('progwrap');
+
+  const steps=[[5,'LOADING 0x00+100',200],[15,'SENSOR ARRAY INIT',300],[28,'ECU HANDSHAKE',300],[42,'FUEL SYSTEM OK',350],[55,'IGNITION SYNC',300],[68,'O2 CALIBRATE',300],[79,'THROTTLE MAP',300],[91,'VTEC PRESSURE CHECK',300],[102,'STATUS: READY',400]];
+  for(const [pct,lbl,wait] of steps){ await delay(wait); setP(pct,lbl); if(pct>=91)document.getElementById('srstat').textContent='LOAD ADDRESS: 0x12000000     STATUS: READY'; }
+
+  await delay(400);
+  document.getElementById('progwrap').style.opacity='0';
+  document.getElementById('srbox').style.opacity='0';
+  await delay(400);
+  document.getElementById('rpm-sim-btns').style.opacity='1';
+  document.getElementById('picker-btn').classList.add('show');
+  startSim();
+}
+
+// ============ SIM ============
+let rpm=3240,spd=47,clt=192,tps=38,o2v=0.82,iat=85,ign=18,stft=1.2,ltft=-0.8,batt=14.1,idc=42;
+let simRL=false,simDir=1,simVTECActive=false,inVTEC=false;
+function jit(v,a){ return v+(Math.random()-0.5)*a; }
+function startSim(){ setInterval(simTick,150); }
+
+function simTick(){
+  if(simRL){ rpm+=simDir*100; if(rpm>=8300)simDir=-1; if(rpm<=7600)simDir=1; tps=Math.min(100,Math.max(85,jit(tps,3))); spd=Math.min(140,Math.max(70,jit(spd,2))); }
+  else if(simVTECActive){ rpm=Math.min(7400,rpm+60); tps=Math.min(100,Math.max(85,jit(tps,3))); spd=Math.min(120,Math.max(60,jit(spd,2))); if(rpm>=7200)simVTECActive=false; }
+  else if(manualMode){ rpm=parseInt(document.getElementById('rpm-slider').value); tps=Math.min(100,Math.max(0,jit(rpm/83,5))); spd=Math.min(140,Math.max(0,jit(rpm/60,2))); }
+  else { rpm=Math.max(800,Math.min(7500,jit(rpm,200))); spd=Math.max(0,Math.min(140,jit(spd,3))); tps=Math.max(0,Math.min(100,jit(tps,6))); }
+  clt=Math.max(160,Math.min(230,jit(clt,1)));
+  o2v=Math.max(0.1,Math.min(1.0,jit(o2v,0.04)));
+  iat=Math.max(60,Math.min(160,jit(iat,1)));
+  ign=Math.max(8,Math.min(42,jit(ign,0.5)));
+  stft=Math.max(-10,Math.min(10,jit(stft,0.3)));
+  ltft=Math.max(-5,Math.min(5,jit(ltft,0.1)));
+  batt=Math.max(13.5,Math.min(14.8,jit(batt,0.05)));
+  idc=Math.max(20,Math.min(85,jit(idc,2)));
+  updateGauges(rpm,spd,clt,tps,o2v,iat,ign,stft,ltft,batt,idc);
+}
+
+let manualMode = false;
+function manualRPM(val){
+  manualMode = true;
+  simRL = false; simVTECActive = false;
+  rpm = parseInt(val);
+  document.getElementById('rpm-slider-val').textContent = val;
+  document.getElementById('rl-btn').classList.remove('active');
+  document.getElementById('rl-btn').textContent = 'REDLINE';
+}
+
+function toggleRL(){
+  simRL=!simRL; simVTECActive=false;
+  const btn=document.getElementById('rl-btn');
+  btn.textContent=simRL?'STOP RL':'REDLINE';
+  btn.classList.toggle('active',simRL);
+  if(simRL) rpm=7800;
+}
+function simVTEC(){
+  rpm=5200; simVTECActive=true; simRL=false;
+  document.getElementById('rl-btn').classList.remove('active');
+  document.getElementById('rl-btn').textContent='REDLINE';
+  const btn=document.getElementById('vtec-btn');
+  btn.classList.add('vtec-active');
+  setTimeout(()=>btn.classList.remove('vtec-active'),4000);
+}
+function resetSim(){
+  simRL=false; simVTECActive=false; inVTEC=false; manualMode=false;
+  rpm=3240;spd=47;clt=192;tps=38;o2v=0.82;
+  const slider=document.getElementById('rpm-slider');
+  const sliderVal=document.getElementById('rpm-slider-val');
+  if(slider) slider.value=3240;
+  if(sliderVal) sliderVal.textContent='3240';
+  document.getElementById('rl-btn').textContent='REDLINE';
+  document.getElementById('rl-btn').classList.remove('active');
+  document.getElementById('vtec-btn').classList.remove('vtec-active');
+  document.getElementById('vtec-bar').style.opacity='0';
+  document.getElementById('rpm-label').textContent='ENGINE RPM // REDLINE 8200';
+  document.getElementById('rpm-label').style.color='#cc110066';
+  document.getElementById('val-rpm').style.color='#cc1100';
+  stopWarp();
+}
+
+const VTEC_RPM=5800;
+
+// ============ INJECTOR FIRING ============
+const FIRE_ORDER = [1,3,4,2]; // K20Z3 firing order
+let injInterval = null;
+let currentCyl = 0;
+
+function updateInjectors(r, vtecOn){
+  // Calculate firing interval from RPM
+  // 4-stroke = 2 crankshaft revolutions per full cycle
+  // Each cylinder fires once per 720 degrees = once per 2 revolutions
+  // Interval (ms) = (60000 / RPM) * 2 / 4 cylinders
+  const intervalMs = Math.max(20, (60000 / Math.max(r, 100)) * 2 / 4);
+
+  if(injInterval) clearInterval(injInterval);
+  injInterval = setInterval(() => {
+    const cyl = FIRE_ORDER[currentCyl % 4];
+    const el = document.getElementById('inj-'+cyl);
+    if(el){
+      el.classList.remove('fire','fire-vtec');
+      void el.offsetWidth; // force reflow
+      el.classList.add(vtecOn ? 'fire-vtec' : 'fire');
+      setTimeout(()=>{ el.classList.remove('fire','fire-vtec'); }, Math.min(intervalMs*0.6, 80));
+    }
+    currentCyl++;
+  }, intervalMs);
+}
+
+function updateGauges(r,s,c,t,o2,ia,ig,sf,lf,bv,id){
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  const setW=(id,w)=>{ const el=document.getElementById(id); if(el) el.style.width=w+'%'; };
+  const setC=(id,col)=>{ const el=document.getElementById(id); if(el) el.style.color=col; };
+
+  set('val-rpm', Math.round(r));
+  set('val-spd', Math.round(s));
+  set('val-clt', Math.round(c));
+  set('val-tps', Math.round(t));
+  set('val-o2',  parseFloat(o2).toFixed(2));
+  set('val-iat', Math.round(ia));
+  set('val-ign', parseFloat(ig).toFixed(1));
+  set('val-stft',parseFloat(sf).toFixed(1));
+  set('val-ltft',parseFloat(lf).toFixed(1));
+  set('val-batt',parseFloat(bv).toFixed(1));
+  set('val-idc', Math.round(id));
+
+  setW('bar-spd', s/160*100);
+  setW('bar-clt', Math.max(0,(c-160)/70*100));
+  setW('bar-tps', t);
+  setW('bar-o2',  o2*100);
+  setW('bar-iat', Math.max(0,(ia-32)/168*100));
+  setW('bar-ign', Math.max(0,(ig+10)/55*100));
+  setW('bar-stft',Math.max(0,(sf+25)/50*100));
+  setW('bar-ltft',Math.max(0,(lf+25)/50*100));
+  setW('bar-batt',Math.max(0,(bv-11)/4*100));
+  setW('bar-idc', id);
+
+  setC('val-clt', c>215?'#ff4400':'#cc1100');
+  setC('val-batt', bv<12.5?'#ff4400':'#cc1100');
+
+  // INJECTOR FIRING  -  K20Z3 firing order: 1-3-4-2
+  updateInjectors(r, r>=VTEC_RPM);
+
+  // RPM bars
+  const barsEl=document.getElementById('rpm-bars');
+  if(barsEl){
+    const active=Math.floor(r/8200*32);
+    const vtecOn=r>=VTEC_RPM;
+    Array.from(barsEl.children).forEach((b,i)=>{
+      b.classList.toggle('on',i<active);
+      b.classList.toggle('vtec',i<active&&vtecOn&&!simRL);
+      b.classList.toggle('red',i<active&&i>=27);
+    });
+  }
+
+  // VTEC
+  if(r>=VTEC_RPM && !inVTEC){
+    inVTEC=true; startWarp(); showVTECText();
+    document.getElementById('vtec-bar').style.opacity='1';
+    document.getElementById('rpm-label').textContent='ENGINE RPM // i-VTEC ENGAGED';
+    document.getElementById('rpm-label').style.color='#4488ffaa';
+    document.getElementById('val-rpm').style.color='#4488ff';
+  } else if(r<VTEC_RPM && inVTEC){
+    inVTEC=false; stopWarp();
+    document.getElementById('vtec-bar').style.opacity='0';
+    document.getElementById('rpm-label').textContent='ENGINE RPM // REDLINE 8200';
+    document.getElementById('rpm-label').style.color='#cc110066';
+    document.getElementById('val-rpm').style.color='#cc1100';
+  }
+
+  // Redline
+  const isRL=r>=7800;
+  document.documentElement.classList.toggle('redlining',isRL);
+  document.getElementById('rl-warn').style.opacity=isRL?'1':'0';
+  document.getElementById('rl-strip').style.width=(r/8200*100)+'%';
+}
+
+// ============ INIT ============
+rebuildGrid();
+boot();
+</script>
+</body>
+</html>

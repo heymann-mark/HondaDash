@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#020008 url(sky.png) center 20% / 100% auto no-repeat; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; }
+canvas { display:block; }
+.scanlines { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 4px); pointer-events:none; z-index:10; }
+
+.hbar { position:fixed; top:0; left:0; right:0; height:56px; border-bottom:1px solid #cc000033; background:rgba(10,0,0,0.85); z-index:20; display:flex; align-items:center; justify-content:space-between; padding:0 20px; }
+.hbar-title { font-family:'Orbitron',monospace; font-size:22px; color:#ff4422cc; letter-spacing:3px; }
+.hbar-sub { font-size:16px; letter-spacing:2px; }
+.hbar-sub.ok { color:#00ff4188; }
+.hbar-sub.warning { color:#ffaa00cc; }
+.hbar-sub.critical { color:#ff2200cc; }
+
+.loading { position:fixed; inset:0; background:#0a0000; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+.loading-text { font-size:22px; color:#ffffff88; letter-spacing:3px; }
+.loading-bar-track { width:300px; height:3px; background:#cc110018; }
+.loading-bar-fill { height:3px; background:#cc2200; width:0%; transition:width 0.3s; }
+
+@keyframes sensorpulse-warning {
+  0%   { box-shadow:0 0 6px #ffaa00, 0 0 12px #ffaa0088; opacity:0.8; transform:translate(-50%,-50%) scale(1); }
+  50%  { box-shadow:0 0 20px #ffcc00, 0 0 40px #ffaa0066, 0 0 70px #ffaa0033; opacity:1; transform:translate(-50%,-50%) scale(1.3); }
+  100% { box-shadow:0 0 6px #ffaa00, 0 0 12px #ffaa0088; opacity:0.8; transform:translate(-50%,-50%) scale(1); }
+}
+@keyframes sensorpulse-critical {
+  0%   { box-shadow:0 0 6px #ffaa00, 0 0 12px #ffaa0088; opacity:0.7; transform:translate(-50%,-50%) scale(1); }
+  50%  { box-shadow:0 0 24px #ffcc00, 0 0 48px #ffaa0077, 0 0 80px #ffaa0044; opacity:1; transform:translate(-50%,-50%) scale(1.4); }
+  100% { box-shadow:0 0 6px #ffaa00, 0 0 12px #ffaa0088; opacity:0.7; transform:translate(-50%,-50%) scale(1); }
+}
+.sensor-dot { position:fixed; width:20px; height:20px; border-radius:50%; cursor:pointer; z-index:15; transform:translate(-50%,-50%); }
+.sensor-dot.ok { background:#001a00; border:2px solid #00ff41; box-shadow:0 0 6px #00ff4155; }
+.sensor-dot.warning  { background:#3a2000; border:2px solid #ffaa00; animation:sensorpulse-warning  1.4s ease-in-out infinite; }
+.sensor-dot.critical { background:#3a2000; border:2px solid #ffcc00; animation:sensorpulse-critical 0.9s ease-in-out infinite; }
+
+.info-panel { position:fixed; left:0; top:56px; bottom:0; width:360px; background:rgba(5,0,0,0.96); border-right:1px solid #cc110033; z-index:30; transform:translateX(-100%); transition:transform 0.3s; padding:20px; overflow-y:auto; }
+.info-panel.open { transform:translateX(0); }
+.info-close { background:transparent; border:1px solid #ffffff44; color:#ffffff88; font-family:'Share Tech Mono',monospace; font-size:16px; padding:8px 16px; cursor:pointer; letter-spacing:1px; margin-bottom:16px; display:block; width:100%; }
+.info-close:hover { border-color:#ff4422; color:#ff4422; }
+.info-code { font-family:'Orbitron',monospace; font-size:44px; margin-bottom:6px; }
+.info-code.warning  { color:#ffaa00; }
+.info-code.critical { color:#ffcc00; }
+.info-name { font-size:20px; color:#ffffffcc; letter-spacing:1px; margin-bottom:10px; line-height:1.4; }
+.info-severity { display:inline-block; font-size:15px; padding:5px 14px; border:1px solid; letter-spacing:3px; margin-bottom:12px; }
+.info-severity.warning  { color:#ffaa00; border-color:#ffaa0077; background:rgba(255,170,0,0.1); }
+.info-severity.critical { color:#ffcc00; border-color:#ffcc0077; background:rgba(255,204,0,0.12); }
+.info-severity.ok       { color:#00ff41; border-color:#00ff4177; background:rgba(0,255,65,0.05); }
+.info-desc { font-size:15px; color:#ffffff88; line-height:1.9; margin-bottom:12px; }
+.info-effect { font-size:14px; color:#ffaa0088; line-height:1.8; margin-bottom:12px; font-style:italic; }
+.info-divider { height:1px; background:#ffffff11; margin:12px 0; }
+.info-sensor-label { font-size:13px; color:#ffffff55; letter-spacing:2px; margin-bottom:5px; }
+.info-sensor-val { font-family:'Orbitron',monospace; font-size:28px; color:#ffffff; margin-bottom:12px; }
+.info-location-text { font-size:14px; color:#ffffff66; line-height:1.8; }
+.info-codes-list { margin-top:8px; }
+.info-code-item { font-size:13px; color:#ffffff44; padding:4px 0; border-bottom:1px solid #ffffff08; cursor:pointer; transition:color 0.15s; }
+.info-code-item:hover { color:#ffaa00; }
+.info-code-item.active-code { color:#ffaa00; }
+
+.test-panel { position:fixed; right:0; top:56px; width:210px; background:rgba(5,0,0,0.92); border-left:1px solid #ffffff11; z-index:25; display:flex; flex-direction:column; gap:6px; padding:12px; bottom:60px; overflow-y:auto; }
+.test-label { font-size:13px; color:#ffffff55; letter-spacing:2px; padding:4px 0; border-bottom:1px solid #ffffff11; margin-bottom:4px; }
+.test-btn { background:transparent; border:1px solid #ffffff22; color:#ffffffaa; font-family:'Share Tech Mono',monospace; font-size:15px; letter-spacing:1px; padding:12px 14px; cursor:pointer; text-align:left; transition:all 0.2s; }
+.test-btn:hover { border-color:#ffaa00; color:#ffaa00; }
+.test-btn.warning  { border-color:#ffaa00; color:#ffaa00; background:rgba(255,170,0,0.08); }
+.test-btn.critical { border-color:#ffcc00; color:#ffcc00; background:rgba(255,204,0,0.1); }
+.test-clear { border-color:#ffffff11; color:#ffffff33; font-size:13px; margin-top:4px; }
+.test-clear:hover { border-color:#ffffff44; color:#ffffff66; }
+
+.bottom-bar { position:fixed; bottom:0; left:0; right:0; height:60px; background:rgba(5,0,0,0.9); border-top:1px solid #cc110022; z-index:20; display:flex; align-items:center; justify-content:center; gap:16px; }
+.bot-btn { background:transparent; border:1px solid #ffffff33; color:#ffffff88; font-family:'Share Tech Mono',monospace; font-size:16px; letter-spacing:2px; padding:8px 20px; cursor:pointer; transition:all 0.15s; }
+.bot-btn:hover { border-color:#ff4422; color:#ff4422; }
+.bot-btn.active { border-color:#ff4422aa; color:#ff4422cc; }
+.ambient { position:fixed; inset:0; background:radial-gradient(ellipse 100% 60% at 50% 50%, rgba(100,0,0,0.08) 0%, transparent 70%); pointer-events:none; z-index:5; }
+</style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+<div class="ambient"></div>
+
+<div class="hbar">
+  <div class="hbar-title">K20Z3 // 3D DIAGNOSTIC</div>
+  <div class="hbar-sub ok" id="status-text">LOADING...</div>
+</div>
+
+<div class="loading" id="loading">
+  <div class="loading-text">LOADING 3D MODEL</div>
+  <div class="loading-bar-track"><div class="loading-bar-fill" id="load-bar"></div></div>
+  <div class="loading-text" id="load-pct">0%</div>
+</div>
+
+<div id="canvas-container" style="position:fixed;top:56px;left:0;right:210px;bottom:60px;"></div>
+
+<div id="sensor-o2"    class="sensor-dot ok" style="display:none" onclick="showSensor('o2')"></div>
+<div id="sensor-clt"   class="sensor-dot ok" style="display:none" onclick="showSensor('clt')"></div>
+<div id="sensor-tps"   class="sensor-dot ok" style="display:none" onclick="showSensor('tps')"></div>
+<div id="sensor-map"   class="sensor-dot ok" style="display:none" onclick="showSensor('map')"></div>
+<div id="sensor-vtec"  class="sensor-dot ok" style="display:none" onclick="showSensor('vtec')"></div>
+<div id="sensor-knock" class="sensor-dot ok" style="display:none" onclick="showSensor('knock')"></div>
+
+<div class="info-panel" id="info-panel">
+  <button class="info-close" onclick="closePanel()">[ CLOSE ]</button>
+  <div class="info-code warning" id="info-code">P0000</div>
+  <div class="info-name" id="info-name">SENSOR NAME</div>
+  <div class="info-severity ok" id="info-severity">OK</div>
+  <div class="info-desc" id="info-desc">--</div>
+  <div class="info-effect" id="info-effect"></div>
+  <div class="info-divider"></div>
+  <div class="info-sensor-label">LIVE VALUE</div>
+  <div class="info-sensor-val" id="info-val">--</div>
+  <div class="info-divider"></div>
+  <div class="info-sensor-label">LOCATION</div>
+  <div class="info-location-text" id="info-location">--</div>
+  <div class="info-divider"></div>
+  <div class="info-sensor-label">ALL CODES FOR THIS SENSOR</div>
+  <div class="info-codes-list" id="info-codes-list"></div>
+</div>
+
+<div class="test-panel">
+  <div class="test-label">⚠ FAULT SIM</div>
+  <button class="test-btn" id="test-o2"    onclick="triggerFault('o2')">O2 SENSOR</button>
+  <button class="test-btn" id="test-clt"   onclick="triggerFault('clt')">COOLANT</button>
+  <button class="test-btn" id="test-tps"   onclick="triggerFault('tps')">THROTTLE</button>
+  <button class="test-btn" id="test-map"   onclick="triggerFault('map')">MAP SENSOR</button>
+  <button class="test-btn" id="test-vtec"  onclick="triggerFault('vtec')">VTEC</button>
+  <button class="test-btn" id="test-knock" onclick="triggerFault('knock')">KNOCK</button>
+  <button class="test-btn test-clear" onclick="clearAllFaults()">✕ CLEAR ALL</button>
+</div>
+
+<div class="bottom-bar">
+  <button class="bot-btn active" id="btn-rotate" onclick="toggleRotate()">[ AUTO ROTATE ]</button>
+  <button class="bot-btn" onclick="resetCamera()">[ RESET VIEW ]</button>
+  <button class="bot-btn active" id="btn-sensors" onclick="toggleSensors()">[ SENSORS ON ]</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+
+// SENSOR DATABASE  -  real Honda K20 DTC codes with severity and effects
+const sensorDB = {
+  o2: {
+    name: 'O2 SENSOR (Secondary)',
+    location: 'Exhaust manifold, downstream of catalytic converter',
+    val: '0.82V',
+    pos: {x:0.0, y:0.45, z:1.4},
+    codes: [
+      { code:'P0136', severity:'warning', desc:'O2 sensor circuit malfunction (Bank 1, Sensor 2). Sensor signal out of normal range.', effect:'Fuel trim may be off. Emissions increased. Engine runs but may run slightly rich or lean.' },
+      { code:'P0137', severity:'warning', desc:'O2 sensor circuit low voltage (Bank 1, Sensor 2). Sensor reading unusually low.', effect:'ECU may over-fueling. Possible rich running condition and increased fuel consumption.' },
+      { code:'P0138', severity:'warning', desc:'O2 sensor circuit high voltage (Bank 1, Sensor 2). Sensor reading unusually high.', effect:'ECU may under-fueling. Possible lean running condition. May damage catalytic converter over time.' },
+      { code:'P0141', severity:'warning', desc:'O2 sensor heater circuit malfunction (Bank 1, Sensor 2). Heater not warming sensor quickly enough.', effect:'Slower closed-loop fuel control on cold start. Increased emissions until sensor warms up.' },
+    ]
+  },
+  clt: {
+    name: 'COOLANT TEMP SENSOR (ECT)',
+    location: 'Engine block, near thermostat housing',
+    val: '192°F',
+    pos: {x:-0.1, y:0.35, z:1.0},
+    codes: [
+      { code:'P0115', severity:'warning', desc:'Engine coolant temperature sensor circuit malfunction. Signal outside expected range.', effect:'ECU assumes default coolant temp of 176°F. May cause rich running, rough idle, failed emissions.' },
+      { code:'P0117', severity:'warning', desc:'ECT sensor circuit low input. Voltage below minimum threshold.', effect:'ECU thinks engine is overheating. May limit power, enrich fuel mixture, activate cooling fan.' },
+      { code:'P0118', severity:'warning', desc:'ECT sensor circuit high input. Voltage above maximum threshold.', effect:'ECU thinks engine is cold. Runs rich, increased fuel consumption, poor performance.' },
+    ]
+  },
+  tps: {
+    name: 'THROTTLE POSITION SENSOR',
+    location: 'Throttle body, driver side of intake',
+    val: '38%',
+    pos: {x:0.1, y:0.55, z:0.85},
+    codes: [
+      { code:'P0122', severity:'critical', desc:'Throttle position sensor circuit low input. Signal voltage below 0.17V.', effect:'ECU cannot read throttle position. May cause stalling, hesitation, or limp mode. Unsafe to drive.' },
+      { code:'P0123', severity:'critical', desc:'Throttle position sensor circuit high input. Signal voltage above 4.80V.', effect:'ECU may command full throttle. Dangerous  -  vehicle may accelerate unexpectedly. Stop driving immediately.' },
+      { code:'P0121', severity:'warning', desc:'Throttle position sensor range/performance problem. Signal inconsistent with MAP sensor reading.', effect:'Hesitation on acceleration. Temporary fuel enrichment disabled. Possible stalling under load.' },
+    ]
+  },
+  map: {
+    name: 'MAP SENSOR',
+    location: 'Intake manifold, top of engine',
+    val: '14.2 psi',
+    pos: {x:0.2, y:0.55, z:0.85},
+    codes: [
+      { code:'P0107', severity:'critical', desc:'MAP sensor circuit low input. Voltage below 0.25V  -  sensor may be unplugged or shorted.', effect:'ECU assumes sea level pressure. Fueling severely off. Rough running, possible stalling, no power.' },
+      { code:'P0108', severity:'critical', desc:'MAP sensor circuit high input. Voltage above 4.90V.', effect:'ECU thinks boost/vacuum is extreme. Severe over-fueling, black smoke, catalytic converter damage.' },
+      { code:'P0106', severity:'warning', desc:'MAP sensor range/performance problem. Signal not matching expected values at current RPM and load.', effect:'Inaccurate fueling at load. Hesitation, poor fuel economy. May not be driveable under hard acceleration.' },
+    ]
+  },
+  vtec: {
+    name: 'VTEC SOLENOID',
+    location: 'Cylinder head, VTEC oil control valve (top of engine)',
+    val: 'INACTIVE',
+    pos: {x:0.1, y:0.55, z:1.25},
+    codes: [
+      { code:'P2646', severity:'critical', desc:'VTEC rocker arm oil pressure switch circuit low voltage. Switch stuck off or no oil pressure detected at VTEC circuit.', effect:'VTEC will not engage. Power loss above 5500 RPM. Possible insufficient oil pressure at valvetrain  -  fix immediately to avoid engine damage.' },
+      { code:'P2647', severity:'critical', desc:'VTEC rocker arm oil pressure switch circuit high voltage. Switch stuck on or short circuit detected.', effect:'VTEC may engage at wrong RPM. Valvetrain instability possible. Risk of engine damage if oil pressure is actually low.' },
+    ]
+  },
+  knock: {
+    name: 'KNOCK SENSOR',
+    location: 'Engine block, between cylinders 2 and 3',
+    val: '0 counts',
+    pos: {x:-0.1, y:0.15, z:1.0},
+    codes: [
+      { code:'P0325', severity:'warning', desc:'Knock sensor circuit malfunction (Bank 1). Sensor signal not within expected range.', effect:'ECU switches to low-octane ignition timing map as a precaution. Significant power loss, poor fuel economy.' },
+      { code:'P0326', severity:'warning', desc:'Knock sensor range/performance problem. Sensor detecting implausible signal levels.', effect:'Same as P0325  -  ECU retards timing. Vehicle safe to drive but performance greatly reduced.' },
+    ]
+  }
+};
+
+// Track current active fault index per sensor for cycling
+const faultIndex = { o2:0, clt:0, tps:0, map:0, vtec:0, knock:0 };
+const activeFaults = {};
+
+const container = document.getElementById('canvas-container');
+const W = container.clientWidth, H = container.clientHeight;
+
+const scene = new THREE.Scene();
+// background handled by CSS sky image
+
+const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 100);
+camera.position.set(0, 1.5, 5);
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.4;
+renderer.setClearColor(0x000000, 0);
+container.appendChild(renderer.domElement);
+
+
+
+
+
+scene.add(new THREE.AmbientLight(0xffffff, 6.0));
+const keyLight = new THREE.DirectionalLight(0xffffff, 7.0);
+keyLight.position.set(5, 8, 5); keyLight.castShadow=true; scene.add(keyLight);
+const fillLight = new THREE.DirectionalLight(0x4466aa, 3.0);
+fillLight.position.set(-5, 3, -5); scene.add(fillLight);
+const rimLight = new THREE.DirectionalLight(0xff8855, 2.5);
+rimLight.position.set(0, -2, -6); scene.add(rimLight);
+const topLight = new THREE.DirectionalLight(0xffffff, 2.0);
+topLight.position.set(0, 10, 0); scene.add(topLight);
+scene.add(new THREE.GridHelper(20, 40, 0x223355, 0x112244));
+
+
+const script = document.createElement('script');
+script.src = 'GLTFLoader.js';
+document.head.appendChild(script);
+
+script.onload = () => {
+  const gltfLoader = new THREE.GLTFLoader();
+  gltfLoader.load(
+    '2007_honda_civic_green_brake.glb',
+    (gltf) => {
+      const model = gltf.scene;
+      const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const scale = 3.5 / Math.max(size.x, size.y, size.z);
+      model.scale.setScalar(scale);
+      model.position.sub(center.multiplyScalar(scale));
+      model.position.y += 0.5;
+      model.traverse(c=>{ if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
+      scene.add(model);
+      window.carModel = model;
+      document.getElementById('loading').style.display='none';
+      setStatus('DIAGNOSTIC READY', 'ok');
+      updateSensorPositions();
+      document.querySelectorAll('.sensor-dot').forEach(d=>d.style.display='block');
+    },
+    (p) => {
+      const pct = p.total>0 ? Math.round((p.loaded/p.total)*100) : 0;
+      document.getElementById('load-bar').style.width=pct+'%';
+      document.getElementById('load-pct').textContent=pct+'%';
+    },
+    (err) => {
+      document.getElementById('loading').innerHTML=
+        '<div class="loading-text" style="color:#ff2200;font-size:24px">MODEL LOAD FAILED</div>'+
+        '<div class="loading-text" style="font-size:22px;margin-top:12px;color:#ffffff66">'+err+'</div>';
+    }
+  );
+};
+script.onerror = () => {
+  document.getElementById('loading').innerHTML=
+    '<div class="loading-text" style="color:#ff2200;font-size:24px">GLTFLOADER.JS NOT FOUND</div>'+
+    '<div class="loading-text" style="font-size:20px;margin-top:12px;color:#ffffff66">Add GLTFLoader.js to assets folder</div>';
+};
+
+function setStatus(text, level){
+  const el = document.getElementById('status-text');
+  el.textContent = text;
+  el.className = 'hbar-sub ' + level;
+}
+
+// Touch controls
+let isDragging=false, prevX=0, prevY=0;
+let rotX=0, rotY=0, targetRotX=0, targetRotY=0;
+let camRadius=5, targetRadius=5, autoRotate=true;
+
+renderer.domElement.addEventListener('touchstart', e=>{
+  if(e.touches.length===1){ isDragging=true; prevX=e.touches[0].clientX; prevY=e.touches[0].clientY; autoRotate=false; document.getElementById('btn-rotate').classList.remove('active'); }
+},{passive:true});
+renderer.domElement.addEventListener('touchmove', e=>{
+  if(isDragging&&e.touches.length===1){
+    const dx=e.touches[0].clientX-prevX, dy=e.touches[0].clientY-prevY;
+    targetRotY+=dx*0.008; targetRotX+=dy*0.008;
+    targetRotX=Math.max(-Math.PI/3,Math.min(Math.PI/3,targetRotX));
+    prevX=e.touches[0].clientX; prevY=e.touches[0].clientY;
+  }
+  if(e.touches.length===2){
+    const dx=e.touches[0].clientX-e.touches[1].clientX, dy=e.touches[0].clientY-e.touches[1].clientY;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    if(window.lastPinchDist){ targetRadius=Math.max(2,Math.min(10,targetRadius+(window.lastPinchDist-dist)*0.02)); }
+    window.lastPinchDist=dist;
+  }
+},{passive:true});
+renderer.domElement.addEventListener('touchend',()=>{ isDragging=false; window.lastPinchDist=null; },{passive:true});
+renderer.domElement.addEventListener('mousedown', e=>{ isDragging=true; prevX=e.clientX; prevY=e.clientY; autoRotate=false; });
+renderer.domElement.addEventListener('mousemove', e=>{ if(!isDragging)return; targetRotY+=(e.clientX-prevX)*0.008; targetRotX+=(e.clientY-prevY)*0.008; targetRotX=Math.max(-Math.PI/3,Math.min(Math.PI/3,targetRotX)); prevX=e.clientX; prevY=e.clientY; });
+renderer.domElement.addEventListener('mouseup',()=>isDragging=false);
+renderer.domElement.addEventListener('wheel', e=>{ targetRadius=Math.max(2,Math.min(10,targetRadius+e.deltaY*0.01)); });
+
+let sensorsVisible=true;
+
+function updateSensorPositions(){
+  if(!window.carModel) return;
+  Object.entries(sensorDB).forEach(([key,s])=>{
+    const dot=document.getElementById('sensor-'+key);
+    if(!dot) return;
+    const vec=new THREE.Vector3(s.pos.x,s.pos.y,s.pos.z);
+    vec.project(camera);
+    const rect=container.getBoundingClientRect();
+    dot.style.left=((vec.x*0.5+0.5)*rect.width+rect.left)+'px';
+    dot.style.top=((-vec.y*0.5+0.5)*rect.height+rect.top)+'px';
+    dot.style.display=(sensorsVisible&&vec.z<1)?'block':'none';
+  });
+}
+
+function showSensor(key){
+  const s = sensorDB[key];
+  const fault = activeFaults[key];
+  const dtc = fault || s.codes[0];
+  const sev = fault ? dtc.severity : 'ok';
+
+  document.getElementById('info-code').textContent = fault ? dtc.code : '__';
+  document.getElementById('info-code').className = 'info-code ' + (fault ? dtc.severity : 'warning');
+  document.getElementById('info-name').textContent = s.name;
+  document.getElementById('info-val').textContent = s.val;
+  document.getElementById('info-location').textContent = s.location;
+
+  const sevEl = document.getElementById('info-severity');
+  sevEl.textContent = fault ? dtc.severity.toUpperCase() : 'OK';
+  sevEl.className = 'info-severity ' + (fault ? dtc.severity : 'ok');
+
+  document.getElementById('info-desc').textContent = fault ? dtc.desc : 'No faults detected on this sensor.';
+  document.getElementById('info-effect').textContent = fault ? '⚠ ' + dtc.effect : '';
+
+  // List all possible codes for this sensor
+  const list = document.getElementById('info-codes-list');
+  list.innerHTML = '';
+  s.codes.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'info-code-item' + (fault && fault.code===c.code ? ' active-code' : '');
+    div.textContent = c.code + '  -  ' + c.desc.substring(0, 50) + '...';
+    div.onclick = () => showSpecificCode(key, c.code);
+    list.appendChild(div);
+  });
+
+  document.getElementById('info-panel').classList.add('open');
+}
+
+function showSpecificCode(key, code){
+  const s = sensorDB[key];
+  const dtc = s.codes.find(c=>c.code===code);
+  if(!dtc) return;
+  activeFaults[key] = dtc;
+  setDotState(key, dtc.severity);
+  document.getElementById('test-'+key).className = 'test-btn ' + dtc.severity;
+  showSensor(key);
+  updateStatusBar();
+}
+
+function setDotState(key, state){
+  const dot = document.getElementById('sensor-'+key);
+  if(dot) dot.className = 'sensor-dot ' + state;
+}
+
+function triggerFault(key){
+  const s = sensorDB[key];
+  // Cycle through codes on each press
+  const idx = faultIndex[key] % s.codes.length;
+  faultIndex[key]++;
+  const dtc = s.codes[idx];
+  activeFaults[key] = dtc;
+  setDotState(key, dtc.severity);
+  document.getElementById('test-'+key).className = 'test-btn ' + dtc.severity;
+  showSensor(key);
+  updateStatusBar();
+}
+
+function updateStatusBar(){
+  const faults = Object.values(activeFaults);
+  if(faults.length === 0){ setStatus('DIAGNOSTIC READY', 'ok'); return; }
+  const hasCritical = faults.some(f=>f.severity==='critical');
+  const codes = Object.entries(activeFaults).map(([k,f])=>f.code).join(' | ');
+  setStatus(hasCritical ? '⚠ CRITICAL: '+codes : '⚠ FAULT: '+codes, hasCritical?'critical':'warning');
+}
+
+function clearAllFaults(){
+  Object.keys(sensorDB).forEach(k=>{
+    delete activeFaults[k];
+    faultIndex[k] = 0;
+    setDotState(k, 'ok');
+    const btn = document.getElementById('test-'+k);
+    if(btn) btn.className = 'test-btn';
+  });
+  setStatus('DIAGNOSTIC READY', 'ok');
+  closePanel();
+}
+
+function closePanel(){ document.getElementById('info-panel').classList.remove('open'); }
+function toggleRotate(){ autoRotate=!autoRotate; document.getElementById('btn-rotate').classList.toggle('active',autoRotate); }
+function resetCamera(){ targetRotX=0; targetRotY=0; targetRadius=5; autoRotate=true; document.getElementById('btn-rotate').classList.add('active'); }
+function toggleSensors(){ sensorsVisible=!sensorsVisible; document.getElementById('btn-sensors').classList.toggle('active',sensorsVisible); document.querySelectorAll('.sensor-dot').forEach(d=>{ d.style.display=sensorsVisible?'block':'none'; }); }
+
+// Called by Kotlin with real DTC codes from FlashPro
+function updateDTC(codes){
+  clearAllFaults();
+  if(!codes||!codes.length) return;
+  codes.forEach(code=>{
+    Object.entries(sensorDB).forEach(([key,s])=>{
+      const match = s.codes.find(c=>c.code===code);
+      if(match){ activeFaults[key]=match; setDotState(key,match.severity); document.getElementById('test-'+key).className='test-btn '+match.severity; }
+    });
+  });
+  updateStatusBar();
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  if(autoRotate) targetRotY+=0.005;
+  rotX+=(targetRotX-rotX)*0.08; rotY+=(targetRotY-rotY)*0.08; camRadius+=(targetRadius-camRadius)*0.08;
+  camera.position.x=camRadius*Math.sin(rotY)*Math.cos(rotX);
+  camera.position.y=camRadius*Math.sin(rotX)+1.0;
+  camera.position.z=camRadius*Math.cos(rotY)*Math.cos(rotX);
+  camera.lookAt(0,0.5,0);
+  updateSensorPositions();
+  renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener('resize',()=>{
+  const W=container.clientWidth,H=container.clientHeight;
+  camera.aspect=W/H; camera.updateProjectionMatrix(); renderer.setSize(W,H);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
+
+.page-frame {
+  position:fixed; top:0; left:0; right:0; bottom:56px;
+  border:none; width:100%; height:calc(100vh - 56px);
+  display:none;
+}
+.page-frame.active { display:block; }
+
+.app-nav {
+  position:fixed; bottom:0; left:0; right:0; height:56px;
+  background:#0d0000; border-top:1px solid #cc110033;
+  z-index:1000; display:flex; align-items:center; justify-content:center;
+}
+.nav-btn {
+  flex:1; background:transparent; border:none;
+  font-family:'Share Tech Mono',monospace; font-size:12px; font-weight:bold;
+  letter-spacing:2px; color:#cc110066; padding:8px 0;
+  cursor:pointer; transition:color 0.15s; text-align:center;
+}
+.nav-btn:hover { color:#cc2200; }
+.nav-btn.active { color:#cc2200; }
+</style>
+</head>
+<body>
+
+<iframe id="frame-gauges" class="page-frame active" src="dashboard.html"></iframe>
+<iframe id="frame-vehicle" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-maps" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-music" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-datalog" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-trips" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-hondata" class="page-frame" src="about:blank"></iframe>
+
+<nav class="app-nav">
+  <button class="nav-btn active" onclick="switchPage('gauges')">GAUGES</button>
+  <button class="nav-btn" onclick="switchPage('vehicle')">VEHICLE</button>
+  <button class="nav-btn" onclick="switchPage('maps')">MAPS</button>
+  <button class="nav-btn" onclick="switchPage('music')">MUSIC</button>
+  <button class="nav-btn" onclick="switchPage('datalog')">DATALOG</button>
+  <button class="nav-btn" onclick="switchPage('trips')">TRIPS</button>
+  <button class="nav-btn" onclick="switchPage('hondata')">HONDATA</button>
+</nav>
+
+<script>
+const pages = {
+  gauges:  { src:'dashboard.html',  loaded:true },
+  vehicle: { src:'carview.html',    loaded:false },
+  maps:    { src:'streetview.html',  loaded:false },
+  music:   { src:'music.html',      loaded:false },
+  datalog: { src:'datalog.html',    loaded:false },
+  trips:   { src:'trips.html',      loaded:false },
+  hondata: { src:'hondata.html',    loaded:false }
+};
+
+let currentPage = 'gauges';
+
+// Handle Spotify auth callback  -  if we landed here with a ?code=, pass it to music page
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('code')) {
+  // Load music iframe with the auth code
+  const musicUrl = 'music.html' + window.location.search;
+  document.getElementById('frame-music').src = musicUrl;
+  pages.music.loaded = true;
+  // Clean URL
+  window.history.replaceState({}, '', window.location.pathname);
+  // Auto-switch to music
+  setTimeout(() => switchPage('music'), 100);
+}
+
+function switchPage(name) {
+  // Hide current
+  document.getElementById('frame-' + currentPage).classList.remove('active');
+
+  // Load if not loaded yet
+  if (!pages[name].loaded) {
+    document.getElementById('frame-' + name).src = pages[name].src;
+    pages[name].loaded = true;
+  }
+
+  // Show new
+  document.getElementById('frame-' + name).classList.add('active');
+
+  // Update nav buttons
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nav-btn')[Object.keys(pages).indexOf(name)].classList.add('active');
+
+  currentPage = name;
+}
+</script>
+</body>
+</html>
