@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv \"2007 Honda Civic Si L4-2.0L.zip\" \"../../../../../../scratch/\")",
+      "Bash(mv \"479f88-2008+Honda+Civic+Type+R+\\(FD2\\)V1.3.rar\" \"../../../../../../scratch/\")",
+      "Bash(mv \"AceSetup.exe\" \"../../../../../../scratch/\")",
+      "Bash(mv \"honda--civic--sedan-2009.zip\" \"../../../../../../scratch/\")",
+      "Bash(mv \"K24.stl\" \"../../../../../../scratch/\")",
+      "Bash(mv \"app/src/main/assets/2007 Honda Civic Si L4-2.0L.zip\" scratch/)",
+      "Bash(mv \"app/src/main/assets/479f88-2008+Honda+Civic+Type+R+\\(FD2\\)V1.3.rar\" scratch/)",
+      "Bash(mv \"app/src/main/assets/AceSetup.exe\" scratch/)",
+      "Bash(mv \"app/src/main/assets/honda--civic--sedan-2009.zip\" scratch/)",
+      "Bash(mv \"app/src/main/assets/K24.stl\" scratch/)"
+    ]
+  }
+}
