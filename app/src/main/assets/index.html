@@ -41,6 +41,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
 <iframe id="frame-battery" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-trips" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-hondata" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-tuner" class="page-frame" src="about:blank"></iframe>
 
 <nav class="app-nav">
   <button class="nav-btn active" onclick="switchPage('gauges')">GAUGES</button>
@@ -52,6 +53,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
   <button class="nav-btn" onclick="switchPage('battery')">BATTERY</button>
   <button class="nav-btn" onclick="switchPage('trips')">TRIPS</button>
   <button class="nav-btn" onclick="switchPage('hondata')">HONDATA</button>
+  <button class="nav-btn" onclick="switchPage('tuner')">TUNER</button>
 </nav>
 
 <script>
@@ -64,7 +66,8 @@ const pages = {
   datalog: { src:'datalog.html',      loaded:false },
   battery: { src:'battery.html',      loaded:false },
   trips:   { src:'trips.html',        loaded:false },
-  hondata: { src:'hondata.html',      loaded:false }
+  hondata: { src:'hondata.html',      loaded:false },
+  tuner:   { src:'tuner.html',        loaded:false }
 };
 
 let currentPage = 'gauges';

@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; color:#ccc; }
+
+/* STATUS BAR */
+.status-bar { position:fixed; top:0; left:0; right:0; height:28px; background:#0d0d0d; border-bottom:1px solid #ffffff0d; display:flex; align-items:center; padding:0 12px; gap:16px; z-index:10; }
+.status-dot { width:8px; height:8px; border-radius:50%; background:#333; flex-shrink:0; }
+.status-dot.live { background:#00cc44; box-shadow:0 0 8px #00cc44; }
+.status-label { font-size:10px; color:#ffffff55; letter-spacing:2px; }
+.status-val { font-size:10px; color:#ffffffaa; letter-spacing:1px; }
+.status-spacer { flex:1; }
+.status-tag { font-size:9px; color:#ff8800; letter-spacing:2px; border:1px solid #ff880033; padding:1px 6px; }
+.rec-btn { background:transparent; border:1px solid #ffffff22; color:#ffffff44; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; padding:2px 10px; cursor:pointer; transition:all 0.15s; }
+.rec-btn:hover { border-color:#cc2200; color:#cc2200; }
+.rec-btn.active { border-color:#cc2200; color:#cc2200; background:rgba(204,34,0,0.1); }
+.rec-dot { width:8px; height:8px; border-radius:50%; background:#333; flex-shrink:0; }
+.rec-dot.on { background:#cc2200; box-shadow:0 0 6px #cc2200; animation:pulse-rec 1s infinite; }
+@keyframes pulse-rec { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.rec-time { font-size:10px; color:#ffffff44; letter-spacing:1px; }
+
+/* MAIN LAYOUT: left gauges, right graph */
+.main { position:fixed; top:28px; left:0; right:0; bottom:0; display:grid; grid-template-columns:220px 1fr; }
+
+/* LEFT PANEL — key gauges stacked */
+.gauge-panel { background:#0d0d0d; border-right:1px solid #ffffff0d; display:flex; flex-direction:column; overflow-y:auto; }
+.gauge-card { padding:10px 14px; border-bottom:1px solid #ffffff08; }
+.gauge-card-label { font-size:9px; color:#ffffff44; letter-spacing:2px; margin-bottom:2px; display:flex; justify-content:space-between; }
+.gauge-card-val { font-family:'Orbitron',monospace; font-size:28px; font-weight:700; line-height:1.1; }
+.gauge-card-bar { height:3px; background:#ffffff0a; margin-top:6px; border-radius:1px; }
+.gauge-card-fill { height:3px; border-radius:1px; transition:width 0.15s; }
+.gauge-card-sub { font-size:8px; color:#ffffff33; letter-spacing:1px; margin-top:3px; }
+
+/* AFR special */
+.afr-target { display:flex; gap:8px; align-items:baseline; }
+.afr-target-label { font-size:9px; color:#ffffff33; }
+.afr-delta { font-size:12px; font-family:'Orbitron',monospace; }
+
+/* RIGHT PANEL — scrolling graph */
+.graph-panel { display:flex; flex-direction:column; }
+.graph-header { height:32px; background:#0d0d0d; border-bottom:1px solid #ffffff0d; display:flex; align-items:center; padding:0 12px; gap:12px; }
+.graph-title { font-size:10px; color:#ffffff44; letter-spacing:3px; }
+.graph-toggle { background:transparent; border:1px solid #ffffff15; color:#ffffff44; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; padding:2px 8px; cursor:pointer; transition:all 0.15s; }
+.graph-toggle.on { border-color:var(--tc); color:var(--tc); background:rgba(255,255,255,0.03); }
+.graph-canvas-wrap { flex:1; position:relative; }
+#tuner-graph { width:100%; height:100%; }
+
+/* KNOCK ALERT */
+.knock-alert { position:fixed; top:28px; left:220px; right:0; height:0; background:rgba(255,0,0,0.15); border-bottom:2px solid #ff0000; display:flex; align-items:center; justify-content:center; overflow:hidden; transition:height 0.15s; z-index:5; }
+.knock-alert.active { height:28px; }
+.knock-alert span { font-size:11px; color:#ff4444; letter-spacing:3px; }
+
+/* CROSSHAIR INFO (hover) */
+.crosshair-info { position:absolute; top:8px; right:12px; font-size:10px; color:#ffffff55; letter-spacing:1px; pointer-events:none; z-index:2; }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-dot" id="conn-dot"></div>
+  <span class="status-label">FLASHPRO</span>
+  <span class="status-val" id="conn-status">SIMULATED</span>
+  <div class="status-spacer"></div>
+  <div class="rec-dot" id="rec-dot"></div>
+  <span class="rec-time" id="rec-time">00:00.0</span>
+  <button class="rec-btn" id="rec-btn" onclick="toggleRec()">REC</button>
+  <span class="status-label" id="map-label">MAP: STOCK</span>
+  <div class="status-tag">TUNER VIEW</div>
+</div>
+
+<!-- KNOCK ALERT -->
+<div class="knock-alert" id="knock-alert"><span>⚠ KNOCK DETECTED ⚠</span></div>
+
+<div class="main">
+  <!-- LEFT GAUGES -->
+  <div class="gauge-panel">
+    <!-- AFR -->
+    <div class="gauge-card" id="card-afr">
+      <div class="gauge-card-label"><span>AIR / FUEL RATIO</span><span id="afr-status">—</span></div>
+      <div class="gauge-card-val" id="val-afr" style="color:#00cc88;">14.7</div>
+      <div class="afr-target">
+        <span class="afr-target-label">TARGET 14.7</span>
+        <span class="afr-delta" id="afr-delta" style="color:#00cc88;">±0.0</span>
+      </div>
+      <div class="gauge-card-bar"><div class="gauge-card-fill" id="bar-afr" style="background:#00cc88;width:50%"></div></div>
+    </div>
+
+    <!-- KNOCK -->
+    <div class="gauge-card" id="card-knock">
+      <div class="gauge-card-label"><span>KNOCK COUNT</span><span id="knock-status">CLEAR</span></div>
+      <div class="gauge-card-val" id="val-knock" style="color:#aa88ff;">0</div>
+      <div class="gauge-card-sub">TIMING RETARD: <span id="val-retard">0.0°</span></div>
+      <div class="gauge-card-bar"><div class="gauge-card-fill" id="bar-knock" style="background:#aa88ff;width:0%"></div></div>
+    </div>
+
+    <!-- IGNITION TIMING -->
+    <div class="gauge-card">
+      <div class="gauge-card-label"><span>IGN TIMING</span><span>DEG</span></div>
+      <div class="gauge-card-val" id="val-ign" style="color:#ff8844;">0.0</div>
+      <div class="gauge-card-bar"><div class="gauge-card-fill" id="bar-ign" style="background:#ff8844;width:0%"></div></div>
+    </div>
+
+    <!-- INJ DUTY CYCLE -->
+    <div class="gauge-card">
+      <div class="gauge-card-label"><span>INJ DUTY</span><span>%</span></div>
+      <div class="gauge-card-val" id="val-inj" style="color:#ffff44;">0</div>
+      <div class="gauge-card-sub">HEADROOM: <span id="val-headroom">100%</span></div>
+      <div class="gauge-card-bar"><div class="gauge-card-fill" id="bar-inj" style="background:#ffff44;width:0%"></div></div>
+    </div>
+
+    <!-- RPM -->
+    <div class="gauge-card">
+      <div class="gauge-card-label"><span>RPM</span><span id="vtec-badge" style="color:#333;">VTEC</span></div>
+      <div class="gauge-card-val" id="val-rpm" style="color:#cc2200;">0</div>
+      <div class="gauge-card-bar"><div class="gauge-card-fill" id="bar-rpm" style="background:#cc2200;width:0%"></div></div>
+    </div>
+
+    <!-- MAP -->
+    <div class="gauge-card">
+      <div class="gauge-card-label"><span>MAP</span><span>kPa</span></div>
+      <div class="gauge-card-val" id="val-map" style="color:#4488ff;">0</div>
+      <div class="gauge-card-bar"><div class="gauge-card-fill" id="bar-map" style="background:#4488ff;width:0%"></div></div>
+    </div>
+
+    <!-- IAT -->
+    <div class="gauge-card">
+      <div class="gauge-card-label"><span>INTAKE TEMP</span><span>°F</span></div>
+      <div class="gauge-card-val" id="val-iat" style="color:#44ffcc;">0</div>
+      <div class="gauge-card-sub">HEAT SOAK: <span id="val-heatsoak">NONE</span></div>
+      <div class="gauge-card-bar"><div class="gauge-card-fill" id="bar-iat" style="background:#44ffcc;width:0%"></div></div>
+    </div>
+
+    <!-- COOLANT -->
+    <div class="gauge-card">
+      <div class="gauge-card-label"><span>COOLANT</span><span>°F</span></div>
+      <div class="gauge-card-val" id="val-ect" style="color:#ffaa00;">0</div>
+      <div class="gauge-card-bar"><div class="gauge-card-fill" id="bar-ect" style="background:#ffaa00;width:0%"></div></div>
+    </div>
+
+    <!-- FUEL TRIMS -->
+    <div class="gauge-card">
+      <div class="gauge-card-label"><span>STFT / LTFT</span><span>%</span></div>
+      <div style="display:flex;gap:12px;align-items:baseline;">
+        <div class="gauge-card-val" id="val-stft" style="color:#88ff44;font-size:22px;">0.0</div>
+        <div class="gauge-card-val" id="val-ltft" style="color:#44aa88;font-size:22px;">0.0</div>
+      </div>
+      <div class="gauge-card-sub">STFT corrections should stay within ±10%</div>
+    </div>
+  </div>
+
+  <!-- RIGHT GRAPH -->
+  <div class="graph-panel">
+    <div class="graph-header">
+      <span class="graph-title">LIVE TRACES</span>
+      <div class="graph-toggle on" style="--tc:#00cc88;" data-param="afr" onclick="toggleTrace(this)">AFR</div>
+      <div class="graph-toggle on" style="--tc:#aa88ff;" data-param="knock" onclick="toggleTrace(this)">KNOCK</div>
+      <div class="graph-toggle on" style="--tc:#ff8844;" data-param="ign" onclick="toggleTrace(this)">IGN</div>
+      <div class="graph-toggle on" style="--tc:#ffff44;" data-param="inj" onclick="toggleTrace(this)">INJ%</div>
+      <div class="graph-toggle" style="--tc:#cc2200;" data-param="rpm" onclick="toggleTrace(this)">RPM</div>
+      <div class="graph-toggle" style="--tc:#4488ff;" data-param="map" onclick="toggleTrace(this)">MAP</div>
+      <div class="graph-toggle" style="--tc:#44ffcc;" data-param="iat" onclick="toggleTrace(this)">IAT</div>
+      <div class="graph-toggle" style="--tc:#ffaa00;" data-param="ect" onclick="toggleTrace(this)">ECT</div>
+      <div class="graph-toggle" style="--tc:#88ff44;" data-param="stft" onclick="toggleTrace(this)">STFT</div>
+    </div>
+    <div class="graph-canvas-wrap">
+      <canvas id="tuner-graph"></canvas>
+      <div class="crosshair-info" id="crosshair-info"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  PARAMETERS
+// ============================================================
+const P = {
+  afr:   { color:'#00cc88', min:10,   max:20,   val:14.7, history:[], visible:true },
+  knock: { color:'#aa88ff', min:0,    max:10,   val:0,    history:[], visible:true },
+  ign:   { color:'#ff8844', min:-10,  max:50,   val:0,    history:[], visible:true },
+  inj:   { color:'#ffff44', min:0,    max:100,  val:0,    history:[], visible:true },
+  rpm:   { color:'#cc2200', min:0,    max:9000, val:0,    history:[], visible:false },
+  map:   { color:'#4488ff', min:0,    max:250,  val:0,    history:[], visible:false },
+  iat:   { color:'#44ffcc', min:30,   max:180,  val:85,   history:[], visible:false },
+  ect:   { color:'#ffaa00', min:100,  max:250,  val:180,  history:[], visible:false },
+  stft:  { color:'#88ff44', min:-25,  max:25,   val:0,    history:[], visible:false },
+};
+
+const MAX_PTS = 400;
+const TARGET_AFR = 14.7;
+let knockCount = 0, timingRetard = 0, peakKnock = 0;
+let connected = false;
+let recording = false, recStart = 0, recLog = [];
+
+// ============================================================
+//  TOGGLE TRACES
+// ============================================================
+function toggleTrace(btn){
+  const p = btn.dataset.param;
+  P[p].visible = !P[p].visible;
+  btn.classList.toggle('on', P[p].visible);
+}
+
+// ============================================================
+//  UPDATE FROM FLASHPRO (called by Kotlin bridge)
+// ============================================================
+function updateFromFlashPro(data){
+  connected = true;
+  document.getElementById('conn-dot').classList.add('live');
+  document.getElementById('conn-status').textContent = 'CONNECTED';
+
+  if(data.afr !== undefined) P.afr.val = data.afr;
+  if(data.ign !== undefined) P.ign.val = data.ign;
+  if(data.inj !== undefined) P.inj.val = data.inj;
+  if(data.rpm !== undefined) P.rpm.val = data.rpm;
+  if(data.map !== undefined) P.map.val = data.map;
+  if(data.iat !== undefined) P.iat.val = data.iat;
+  if(data.ect !== undefined) P.ect.val = data.ect;
+  if(data.stft !== undefined) P.stft.val = data.stft;
+  if(data.ltft !== undefined) ltftVal = data.ltft;
+  if(data.knock !== undefined) {
+    if(data.knock > 0) knockCount += data.knock;
+    P.knock.val = knockCount;
+  }
+}
+
+// ============================================================
+//  UPDATE GAUGES
+// ============================================================
+let ltftVal = 0;
+
+function updateCards(){
+  const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+  const setW = (id,w) => { const e=document.getElementById(id); if(e) e.style.width=Math.max(0,Math.min(100,w))+'%'; };
+
+  // AFR
+  const afr = P.afr.val;
+  const afrDelta = afr - TARGET_AFR;
+  set('val-afr', afr.toFixed(1));
+  const afrEl = document.getElementById('val-afr');
+  const deltaEl = document.getElementById('afr-delta');
+  const afrStatusEl = document.getElementById('afr-status');
+  if(Math.abs(afrDelta) < 0.5){ afrEl.style.color='#00cc88'; deltaEl.style.color='#00cc88'; afrStatusEl.textContent='OK'; afrStatusEl.style.color='#00cc88'; }
+  else if(Math.abs(afrDelta) < 1.0){ afrEl.style.color='#ffcc00'; deltaEl.style.color='#ffcc00'; afrStatusEl.textContent=afrDelta>0?'LEAN':'RICH'; afrStatusEl.style.color='#ffcc00'; }
+  else { afrEl.style.color='#ff2200'; deltaEl.style.color='#ff2200'; afrStatusEl.textContent=afrDelta>0?'LEAN ⚠':'RICH ⚠'; afrStatusEl.style.color='#ff2200'; }
+  set('afr-delta', (afrDelta>=0?'+':'')+afrDelta.toFixed(1));
+  setW('bar-afr', (afr-10)/10*100);
+
+  // Knock
+  set('val-knock', knockCount);
+  timingRetard = knockCount > 0 ? Math.min(knockCount * 1.5, 15) : Math.max(0, timingRetard - 0.1);
+  set('val-retard', timingRetard.toFixed(1)+'°');
+  const knockStatusEl = document.getElementById('knock-status');
+  if(knockCount === 0){ knockStatusEl.textContent='CLEAR'; knockStatusEl.style.color='#00cc8888'; }
+  else if(knockCount < 3){ knockStatusEl.textContent='LOW'; knockStatusEl.style.color='#ffcc00'; }
+  else { knockStatusEl.textContent='HIGH ⚠'; knockStatusEl.style.color='#ff2200'; }
+  setW('bar-knock', knockCount/10*100);
+  document.getElementById('knock-alert').classList.toggle('active', knockCount >= 3);
+
+  // IGN
+  set('val-ign', P.ign.val.toFixed(1));
+  setW('bar-ign', (P.ign.val+10)/60*100);
+
+  // INJ
+  const inj = P.inj.val;
+  set('val-inj', Math.round(inj));
+  set('val-headroom', Math.max(0,100-Math.round(inj))+'%');
+  setW('bar-inj', inj);
+  const injEl = document.getElementById('val-inj');
+  const headEl = document.getElementById('val-headroom');
+  if(inj > 85){ injEl.style.color='#ff2200'; headEl.style.color='#ff2200'; }
+  else if(inj > 75){ injEl.style.color='#ffcc00'; headEl.style.color='#ffcc00'; }
+  else { injEl.style.color='#ffff44'; headEl.style.color='#ffffff33'; }
+
+  // RPM
+  const rpm = P.rpm.val;
+  set('val-rpm', Math.round(rpm));
+  setW('bar-rpm', rpm/9000*100);
+  const vtecBadge = document.getElementById('vtec-badge');
+  if(rpm >= 5800){ vtecBadge.style.color='#4488ff'; vtecBadge.style.textShadow='0 0 6px #4488ff'; }
+  else { vtecBadge.style.color='#333'; vtecBadge.style.textShadow='none'; }
+
+  // MAP
+  set('val-map', Math.round(P.map.val));
+  setW('bar-map', P.map.val/250*100);
+
+  // IAT
+  const iat = P.iat.val;
+  set('val-iat', Math.round(iat));
+  setW('bar-iat', (iat-30)/150*100);
+  const hsEl = document.getElementById('val-heatsoak');
+  if(iat > 140){ hsEl.textContent='SEVERE'; hsEl.style.color='#ff2200'; }
+  else if(iat > 120){ hsEl.textContent='MODERATE'; hsEl.style.color='#ffcc00'; }
+  else { hsEl.textContent='NONE'; hsEl.style.color='#ffffff33'; }
+
+  // ECT
+  const ect = P.ect.val;
+  set('val-ect', Math.round(ect));
+  setW('bar-ect', (ect-100)/150*100);
+  const ectEl = document.getElementById('val-ect');
+  if(ect > 220){ ectEl.style.color='#ff2200'; }
+  else if(ect > 210){ ectEl.style.color='#ffcc00'; }
+  else { ectEl.style.color='#ffaa00'; }
+
+  // Fuel trims
+  set('val-stft', P.stft.val.toFixed(1));
+  set('val-ltft', ltftVal.toFixed(1));
+  const stftEl = document.getElementById('val-stft');
+  if(Math.abs(P.stft.val) > 10){ stftEl.style.color='#ff2200'; }
+  else if(Math.abs(P.stft.val) > 5){ stftEl.style.color='#ffcc00'; }
+  else { stftEl.style.color='#88ff44'; }
+}
+
+// ============================================================
+//  GRAPH
+// ============================================================
+const canvas = document.getElementById('tuner-graph');
+const ctx = canvas.getContext('2d');
+let graphW, graphH;
+
+function resizeGraph(){
+  const dpr = window.devicePixelRatio || 1;
+  const wrap = canvas.parentElement;
+  graphW = wrap.offsetWidth;
+  graphH = wrap.offsetHeight;
+  canvas.width = graphW * dpr;
+  canvas.height = graphH * dpr;
+  ctx.scale(dpr, dpr);
+  canvas.style.width = graphW + 'px';
+  canvas.style.height = graphH + 'px';
+}
+resizeGraph();
+window.addEventListener('resize', resizeGraph);
+
+function pushHistory(){
+  Object.values(P).forEach(p => {
+    p.history.push(p.val);
+    if(p.history.length > MAX_PTS) p.history.shift();
+  });
+}
+
+function drawGraph(){
+  ctx.clearRect(0,0,graphW,graphH);
+
+  const pad = {l:40, r:12, t:12, b:20};
+  const gw = graphW-pad.l-pad.r, gh = graphH-pad.t-pad.b;
+
+  // Grid
+  ctx.strokeStyle='#ffffff08'; ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){
+    const y = pad.t + (i/5)*gh;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+gw,y); ctx.stroke();
+  }
+  for(let i=0;i<=10;i++){
+    const x = pad.l + (i/10)*gw;
+    ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+gh); ctx.stroke();
+  }
+
+  // Scale labels (left axis — percentage)
+  ctx.fillStyle='#ffffff22'; ctx.font='9px Share Tech Mono'; ctx.textAlign='right';
+  ctx.fillText('100%', pad.l-4, pad.t+8);
+  ctx.fillText('50%', pad.l-4, pad.t+gh/2+3);
+  ctx.fillText('0%', pad.l-4, pad.t+gh);
+
+  // AFR stoich reference line
+  if(P.afr.visible){
+    const stoichY = pad.t + (1 - (TARGET_AFR - P.afr.min)/(P.afr.max - P.afr.min)) * gh;
+    ctx.setLineDash([4,4]);
+    ctx.strokeStyle='#00cc8833'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad.l,stoichY); ctx.lineTo(pad.l+gw,stoichY); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#00cc8844'; ctx.font='8px Share Tech Mono'; ctx.textAlign='left';
+    ctx.fillText('λ1 (14.7)', pad.l+4, stoichY-4);
+  }
+
+  // Traces
+  Object.entries(P).forEach(([key,p]) => {
+    if(!p.visible || p.history.length < 2) return;
+    const pts = p.history;
+    ctx.beginPath();
+    ctx.strokeStyle = p.color;
+    ctx.lineWidth = key==='afr' || key==='knock' ? 2 : 1.5;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 4;
+
+    for(let i=0; i<pts.length; i++){
+      const x = pad.l + (i/(MAX_PTS-1))*gw;
+      const norm = (pts[i] - p.min) / (p.max - p.min);
+      const y = pad.t + (1-norm)*gh;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Current value label at right edge
+    if(pts.length > 0){
+      const lastNorm = (pts[pts.length-1] - p.min) / (p.max - p.min);
+      const lastY = pad.t + (1-lastNorm)*gh;
+      ctx.fillStyle = p.color;
+      ctx.font = 'bold 10px Share Tech Mono';
+      ctx.textAlign = 'right';
+      const label = key.toUpperCase() + ' ' + (Number.isInteger(pts[pts.length-1]) ? pts[pts.length-1] : pts[pts.length-1].toFixed(1));
+      ctx.fillText(label, pad.l+gw-2, Math.max(pad.t+10, Math.min(pad.t+gh-2, lastY-4)));
+    }
+  });
+}
+
+// ============================================================
+//  SIMULATION — spirited drive cycle
+// ============================================================
+let simPhase = 'idle', simT = 0, simCycle = 0;
+const jit = (v,a) => v + (Math.random()-0.5)*a;
+
+function simTick(){
+  simT++;
+  const phase = simT % 600; // 60 second cycle
+
+  let targetRPM, targetTPS;
+  if(phase < 60)       { targetRPM=850;  targetTPS=0;   simPhase='idle'; }        // Idle
+  else if(phase < 150) { targetRPM=3500; targetTPS=35;  simPhase='cruise'; }      // Light cruise
+  else if(phase < 200) { targetRPM=5200; targetTPS=65;  simPhase='accel'; }       // Moderate accel
+  else if(phase < 280) { targetRPM=7200; targetTPS=100; simPhase='wot'; }         // WOT pull
+  else if(phase < 320) { targetRPM=6800; targetTPS=90;  simPhase='sustain'; }     // Sustained high
+  else if(phase < 380) { targetRPM=3000; targetTPS=10;  simPhase='decel'; }       // Decel / coast
+  else if(phase < 430) { targetRPM=4800; targetTPS=55;  simPhase='accel'; }       // Another pull
+  else if(phase < 500) { targetRPM=6500; targetTPS=85;  simPhase='wot'; }         // WOT
+  else if(phase < 540) { targetRPM=2000; targetTPS=5;   simPhase='decel'; }       // Brake
+  else                 { targetRPM=850;  targetTPS=0;   simPhase='idle'; }        // Back to idle
+
+  // Smooth transitions
+  P.rpm.val += (targetRPM - P.rpm.val) * 0.08 + jit(0,50);
+  P.rpm.val = Math.max(700, Math.min(8500, P.rpm.val));
+  const rpm = P.rpm.val;
+  const tps = targetTPS;
+
+  // MAP from RPM/TPS
+  P.map.val = jit(30 + tps * 2.0 + (rpm/9000)*20, 3);
+  P.map.val = Math.max(25, Math.min(240, P.map.val));
+
+  // AFR — rich at WOT, lean at cruise, stoich at idle
+  let targetAFR;
+  if(tps > 80) targetAFR = 12.2 + jit(0,0.3); // WOT = rich for safety
+  else if(tps > 40) targetAFR = 13.5 + jit(0,0.4); // Part throttle
+  else if(tps > 10) targetAFR = 14.7 + jit(0,0.2); // Cruise = stoich
+  else targetAFR = 14.7 + jit(0,0.15); // Idle
+  P.afr.val += (targetAFR - P.afr.val) * 0.15;
+  P.afr.val = Math.max(10.5, Math.min(18, P.afr.val));
+
+  // IGN timing — more advance at cruise, less at WOT
+  let targetIgn;
+  if(rpm > 7000) targetIgn = 22 + jit(0,1);
+  else if(rpm > 5000) targetIgn = 28 + jit(0,1.5);
+  else if(rpm > 2500) targetIgn = 32 + jit(0,1);
+  else targetIgn = 15 + jit(0,0.5);
+  targetIgn -= timingRetard;
+  P.ign.val += (targetIgn - P.ign.val) * 0.12;
+
+  // INJ duty — scales with RPM and load
+  P.inj.val = Math.max(5, Math.min(95, (rpm/9000)*60 + tps*0.35 + jit(0,2)));
+
+  // IAT — slowly rises under load
+  if(tps > 60) P.iat.val = Math.min(170, P.iat.val + 0.15);
+  else P.iat.val = Math.max(82, P.iat.val - 0.08);
+  P.iat.val = jit(P.iat.val, 0.3);
+
+  // ECT — slowly rises, stabilizes around 195
+  if(P.ect.val < 195) P.ect.val += 0.05;
+  else P.ect.val = jit(195, 1);
+  if(rpm > 6000 && tps > 70) P.ect.val = Math.min(225, P.ect.val + 0.1);
+  P.ect.val = Math.max(140, Math.min(230, P.ect.val));
+
+  // STFT — small corrections
+  P.stft.val = jit(P.stft.val * 0.95, 0.8);
+  P.stft.val = Math.max(-15, Math.min(15, P.stft.val));
+  ltftVal = jit(ltftVal * 0.99, 0.1);
+  ltftVal = Math.max(-8, Math.min(8, ltftVal));
+
+  // Knock — rare, more likely at high RPM/load
+  if(rpm > 5500 && tps > 70 && Math.random() < 0.008){
+    knockCount++;
+    P.knock.val = knockCount;
+  }
+}
+
+// ============================================================
+//  MAIN LOOP
+// ============================================================
+function tick(){
+  if(!connected) simTick();
+  pushHistory();
+  updateCards();
+  if(recording){
+    recLog.push({ t:Date.now()-recStart, rpm:P.rpm.val, afr:P.afr.val, ign:P.ign.val, inj:P.inj.val, map:P.map.val, iat:P.iat.val, ect:P.ect.val, stft:P.stft.val, ltft:ltftVal, knock:knockCount, retard:timingRetard });
+    const elapsed = (Date.now()-recStart)/1000;
+    const min=Math.floor(elapsed/60), sec=Math.floor(elapsed%60), tenths=Math.floor((elapsed%1)*10);
+    document.getElementById('rec-time').textContent = String(min).padStart(2,'0')+':'+String(sec).padStart(2,'0')+'.'+tenths;
+  }
+}
+
+function toggleRec(){
+  recording = !recording;
+  const btn = document.getElementById('rec-btn');
+  const dot = document.getElementById('rec-dot');
+  if(recording){
+    recStart = Date.now();
+    recLog = [];
+    btn.classList.add('active'); btn.textContent = 'STOP';
+    dot.classList.add('on');
+  } else {
+    btn.classList.remove('active'); btn.textContent = 'REC';
+    dot.classList.remove('on');
+    if(recLog.length > 0) exportCSV();
+  }
+}
+
+function exportCSV(){
+  const keys = ['rpm','afr','ign','inj','map','iat','ect','stft','ltft','knock','retard'];
+  let csv = 'time_ms,' + keys.join(',') + '\n';
+  recLog.forEach(row => {
+    csv += row.t + ',' + keys.map(k => typeof row[k]==='number' ? (Number.isInteger(row[k]) ? row[k] : row[k].toFixed(2)) : row[k]).join(',') + '\n';
+  });
+  const filename = 'tuner_' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.csv';
+
+  // Android: email the CSV
+  if(typeof Android !== 'undefined' && Android.emailCSV){
+    Android.emailCSV(csv, filename);
+    document.getElementById('conn-status').textContent = 'EMAILING LOG — ' + recLog.length + ' SAMPLES';
+  } else {
+    // Browser fallback: download
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    document.getElementById('conn-status').textContent = 'LOG SAVED — ' + recLog.length + ' SAMPLES';
+  }
+}
+
+function render(){
+  drawGraph();
+  requestAnimationFrame(render);
+}
+
+setInterval(tick, 100); // 10Hz data
+render();
+
+// ============================================================
+//  CONNECTION STATUS (called from Kotlin)
+// ============================================================
+function updateConnectionStatus(state){
+  const dot = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-status');
+  if(state === 'CONNECTED'){ dot.classList.add('live'); label.textContent='CONNECTED'; connected=true; }
+  else { dot.classList.remove('live'); label.textContent=state; connected=false; }
+}
+</script>
+</body>
+</html>

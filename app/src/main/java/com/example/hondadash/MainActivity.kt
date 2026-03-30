@@ -23,8 +23,12 @@ import android.widget.Button
 import android.widget.Toast
 import android.graphics.Color
 import android.graphics.Typeface
+import android.net.Uri
 import android.view.Gravity
+import android.webkit.JavascriptInterface
 import androidx.activity.ComponentActivity
+import androidx.core.content.FileProvider
+import java.io.File
 import java.io.InputStream
 
 class MainActivity : ComponentActivity() {
@@ -35,6 +39,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var mapsWebView: WebView
     private lateinit var batteryWebView: WebView
     private lateinit var tripsWebView: WebView
+    private lateinit var tunerWebView: WebView
     private lateinit var navBar: LinearLayout
     private var currentScreen = "dash"
 
@@ -43,6 +48,7 @@ class MainActivity : ComponentActivity() {
     private var mapsLoaded    = false
     private var batteryLoaded = false
     private var tripsLoaded   = false
+    private var tunerLoaded   = false
 
     private val NAV_HEIGHT = 140
     private val PERMISSION_REQUEST_CODE = 1001
@@ -94,6 +100,16 @@ class MainActivity : ComponentActivity() {
                     "updateFromOBD('ECM','inj',${data.idc});" +
                     "updateFromOBD('BCM','batt',${data.voltage});" +
                     "}", null)
+            }
+
+            // Tuner page
+            if (tunerLoaded) {
+                tunerWebView.evaluateJavascript(
+                    "if(typeof updateFromFlashPro==='function')updateFromFlashPro({" +
+                    "rpm:${data.rpm},vss:${data.speed},ect:${data.coolant},tps:${data.throttle}," +
+                    "afr:${data.o2Voltage},iat:${data.iat},ign:${data.timing}," +
+                    "stft:${data.stft},ltft:${data.ltft},batt:${data.voltage},inj:${data.idc}," +
+                    "map:${data.map}})", null)
             }
 
             // Datalog (FlashPro format)
@@ -175,12 +191,18 @@ class MainActivity : ComponentActivity() {
         tripsWebView.visibility = android.view.View.GONE
         root.addView(tripsWebView, wvLP())
 
+        tunerWebView = createAssetWebView()
+        tunerWebView.addJavascriptInterface(CSVExporter(this), "Android")
+        tunerWebView.visibility = android.view.View.GONE
+        root.addView(tunerWebView, wvLP())
+
         addNavButton("⬡  GAUGES",   "dash",    true)
         addNavButton("◈  VEHICLE",  "car",     false)
         addNavButton("⬢  MULTI",    "multi",   false)
         addNavButton("⬡  MAPS",     "maps",    false)
         addNavButton("⚡  BATTERY", "battery", false)
         addNavButton("◈  TRIPS",    "trips",   false)
+        addNavButton("⚙  TUNER",   "tuner",   false)
         addBTButton()
 
         setContentView(root)
@@ -291,6 +313,7 @@ class MainActivity : ComponentActivity() {
         mapsWebView.visibility    = if (screen == "maps")    android.view.View.VISIBLE else android.view.View.GONE
         batteryWebView.visibility = if (screen == "battery") android.view.View.VISIBLE else android.view.View.GONE
         tripsWebView.visibility   = if (screen == "trips")   android.view.View.VISIBLE else android.view.View.GONE
+        tunerWebView.visibility   = if (screen == "tuner")   android.view.View.VISIBLE else android.view.View.GONE
 
         when (screen) {
             "car" -> if (!carLoaded) {
@@ -315,6 +338,10 @@ class MainActivity : ComponentActivity() {
                 val html = assets.open("trips.html").bufferedReader().readText()
                 tripsWebView.loadDataWithBaseURL("https://localhost/", html, "text/html", "UTF-8", null)
                 tripsLoaded = true
+            }
+            "tuner" -> if (!tunerLoaded) {
+                tunerWebView.loadUrl("file:///android_asset/tuner.html")
+                tunerLoaded = true
             }
         }
 
@@ -509,8 +536,46 @@ class MainActivity : ComponentActivity() {
             "maps"    -> mapsWebView
             "battery" -> batteryWebView
             "trips"   -> tripsWebView
+            "tuner"   -> tunerWebView
             else      -> dashWebView
         }
         if (activeWv.canGoBack()) activeWv.goBack() else super.onBackPressed()
+    }
+}
+
+class CSVExporter(private val context: Context) {
+
+    @JavascriptInterface
+    fun emailCSV(csvData: String, filename: String) {
+        try {
+            // Save CSV to cache dir
+            val dir = File(context.cacheDir, "logs")
+            dir.mkdirs()
+            val file = File(dir, filename)
+            file.writeText(csvData)
+
+            // Get content URI via FileProvider
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+
+            // Send email directly
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/csv"
+                putExtra(Intent.EXTRA_EMAIL, arrayOf("mark.heymann01@gmail.com"))
+                putExtra(Intent.EXTRA_SUBJECT, "HondaDash Tuner Log — $filename")
+                putExtra(Intent.EXTRA_TEXT, "Tuner datalog from HondaDash.\n\nK20Z3 // 2007 Civic Si FA5")
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                setPackage("com.google.android.gm")
+            }
+            try {
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                // Gmail not installed, fall back to chooser
+                intent.setPackage(null)
+                context.startActivity(Intent.createChooser(intent, "Send tuner log"))
+            }
+        } catch (e: Exception) {
+            Log.e("CSVExporter", "Failed to email CSV: ${e.message}")
+        }
     }
 }
