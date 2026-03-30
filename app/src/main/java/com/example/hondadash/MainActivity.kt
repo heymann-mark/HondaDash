@@ -1,7 +1,15 @@
 package com.example.hondadash
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -12,6 +20,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.Button
+import android.widget.Toast
 import android.graphics.Color
 import android.graphics.Typeface
 import android.view.Gravity
@@ -22,18 +31,103 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var dashWebView: WebView
     private lateinit var carWebView: WebView
-    private lateinit var engineWebView: WebView
+    private lateinit var multiWebView: WebView
     private lateinit var mapsWebView: WebView
+    private lateinit var batteryWebView: WebView
     private lateinit var tripsWebView: WebView
     private lateinit var navBar: LinearLayout
     private var currentScreen = "dash"
 
-    private var carLoaded    = false
-    private var engineLoaded = false
-    private var mapsLoaded   = false
-    private var tripsLoaded  = false
+    private var carLoaded     = false
+    private var multiLoaded   = false
+    private var mapsLoaded    = false
+    private var batteryLoaded = false
+    private var tripsLoaded   = false
 
     private val NAV_HEIGHT = 140
+    private val PERMISSION_REQUEST_CODE = 1001
+
+    // Bluetooth
+    private var bluetoothService: BluetoothService? = null
+    private var serviceBound = false
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            bluetoothService = (binder as BluetoothService.LocalBinder).getService()
+            bluetoothService?.listener = obdDataListener
+            serviceBound = true
+            Log.d("MainActivity", "BluetoothService bound")
+        }
+        override fun onServiceDisconnected(name: ComponentName?) {
+            bluetoothService = null
+            serviceBound = false
+        }
+    }
+
+    private val obdDataListener = object : BluetoothService.OBDDataListener {
+        override fun onOBDData(data: OBDData) {
+            // Dashboard gauges
+            dashWebView.evaluateJavascript(
+                "if(typeof updateGauges==='function')updateGauges(${data.rpm},${data.speed},${data.coolant},${data.throttle}," +
+                "${data.o2Voltage},${data.iat},${data.timing},${data.stft},${data.ltft},${data.voltage},${data.idc})", null)
+
+            // Battery page
+            if (batteryLoaded) {
+                batteryWebView.evaluateJavascript(
+                    "if(typeof updateBatteryFromOBD==='function')updateBatteryFromOBD(${data.voltage})", null)
+            }
+
+            // Multi-system page — push individual ECM + BCM values
+            if (multiLoaded) {
+                multiWebView.evaluateJavascript(
+                    "if(typeof updateFromOBD==='function'){" +
+                    "updateFromOBD('ECM','rpm',${data.rpm});" +
+                    "updateFromOBD('ECM','spd',${data.speed});" +
+                    "updateFromOBD('ECM','ect',${data.coolant});" +
+                    "updateFromOBD('ECM','tps',${data.throttle});" +
+                    "updateFromOBD('ECM','iat',${data.iat});" +
+                    "updateFromOBD('ECM','ign',${data.timing});" +
+                    "updateFromOBD('ECM','stft',${data.stft});" +
+                    "updateFromOBD('ECM','ltft',${data.ltft});" +
+                    "updateFromOBD('ECM','afr',${data.o2Voltage});" +
+                    "updateFromOBD('ECM','map',${data.map});" +
+                    "updateFromOBD('ECM','inj',${data.idc});" +
+                    "updateFromOBD('BCM','batt',${data.voltage});" +
+                    "}", null)
+            }
+
+            // Datalog (FlashPro format)
+            dashWebView.evaluateJavascript(
+                "if(typeof updateFromFlashPro==='function')updateFromFlashPro({" +
+                "rpm:${data.rpm},vss:${data.speed},ect:${data.coolant},tps:${data.throttle}," +
+                "afr:${data.o2Voltage},iat:${data.iat},ign:${data.timing}," +
+                "stft:${data.stft},ltft:${data.ltft},batt:${data.voltage},inj:${data.idc}," +
+                "map:${data.map}})", null)
+        }
+
+        override fun onDTCData(codes: List<String>) {
+            if (carLoaded) {
+                val jsonArray = codes.joinToString(",") { "\"$it\"" }
+                carWebView.evaluateJavascript(
+                    "if(typeof updateDTC==='function')updateDTC([$jsonArray])", null)
+            }
+        }
+
+        override fun onConnectionStateChanged(state: BluetoothService.ConnectionState) {
+            val stateStr = state.name
+            Log.d("MainActivity", "BT state: $stateStr")
+
+            // Update all loaded WebViews
+            val js = "if(typeof updateConnectionStatus==='function')updateConnectionStatus('$stateStr')"
+            dashWebView.evaluateJavascript(js, null)
+            if (carLoaded) carWebView.evaluateJavascript(js, null)
+            if (multiLoaded) multiWebView.evaluateJavascript(js, null)
+            if (batteryLoaded) batteryWebView.evaluateJavascript(js, null)
+
+            // Update BT nav button color
+            updateBTButton(state)
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,35 +159,138 @@ class MainActivity : ComponentActivity() {
         carWebView.visibility = android.view.View.GONE
         root.addView(carWebView, wvLP())
 
-        engineWebView = createAssetWebView()
-        engineWebView.visibility = android.view.View.GONE
-        root.addView(engineWebView, wvLP())
+        multiWebView = createAssetWebView()
+        multiWebView.visibility = android.view.View.GONE
+        root.addView(multiWebView, wvLP())
 
         mapsWebView = createInternetWebView()
         mapsWebView.visibility = android.view.View.GONE
         root.addView(mapsWebView, wvLP())
 
+        batteryWebView = createAssetWebView()
+        batteryWebView.visibility = android.view.View.GONE
+        root.addView(batteryWebView, wvLP())
+
         tripsWebView = createInternetWebView()
         tripsWebView.visibility = android.view.View.GONE
         root.addView(tripsWebView, wvLP())
 
-        addNavButton("⬡  GAUGES",  "dash",   true)
-        addNavButton("◈  VEHICLE", "car",    false)
-        addNavButton("⬢  ENGINE",  "engine", false)
-        addNavButton("⬡  MAPS",    "maps",   false)
-        addNavButton("◈  TRIPS",   "trips",  false)
+        addNavButton("⬡  GAUGES",   "dash",    true)
+        addNavButton("◈  VEHICLE",  "car",     false)
+        addNavButton("⬢  MULTI",    "multi",   false)
+        addNavButton("⬡  MAPS",     "maps",    false)
+        addNavButton("⚡  BATTERY", "battery", false)
+        addNavButton("◈  TRIPS",    "trips",   false)
+        addBTButton()
 
         setContentView(root)
+
+        // Request permissions and bind Bluetooth service
+        requestBluetoothPermissions()
     }
+
+    // ============ BLUETOOTH PERMISSIONS ============
+
+    private fun requestBluetoothPermissions() {
+        val perms = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)
+                perms.add(Manifest.permission.BLUETOOTH_CONNECT)
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED)
+                perms.add(Manifest.permission.BLUETOOTH_SCAN)
+        }
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+            perms.add(Manifest.permission.ACCESS_FINE_LOCATION)
+
+        if (perms.isNotEmpty()) {
+            requestPermissions(perms.toTypedArray(), PERMISSION_REQUEST_CODE)
+        } else {
+            bindBluetoothService()
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                bindBluetoothService()
+            } else {
+                Toast.makeText(this, "Bluetooth permissions needed for OBD connection", Toast.LENGTH_LONG).show()
+                // Still bind — the service will just fail gracefully on connect
+                bindBluetoothService()
+            }
+        }
+    }
+
+    private fun bindBluetoothService() {
+        val intent = Intent(this, BluetoothService::class.java)
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+    }
+
+    // ============ BT CONNECT BUTTON ============
+
+    private var btButton: Button? = null
+
+    private fun addBTButton() {
+        val btn = Button(this)
+        btn.text = "◉  BT"
+        btn.textSize = 14f
+        btn.setTypeface(null, Typeface.BOLD)
+        btn.letterSpacing = 0.1f
+        btn.setTextColor(Color.parseColor("#cc110066"))
+        btn.setBackgroundColor(Color.TRANSPARENT)
+        btn.setPadding(20, 0, 20, 0)
+        btn.setOnClickListener { showDevicePicker() }
+        btButton = btn
+        navBar.addView(btn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 0.7f))
+    }
+
+    private fun updateBTButton(state: BluetoothService.ConnectionState) {
+        btButton?.setTextColor(when (state) {
+            BluetoothService.ConnectionState.CONNECTED -> Color.parseColor("#00ff41")
+            BluetoothService.ConnectionState.CONNECTING,
+            BluetoothService.ConnectionState.INITIALIZING -> Color.parseColor("#ffaa00")
+            BluetoothService.ConnectionState.ERROR -> Color.parseColor("#cc2200")
+            BluetoothService.ConnectionState.DISCONNECTED -> Color.parseColor("#cc110066")
+        })
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun showDevicePicker() {
+        val service = bluetoothService
+        if (service == null) {
+            Toast.makeText(this, "Bluetooth service not ready", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // If already connected, offer disconnect
+        if (service.connectionState == BluetoothService.ConnectionState.CONNECTED) {
+            service.disconnect()
+            return
+        }
+
+        val devices = service.getPairedDevices()
+        if (devices.isEmpty()) {
+            Toast.makeText(this, "No paired Bluetooth devices found. Pair an OBD adapter in Settings first.", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        DevicePickerDialog.show(this, devices) { device ->
+            service.connect(device)
+        }
+    }
+
+    // ============ SCREEN NAVIGATION ============
 
     private fun switchTo(screen: String) {
         currentScreen = screen
 
-        dashWebView.visibility   = if (screen == "dash")   android.view.View.VISIBLE else android.view.View.GONE
-        carWebView.visibility    = if (screen == "car")    android.view.View.VISIBLE else android.view.View.GONE
-        engineWebView.visibility = if (screen == "engine") android.view.View.VISIBLE else android.view.View.GONE
-        mapsWebView.visibility   = if (screen == "maps")   android.view.View.VISIBLE else android.view.View.GONE
-        tripsWebView.visibility  = if (screen == "trips")  android.view.View.VISIBLE else android.view.View.GONE
+        dashWebView.visibility    = if (screen == "dash")    android.view.View.VISIBLE else android.view.View.GONE
+        carWebView.visibility     = if (screen == "car")     android.view.View.VISIBLE else android.view.View.GONE
+        multiWebView.visibility   = if (screen == "multi")   android.view.View.VISIBLE else android.view.View.GONE
+        mapsWebView.visibility    = if (screen == "maps")    android.view.View.VISIBLE else android.view.View.GONE
+        batteryWebView.visibility = if (screen == "battery") android.view.View.VISIBLE else android.view.View.GONE
+        tripsWebView.visibility   = if (screen == "trips")   android.view.View.VISIBLE else android.view.View.GONE
 
         when (screen) {
             "car" -> if (!carLoaded) {
@@ -101,14 +298,18 @@ class MainActivity : ComponentActivity() {
                 carWebView.loadDataWithBaseURL("https://localhost/", html, "text/html", "UTF-8", null)
                 carLoaded = true
             }
-            "engine" -> if (!engineLoaded) {
-                engineWebView.loadUrl("file:///android_asset/engine3d.html")
-                engineLoaded = true
+            "multi" -> if (!multiLoaded) {
+                multiWebView.loadUrl("file:///android_asset/multisystem.html")
+                multiLoaded = true
             }
             "maps" -> if (!mapsLoaded) {
                 val html = assets.open("streetview.html").bufferedReader().readText()
                 mapsWebView.loadDataWithBaseURL("https://localhost/", html, "text/html", "UTF-8", null)
                 mapsLoaded = true
+            }
+            "battery" -> if (!batteryLoaded) {
+                batteryWebView.loadUrl("file:///android_asset/battery.html")
+                batteryLoaded = true
             }
             "trips" -> if (!tripsLoaded) {
                 val html = assets.open("trips.html").bufferedReader().readText()
@@ -119,12 +320,15 @@ class MainActivity : ComponentActivity() {
 
         for (i in 0 until navBar.childCount) {
             val btn = navBar.getChildAt(i) as? Button ?: continue
+            val tag = btn.tag as? String ?: continue
             btn.setTextColor(
-                if (btn.tag == screen) Color.parseColor("#cc2200ff")
+                if (tag == screen) Color.parseColor("#cc2200ff")
                 else Color.parseColor("#cc110066")
             )
         }
     }
+
+    // ============ WEBVIEW FACTORIES ============
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun createCarWebView(): WebView {
@@ -249,6 +453,8 @@ class MainActivity : ComponentActivity() {
         return wv
     }
 
+    // ============ SYSTEM UI ============
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) hideSystemUI()
@@ -286,13 +492,24 @@ class MainActivity : ComponentActivity() {
         navBar.addView(btn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f))
     }
 
+    // ============ LIFECYCLE ============
+
+    override fun onStop() {
+        super.onStop()
+        if (serviceBound) {
+            unbindService(serviceConnection)
+            serviceBound = false
+        }
+    }
+
     override fun onBackPressed() {
         val activeWv = when (currentScreen) {
-            "car"    -> carWebView
-            "engine" -> engineWebView
-            "maps"   -> mapsWebView
-            "trips"  -> tripsWebView
-            else     -> dashWebView
+            "car"     -> carWebView
+            "multi"   -> multiWebView
+            "maps"    -> mapsWebView
+            "battery" -> batteryWebView
+            "trips"   -> tripsWebView
+            else      -> dashWebView
         }
         if (activeWv.canGoBack()) activeWv.goBack() else super.onBackPressed()
     }

@@ -34,31 +34,37 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
 
 <iframe id="frame-gauges" class="page-frame active" src="dashboard.html"></iframe>
 <iframe id="frame-vehicle" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-multi" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-maps" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-music" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-datalog" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-battery" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-trips" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-hondata" class="page-frame" src="about:blank"></iframe>
 
 <nav class="app-nav">
   <button class="nav-btn active" onclick="switchPage('gauges')">GAUGES</button>
   <button class="nav-btn" onclick="switchPage('vehicle')">VEHICLE</button>
+  <button class="nav-btn" onclick="switchPage('multi')">MULTI</button>
   <button class="nav-btn" onclick="switchPage('maps')">MAPS</button>
   <button class="nav-btn" onclick="switchPage('music')">MUSIC</button>
   <button class="nav-btn" onclick="switchPage('datalog')">DATALOG</button>
+  <button class="nav-btn" onclick="switchPage('battery')">BATTERY</button>
   <button class="nav-btn" onclick="switchPage('trips')">TRIPS</button>
   <button class="nav-btn" onclick="switchPage('hondata')">HONDATA</button>
 </nav>
 
 <script>
 const pages = {
-  gauges:  { src:'dashboard.html',  loaded:true },
-  vehicle: { src:'carview.html',    loaded:false },
-  maps:    { src:'streetview.html',  loaded:false },
-  music:   { src:'music.html',      loaded:false },
-  datalog: { src:'datalog.html',    loaded:false },
-  trips:   { src:'trips.html',      loaded:false },
-  hondata: { src:'hondata.html',    loaded:false }
+  gauges:  { src:'dashboard.html',    loaded:true },
+  vehicle: { src:'carview.html',      loaded:false },
+  multi:   { src:'multisystem.html',  loaded:false },
+  maps:    { src:'streetview.html',   loaded:false },
+  music:   { src:'music.html',        loaded:false },
+  datalog: { src:'datalog.html',      loaded:false },
+  battery: { src:'battery.html',      loaded:false },
+  trips:   { src:'trips.html',        loaded:false },
+  hondata: { src:'hondata.html',      loaded:false }
 };
 
 let currentPage = 'gauges';

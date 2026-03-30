@@ -6,106 +6,127 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:#0a0000; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; }
-.ambient { position:fixed; inset:0; background:radial-gradient(ellipse 140% 60% at 50% 0%, rgba(160,0,0,0.22) 0%, transparent 65%); pointer-events:none; }
-.scanlines { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.18) 2px,rgba(0,0,0,0.18) 4px); pointer-events:none; z-index:40; }
-.honda-bg { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2; opacity:0; transition:opacity 1.2s; pointer-events:none; }
-.arc { position:fixed; top:0; left:0; width:100%; opacity:0; transition:opacity 0.6s; z-index:10; }
-.hbar { position:fixed; top:14px; left:4%; right:4%; height:12px; border:1px solid #cc000044; background:#cc000011; opacity:0; transition:opacity 0.4s; z-index:11; display:flex; align-items:center; padding:0 8px; }
-.hbar span { font-size:6px; color:#cc000077; letter-spacing:2px; }
+body { width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; transition:background 0.5s; }
 
-/* GAUGE PICKER BUTTON */
-.picker-btn { position:fixed; top:10px; right:4%; z-index:60; background:transparent; border:1px solid #cc220044; color:#cc110066; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; padding:4px 10px; cursor:pointer; opacity:0; transition:opacity 0.4s, border-color 0.2s, color 0.2s; }
-.picker-btn:hover { border-color:#cc2200; color:#cc2200; }
-.picker-btn.show { opacity:1; }
+/* ===== THEME CSS VARS ===== */
+body.theme-cyberpunk { --accent:#cc2200; --accent2:#ff2200; --accentA:rgba(204,34,0,0.3); --bg:#0a0000; --panelbg:rgba(3,0,0,0.97); --textdim:#cc110066; --textmed:#cc1100; background:#0a0000; }
+body.theme-neon      { --accent:#00ccff; --accent2:#00ffee; --accentA:rgba(0,204,255,0.2); --bg:#050510; --panelbg:rgba(5,5,20,0.97); --textdim:#00ccff44; --textmed:#00ccff; background:#050510; }
+body.theme-racing    { --accent:#ff8800; --accent2:#ffaa00; --accentA:rgba(255,136,0,0.2); --bg:#0a0a0a; --panelbg:rgba(10,10,10,0.97); --textdim:#ff880044; --textmed:#ff8800; background:#0a0a0a; }
+body.theme-steelseries { --accent:#88cc00; --accent2:#aaee00; --accentA:rgba(136,204,0,0.2); --bg:#111; --panelbg:rgba(17,17,17,0.97); --textdim:#88cc0044; --textmed:#88cc00; background:#111; }
 
-/* GAUGE PICKER SIDEBAR */
-.picker-panel { position:fixed; right:0; top:0; bottom:0; width:260px; background:rgba(3,0,0,0.97); border-left:1px solid #cc110033; z-index:70; transform:translateX(100%); transition:transform 0.3s; overflow-y:auto; padding:16px; }
+/* ===== AMBIENT OVERLAYS ===== */
+.ambient { position:fixed; inset:0; background:radial-gradient(ellipse 140% 60% at 50% 0%, var(--accentA) 0%, transparent 65%); pointer-events:none; z-index:1; transition:background 0.5s; }
+.scanlines { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.18) 2px,rgba(0,0,0,0.18) 4px); pointer-events:none; z-index:40; opacity:1; transition:opacity 0.5s; }
+body:not(.theme-cyberpunk) .scanlines { opacity:0; }
+
+/* ===== THEME LIST (in sidebar) ===== */
+.theme-item { display:flex; align-items:center; gap:14px; padding:12px 14px; border:2px solid #ffffff11; cursor:pointer; transition:all 0.15s; }
+.theme-item:hover { border-color:#ffffff33; }
+.theme-item.active { border-color:var(--accent); background:var(--accentA); }
+.theme-item-dot { width:14px; height:14px; border-radius:50%; flex-shrink:0; }
+.theme-item-name { font-size:16px; color:#ffffffcc; letter-spacing:3px; }
+.theme-item-desc { font-size:12px; color:#ffffff55; letter-spacing:1px; margin-top:3px; }
+
+/* ===== GAUGE PICKER BUTTON ===== */
+.picker-btn { position:fixed; top:10px; right:4%; z-index:60; background:rgba(0,0,0,0.8); border:3px solid var(--accent); color:var(--accent); font-family:'Share Tech Mono',monospace; font-size:24px; letter-spacing:3px; padding:14px 28px; cursor:pointer; opacity:1; transition:border-color 0.2s, color 0.2s; }
+.picker-btn:hover { background:var(--accentA); }
+
+/* ===== GAUGE PICKER SIDEBAR ===== */
+.picker-panel { position:fixed; right:0; top:0; bottom:0; width:420px; background:var(--panelbg); border-left:2px solid var(--accent); z-index:70; transform:translateX(100%); transition:transform 0.3s; overflow-y:auto; padding:24px; }
 .picker-panel.open { transform:translateX(0); }
-.picker-title { font-family:'Orbitron',monospace; font-size:12px; color:#cc2200; letter-spacing:3px; margin-bottom:4px; }
-.picker-sub { font-size:10px; color:#ffffff33; letter-spacing:1px; margin-bottom:14px; line-height:1.6; }
-.picker-close { background:transparent; border:1px solid #ffffff22; color:#ffffff55; font-family:'Share Tech Mono',monospace; font-size:11px; padding:5px; cursor:pointer; margin-bottom:14px; display:block; width:100%; letter-spacing:1px; }
-.picker-close:hover { border-color:#cc2200; color:#cc2200; }
+.picker-title { font-family:'Orbitron',monospace; font-size:18px; color:var(--accent); letter-spacing:4px; margin-bottom:8px; }
+.picker-sub { font-size:14px; color:#ffffff55; letter-spacing:1px; margin-bottom:16px; line-height:1.6; }
+.picker-close { background:transparent; border:2px solid #ffffff33; color:#ffffff77; font-family:'Share Tech Mono',monospace; font-size:16px; padding:10px; cursor:pointer; margin-bottom:16px; display:block; width:100%; letter-spacing:2px; }
+.picker-close:hover { border-color:var(--accent); color:var(--accent); }
 .picker-divider { height:1px; background:#ffffff11; margin:10px 0; }
 .gauge-item { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid #ffffff08; cursor:pointer; }
-.gauge-item:hover .gi-name { color:#cc2200; }
+.gauge-item:hover .gi-name { color:var(--accent); }
 .gi-info { flex:1; }
-.gi-name { font-size:12px; color:#ffffffcc; letter-spacing:1px; transition:color 0.15s; }
-.gi-unit { font-size:10px; color:#ffffff44; letter-spacing:1px; margin-top:2px; }
-.gi-toggle { width:36px; height:20px; border-radius:10px; background:#1a0000; border:1px solid #cc110033; position:relative; transition:background 0.2s, border-color 0.2s; flex-shrink:0; }
-.gi-toggle.on { background:#cc220033; border-color:#cc2200; }
-.gi-toggle::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#cc110055; transition:transform 0.2s, background 0.2s; }
-.gi-toggle.on::after { transform:translateX(16px); background:#cc2200; }
-.gi-rpm { font-size:10px; color:#cc110044; letter-spacing:1px; font-style:italic; }
-.picker-apply { background:transparent; border:1px solid #cc2200aa; color:#cc2200; font-family:'Share Tech Mono',monospace; font-size:12px; letter-spacing:2px; padding:8px; cursor:pointer; margin-top:14px; display:block; width:100%; transition:all 0.15s; }
-.picker-apply:hover { background:rgba(204,34,0,0.1); }
+.gi-name { font-size:16px; color:#ffffffcc; letter-spacing:2px; transition:color 0.15s; }
+.gi-unit { font-size:13px; color:#ffffff55; letter-spacing:1px; margin-top:3px; }
+.gi-toggle { width:44px; height:24px; border-radius:12px; background:#1a1a1a; border:1px solid var(--accentA); position:relative; transition:background 0.2s, border-color 0.2s; flex-shrink:0; }
+.gi-toggle.on { background:var(--accentA); border-color:var(--accent); }
+.gi-toggle::after { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:var(--textdim); transition:transform 0.2s, background 0.2s; }
+.gi-toggle.on::after { transform:translateX(20px); background:var(--accent); }
+.picker-apply { background:transparent; border:2px solid var(--accent); color:var(--accent); font-family:'Share Tech Mono',monospace; font-size:16px; letter-spacing:3px; padding:12px; cursor:pointer; margin-top:14px; display:block; width:100%; transition:all 0.15s; }
+.picker-apply:hover { background:var(--accentA); }
 
-/* GAUGE GRID */
-.gauge-grid { position:fixed; top:40px; left:1%; right:1%; bottom:4px; display:grid; gap:5px; z-index:10; opacity:0; transition:opacity 0.4s; }
-.gbox { border:1px solid #cc220033; background:rgba(10,0,0,0.5); position:relative; overflow:hidden; }
-.gbox-boot { position:absolute; inset:0; padding:6px; font-size:6px; color:#cc110055; line-height:1.6; overflow:hidden; opacity:1; transition:opacity 0.6s; }
-.gbox-live { position:absolute; inset:0; padding:10px 12px; display:flex; flex-direction:column; justify-content:space-between; opacity:0; transition:opacity 0.8s; }
+/* ===== GAUGE GRID ===== */
+.gauge-grid { position:fixed; top:40px; left:1%; right:1%; bottom:42px; display:grid; gap:5px; z-index:10; opacity:0; transition:opacity 0.4s; }
+.gbox { border:1px solid var(--accentA); background:rgba(0,0,0,0.3); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+
+/* ===== CYBERPUNK THEME STYLES ===== */
 .g-corner { position:absolute; width:6px; height:6px; }
-.g-corner.tl{top:0;left:0;border-top:1px solid #cc220066;border-left:1px solid #cc220066;}
-.g-corner.tr{top:0;right:0;border-top:1px solid #cc220066;border-right:1px solid #cc220066;}
-.g-corner.bl{bottom:0;left:0;border-bottom:1px solid #cc220066;border-left:1px solid #cc220066;}
-.g-corner.br{bottom:0;right:0;border-bottom:1px solid #cc220066;border-right:1px solid #cc220066;}
+.g-corner.tl{top:0;left:0;border-top:1px solid var(--accentA);border-left:1px solid var(--accentA);}
+.g-corner.tr{top:0;right:0;border-top:1px solid var(--accentA);border-right:1px solid var(--accentA);}
+.g-corner.bl{bottom:0;left:0;border-bottom:1px solid var(--accentA);border-left:1px solid var(--accentA);}
+.g-corner.br{bottom:0;right:0;border-bottom:1px solid var(--accentA);border-right:1px solid var(--accentA);}
+.g-label { font-size:clamp(8px,1.2vw,12px); color:var(--textdim); letter-spacing:2px; margin-bottom:4px; }
+.g-val { font-family:'Orbitron',monospace; font-size:clamp(28px,4vw,52px); font-weight:700; color:var(--textmed); line-height:1; }
+.g-unit { font-size:clamp(8px,1vw,11px); color:var(--textdim); letter-spacing:2px; margin-top:4px; }
+.g-bar-track { height:2px; background:var(--accentA); margin-top:8px; }
+.g-bar-fill { height:2px; background:var(--accent); transition:width 0.3s; }
 
-/* RPM gauge styles */
-.g-label-rpm { font-size:8px; color:#cc110066; letter-spacing:3px; margin-bottom:2px; transition:color 0.5s; }
-.g-val-rpm { font-family:'Orbitron',monospace; font-size:52px; font-weight:700; color:#cc1100; line-height:1; transition:color 0.5s; }
+/* RPM Cyberpunk */
+.g-label-rpm { font-size:8px; color:var(--textdim); letter-spacing:3px; margin-bottom:2px; transition:color 0.5s; }
+.g-val-rpm { font-family:'Orbitron',monospace; font-size:52px; font-weight:700; color:var(--textmed); line-height:1; transition:color 0.5s; }
 .rl-warn { font-family:'Orbitron',monospace; font-size:9px; color:#ff0000; letter-spacing:3px; opacity:0; margin-top:2px; }
 .rpm-bars { display:flex; gap:2px; height:16px; align-items:flex-end; margin-top:4px; }
-.rpm-bar { flex:1; background:#cc110015; transition:background 0.3s; }
-.rpm-bar.on { background:#cc2200; }
+.rpm-bar { flex:1; background:var(--accentA); transition:background 0.3s; }
+.rpm-bar.on { background:var(--accent); }
 .rpm-bar.on.vtec { background:#4488ff !important; }
 .rpm-bar.red { background:#ff0000 !important; }
-.rpm-sim-btns { display:flex; gap:8px; opacity:0; transition:opacity 0.5s; flex-shrink:0; }
-.rpm-sim-btn { background:transparent; border:1px solid #cc2200aa; color:#cc2200cc; font-family:'Share Tech Mono',monospace; font-size:12px; letter-spacing:1px; padding:6px 14px; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
-.rpm-sim-btn:hover { border-color:#ff2200; color:#ff2200; }
-.rpm-sim-btn.active { border-color:#ff0000; color:#ff0000; background:rgba(255,0,0,0.08); }
-.rpm-sim-btn.vtec-active { border-color:#4488ff; color:#4488ff; background:rgba(68,136,255,0.08); }
 
-/* Generic gauge styles */
-.g-label { font-size:clamp(8px,1.2vw,12px); color:#cc110088; letter-spacing:2px; margin-bottom:4px; }
-.g-val { font-family:'Orbitron',monospace; font-size:clamp(28px,4vw,52px); font-weight:700; color:#cc1100; line-height:1; }
-.g-unit { font-size:clamp(8px,1vw,11px); color:#cc110066; letter-spacing:2px; margin-top:4px; }
-.g-bar-track { height:2px; background:#cc110015; margin-top:8px; }
-.g-bar-fill { height:2px; background:#cc2200; transition:width 0.3s; }
-
-/* INJECTOR FIRING */
+/* Injectors */
 .inj-row { display:flex; gap:10px; align-items:center; margin-top:6px; }
 .inj-wrap { display:flex; flex-direction:column; align-items:center; gap:3px; }
-.inj-label { font-size:7px; color:#cc110044; letter-spacing:1px; }
-.inj-body { width:18px; height:36px; border:1px solid #cc220033; background:#0a0000; border-radius:3px; position:relative; overflow:hidden; transition:border-color 0.05s; }
+.inj-label { font-size:7px; color:var(--textdim); letter-spacing:1px; }
+.inj-body { width:18px; height:36px; border:1px solid var(--accentA); background:var(--bg); border-radius:3px; position:relative; overflow:hidden; transition:border-color 0.05s; }
 .inj-body.fire { border-color:#ff4400aa; }
 .inj-body.fire-vtec { border-color:#4488ffaa; }
 .inj-flame { position:absolute; bottom:0; left:0; right:0; height:0%; background:linear-gradient(0deg,#ff2200,#ff6600); transition:height 0.05s; border-radius:0 0 2px 2px; }
 .inj-body.fire .inj-flame { height:100%; }
 .inj-body.fire-vtec .inj-flame { height:100%; background:linear-gradient(0deg,#0044ff,#4488ff); }
-.inj-order { font-size:8px; color:#cc110033; letter-spacing:1px; margin-left:4px; }
+.inj-order { font-size:8px; color:var(--textdim); letter-spacing:1px; margin-left:4px; }
 
-/* REDLINE */
+/* ===== SIM CONTROL BAR ===== */
+.sim-bar { position:fixed; bottom:8px; left:4%; right:4%; z-index:60; display:flex; align-items:center; gap:14px; background:rgba(0,0,0,0.8); border:2px solid var(--accentA); padding:10px 16px; opacity:1; }
+.sim-bar label { font-size:12px; color:var(--textdim); letter-spacing:2px; white-space:nowrap; }
+.sim-bar input[type=range] { flex:1; accent-color:var(--accent); cursor:pointer; height:36px; -webkit-appearance:none; appearance:none; background:transparent; }
+.sim-bar input[type=range]::-webkit-slider-runnable-track { height:30px; background:var(--accentA); border:1px solid var(--accent); border-radius:5px; }
+.sim-bar input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:36px; height:36px; background:var(--accent); border-radius:50%; cursor:pointer; margin-top:-4px; }
+.sim-bar .sim-rpm-val { font-family:'Orbitron',monospace; font-size:18px; color:var(--accent); min-width:60px; text-align:right; }
+
+/* ===== REDLINE ===== */
 .rl-overlay { position:fixed; inset:0; background:rgba(255,0,0,0); pointer-events:none; z-index:50; }
 .rl-border { position:fixed; inset:0; border:3px solid transparent; pointer-events:none; z-index:51; }
-.rl-strip { position:fixed; top:0; left:0; height:3px; width:0%; z-index:52; background:#ff0000; transition:width 0.2s; }
+.rl-strip { position:fixed; top:0; left:0; height:3px; width:0%; z-index:52; background:var(--accent); transition:width 0.2s; }
 
-/* VTEC */
+/* ===== VTEC ===== */
 .vtec-bar { position:fixed; top:0; left:0; right:0; height:3px; z-index:53; background:linear-gradient(90deg,#0022ff,#4488ff,#aaccff); opacity:0; transition:opacity 0.5s; }
 #warp-canvas { position:fixed; inset:0; z-index:8; pointer-events:none; opacity:0; transition:opacity 0.8s; }
 .vtec-overlay { position:fixed; inset:0; z-index:65; pointer-events:none; display:flex; align-items:center; justify-content:center; opacity:0; }
 .vtec-text { font-family:'Orbitron',monospace; font-size:52px; font-weight:700; color:#ffffff; letter-spacing:8px; text-shadow:0 0 20px #4488ff,0 0 60px #4488ff,0 0 120px #2244ff; white-space:nowrap; transform:scaleX(0.1); }
 .vtec-subtext { font-family:'Share Tech Mono',monospace; font-size:16px; color:#88aaff; letter-spacing:6px; text-align:center; margin-top:8px; opacity:0; }
 
-/* BOOT */
-.srbox { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); border:1px solid #cc220077; padding:5px 14px; opacity:0; z-index:15; background:rgba(10,0,0,0.85); white-space:nowrap; }
-.srbox-title { font-size:9px; color:#cc2200aa; letter-spacing:3px; }
-.srbox-sub { font-size:6px; color:#cc110055; letter-spacing:1px; margin-top:2px; }
+/* ===== BOOT ===== */
+.honda-bg { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2; opacity:0; transition:opacity 1.2s; pointer-events:none; }
+.honda-bg path, .honda-bg polygon { transition:fill 0.5s; }
+.arc { position:fixed; top:0; left:0; width:100%; opacity:0; transition:opacity 0.6s; z-index:10; }
+.hbar { position:fixed; top:14px; left:4%; right:4%; height:12px; border:1px solid var(--accentA); background:rgba(0,0,0,0.3); opacity:0; transition:opacity 0.4s; z-index:11; display:flex; align-items:center; padding:0 8px; }
+.hbar span { font-size:6px; color:var(--textdim); letter-spacing:2px; }
+.srbox { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); border:1px solid var(--accent); padding:5px 14px; opacity:0; z-index:15; background:rgba(10,0,0,0.85); white-space:nowrap; }
+.srbox-title { font-size:9px; color:var(--accent); letter-spacing:3px; }
+.srbox-sub { font-size:6px; color:var(--textdim); letter-spacing:1px; margin-top:2px; }
 .progwrap { position:fixed; top:calc(50% + 30px); left:50%; transform:translateX(-50%); width:280px; opacity:0; z-index:15; }
-.prog-meta { display:flex; justify-content:space-between; font-size:7px; color:#cc110055; margin-bottom:3px; }
-.prog-track { height:2px; background:#cc110018; }
-.prog-bar { height:2px; background:#cc2200; width:0%; position:relative; }
-.prog-bar::after { content:''; position:absolute; right:0; top:-2px; width:1px; height:6px; background:#ff2200; }
+.prog-meta { display:flex; justify-content:space-between; font-size:7px; color:var(--textdim); margin-bottom:3px; }
+.prog-track { height:2px; background:var(--accentA); }
+.prog-bar { height:2px; background:var(--accent); width:0%; position:relative; }
+.prog-bar::after { content:''; position:absolute; right:0; top:-2px; width:1px; height:6px; background:var(--accent2); }
+
+/* ===== CANVAS GAUGE BOXES ===== */
+.gbox canvas, .gbox steelseries-radial { max-width:100%; max-height:100%; }
+.gbox .canvas-gauge-label { position:absolute; bottom:6px; left:0; right:0; text-align:center; font-size:9px; color:var(--textdim); letter-spacing:2px; pointer-events:none; }
 
 @keyframes rlflash{0%,100%{border-color:#ff0000}50%{border-color:#ff4400}}
 @keyframes rloverlayflash{0%,100%{background:rgba(255,0,0,0.07)}50%{background:rgba(255,0,0,0.18)}}
@@ -116,13 +137,10 @@ body { background:#0a0000; width:100vw; height:100vh; overflow:hidden; font-fami
 html.redlining body { animation:rlshake 0.08s infinite; }
 html.redlining .rl-overlay { animation:rloverlayflash 0.15s infinite; }
 html.redlining .rl-border { animation:rlflash 0.12s infinite; }
-html.redlining #val-rpm { animation:rednumpulse 0.1s infinite; }
 html.redlining .rpm-bar.red { animation:rpmbarflash 0.1s infinite; }
-html.redlining .rl-warn { opacity:1 !important; }
-.flicker { animation:flicker 4s infinite; }
 </style>
 </head>
-<body>
+<body class="theme-cyberpunk">
 <div class="ambient"></div>
 <div class="rl-strip" id="rl-strip"></div>
 <div class="rl-overlay"></div>
@@ -152,15 +170,28 @@ html.redlining .rl-warn { opacity:1 !important; }
 <!-- GAUGE PICKER BUTTON -->
 <button class="picker-btn" id="picker-btn" onclick="openPicker()">⚙ GAUGES</button>
 
-<!-- GAUGE GRID  -  built dynamically -->
+<!-- SIM CONTROL BAR -->
+<div class="sim-bar" id="sim-bar">
+  <label>RPM</label>
+  <input type="range" id="rpm-slider" min="800" max="8300" value="3240" step="100" oninput="manualRPM(this.value)">
+  <div class="sim-rpm-val" id="rpm-slider-val">3240</div>
+</div>
+
+<!-- GAUGE GRID -->
 <div class="gauge-grid" id="gauge-grid"></div>
 
 <!-- GAUGE PICKER SIDEBAR -->
 <div class="picker-panel" id="picker-panel">
   <button class="picker-close" onclick="closePicker()">[ × CLOSE ]</button>
-  <div class="picker-title">GAUGE SELECT</div>
-  <div class="picker-sub">RPM always displayed. Toggle others on/off. Grid auto-adjusts.</div>
+
+  <div class="picker-title">THEME</div>
+  <div class="picker-sub">Select a gauge style.</div>
+  <div id="theme-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;"></div>
+
   <div class="picker-divider"></div>
+
+  <div class="picker-title">GAUGES</div>
+  <div class="picker-sub">RPM always displayed. Toggle others on/off. Grid auto-adjusts.</div>
   <div id="gauge-list"></div>
   <button class="picker-apply" onclick="applyGauges()">[ APPLY ]</button>
 </div>
@@ -174,26 +205,78 @@ html.redlining .rl-warn { opacity:1 !important; }
   <div class="prog-track"><div class="prog-bar" id="pbar"></div></div>
 </div>
 
+<!-- CDN Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js"></script>
+
 <script>
-// ============ GAUGE DEFINITIONS ============
+// ============================================================
+//  GAUGE DEFINITIONS
+// ============================================================
 const GAUGE_DEFS = [
-  { id:'spd',   label:'Speed',           unit:'MPH',     min:0,   max:160,  val:0,   format:v=>Math.round(v) },
-  { id:'clt',   label:'Coolant Temp',    unit:'°F',      min:160, max:230,  val:0,   format:v=>Math.round(v), warn:215 },
-  { id:'tps',   label:'Throttle',        unit:'% OPEN',  min:0,   max:100,  val:0,   format:v=>Math.round(v) },
-  { id:'o2',    label:'O2 Sensor',       unit:'VOLTS',   min:0,   max:1.0,  val:0,   format:v=>v.toFixed(2) },
-  { id:'iat',   label:'Intake Air Temp', unit:'°F',      min:32,  max:200,  val:0,   format:v=>Math.round(v) },
-  { id:'ign',   label:'Ignition Timing', unit:'DEGREES', min:-10, max:45,   val:0,   format:v=>v.toFixed(1) },
-  { id:'stft',  label:'Short Fuel Trim', unit:'%',       min:-25, max:25,   val:0,   format:v=>v.toFixed(1) },
-  { id:'ltft',  label:'Long Fuel Trim',  unit:'%',       min:-25, max:25,   val:0,   format:v=>v.toFixed(1) },
-  { id:'batt',  label:'Battery Voltage', unit:'VOLTS',   min:11,  max:15,   val:0,   format:v=>v.toFixed(1) },
-  { id:'idc',   label:'Injector Duty',   unit:'%',       min:0,   max:100,  val:0,   format:v=>Math.round(v) },
+  { id:'spd',  label:'Speed',          unit:'MPH',     min:0,   max:160,  val:0, format:v=>Math.round(v) },
+  { id:'clt',  label:'Coolant Temp',   unit:'°F',      min:160, max:230,  val:0, format:v=>Math.round(v), warn:215 },
+  { id:'tps',  label:'Throttle',       unit:'% OPEN',  min:0,   max:100,  val:0, format:v=>Math.round(v) },
+  { id:'o2',   label:'O2 Sensor',      unit:'VOLTS',   min:0,   max:1.0,  val:0, format:v=>v.toFixed(2) },
+  { id:'iat',  label:'Intake Air Temp',unit:'°F',      min:32,  max:200,  val:0, format:v=>Math.round(v) },
+  { id:'ign',  label:'Ign Timing',     unit:'DEG',     min:-10, max:45,   val:0, format:v=>v.toFixed(1) },
+  { id:'stft', label:'Short Fuel Trim',unit:'%',       min:-25, max:25,   val:0, format:v=>v.toFixed(1) },
+  { id:'ltft', label:'Long Fuel Trim', unit:'%',       min:-25, max:25,   val:0, format:v=>v.toFixed(1) },
+  { id:'batt', label:'Battery',        unit:'VOLTS',   min:11,  max:15,   val:0, format:v=>v.toFixed(1) },
+  { id:'idc',  label:'Injector Duty',  unit:'%',       min:0,   max:100,  val:0, format:v=>Math.round(v) },
 ];
 
-// Default active gauges
 let activeGauges = ['spd','clt','tps','o2'];
 let pendingGauges = [...activeGauges];
+let currentTheme = localStorage.getItem('hondadash-theme') || 'cyberpunk';
+let gaugeInstances = {};
+let racingAnimId = null;
+let latestData = { rpm:0,spd:0,clt:192,tps:0,o2:0.82,iat:85,ign:18,stft:1.2,ltft:-0.8,batt:14.1,idc:42 };
 
-// ============ BUILD PICKER LIST ============
+// ============================================================
+//  THEME SYSTEM
+// ============================================================
+function setTheme(name){
+  currentTheme = name;
+  localStorage.setItem('hondadash-theme', name);
+  document.body.className = 'theme-' + name;
+  // Update Honda SVG color
+  const hue = {cyberpunk:'#880000', neon:'#004488', racing:'#884400', steelseries:'#448800'}[name];
+  document.querySelectorAll('#honda-bg path, #honda-bg polygon').forEach(p => p.setAttribute('fill', hue));
+  // Update theme list active state
+  document.querySelectorAll('.theme-item').forEach(t => t.classList.toggle('active', t.dataset.theme===name));
+  cleanupTheme();
+  rebuildGrid();
+}
+
+function cleanupTheme(){
+  if(racingAnimId){ cancelAnimationFrame(racingAnimId); racingAnimId=null; }
+  Object.values(gaugeInstances).forEach(g => { if(g && g.destroy) g.destroy(); });
+  gaugeInstances = {};
+}
+
+const THEME_INFO = [
+  { id:'cyberpunk', name:'CYBERPUNK', desc:'Red/black hacker terminal', color:'#cc2200' },
+  { id:'neon',      name:'NEON',      desc:'Glowing cyan radial gauges', color:'#00ccff' },
+  { id:'racing',    name:'RACING',    desc:'Orange arc gauges with glow', color:'#ff8800' },
+  { id:'steelseries', name:'STEEL',   desc:'Carbon fiber & brushed metal', color:'#88cc00' },
+];
+
+function buildThemeList(){
+  const list = document.getElementById('theme-list');
+  list.innerHTML = '';
+  THEME_INFO.forEach(t => {
+    const item = document.createElement('div');
+    item.className = 'theme-item' + (currentTheme===t.id?' active':'');
+    item.dataset.theme = t.id;
+    item.innerHTML = `<div class="theme-item-dot" style="background:${t.color}"></div><div><div class="theme-item-name">${t.name}</div><div class="theme-item-desc">${t.desc}</div></div>`;
+    item.onclick = () => setTheme(t.id);
+    list.appendChild(item);
+  });
+}
+
+// ============================================================
+//  GAUGE PICKER
+// ============================================================
 function buildPickerList(){
   const list = document.getElementById('gauge-list');
   list.innerHTML = '';
@@ -201,218 +284,658 @@ function buildPickerList(){
     const on = pendingGauges.includes(g.id);
     const row = document.createElement('div');
     row.className = 'gauge-item';
-    row.innerHTML = `
-      <div class="gi-info">
-        <div class="gi-name">${g.label}</div>
-        <div class="gi-unit">${g.unit}</div>
-      </div>
-      <div class="gi-toggle ${on?'on':''}" id="tog-${g.id}"></div>
-    `;
+    row.innerHTML = `<div class="gi-info"><div class="gi-name">${g.label}</div><div class="gi-unit">${g.unit}</div></div><div class="gi-toggle ${on?'on':''}" id="tog-${g.id}"></div>`;
     row.onclick = () => {
       const tog = document.getElementById('tog-'+g.id);
-      if(pendingGauges.includes(g.id)){
-        if(pendingGauges.length <= 1) return; // keep at least 1
-        pendingGauges = pendingGauges.filter(x=>x!==g.id);
-        tog.classList.remove('on');
-      } else {
-        if(pendingGauges.length >= 8) return; // max 8
-        pendingGauges.push(g.id);
-        tog.classList.add('on');
-      }
+      if(pendingGauges.includes(g.id)){ if(pendingGauges.length<=1)return; pendingGauges=pendingGauges.filter(x=>x!==g.id); tog.classList.remove('on'); }
+      else { if(pendingGauges.length>=8)return; pendingGauges.push(g.id); tog.classList.add('on'); }
     };
     list.appendChild(row);
   });
 }
+function openPicker(){ pendingGauges=[...activeGauges]; buildThemeList(); buildPickerList(); document.getElementById('picker-panel').classList.add('open'); }
+function closePicker(){ document.getElementById('picker-panel').classList.remove('open'); }
+function applyGauges(){ activeGauges=[...pendingGauges]; closePicker(); cleanupTheme(); rebuildGrid(); }
 
-function openPicker(){
-  pendingGauges = [...activeGauges];
-  buildPickerList();
-  document.getElementById('picker-panel').classList.add('open');
-}
-
-function closePicker(){
-  document.getElementById('picker-panel').classList.remove('open');
-}
-
-function applyGauges(){
-  activeGauges = [...pendingGauges];
-  closePicker();
-  rebuildGrid();
-}
-
-// ============ BUILD GAUGE GRID ============
+// ============================================================
+//  GRID LAYOUT (shared)
+// ============================================================
 function rebuildGrid(){
   const grid = document.getElementById('gauge-grid');
   const n = activeGauges.length;
-
-  // Grid layout: RPM always full top row, then auto-arrange rest
-  let cols, rows;
-  if(n <= 2)      { cols=2; rows=1; }
-  else if(n <= 4) { cols=2; rows=2; }
-  else if(n <= 6) { cols=3; rows=2; }
-  else            { cols=4; rows=2; }
-
+  let cols = n<=2?2 : n<=4?2 : n<=6?3 : 4;
+  let rows = n<=2?1 : 2;
   grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   grid.style.gridTemplateRows = `1.4fr repeat(${rows}, 1fr)`;
-
   grid.innerHTML = '';
 
-  // RPM box  -  always first, full width
-  const rpmBox = buildRPMBox();
-  rpmBox.style.gridColumn = `1 / -1`;
+  const builder = THEMES[currentTheme];
+  // RPM box - full width
+  const rpmBox = builder.buildRPM();
+  rpmBox.style.gridColumn = '1 / -1';
   grid.appendChild(rpmBox);
-
   // Other gauges
   activeGauges.forEach(id => {
     const def = GAUGE_DEFS.find(g=>g.id===id);
-    if(def) grid.appendChild(buildGaugeBox(def));
+    if(def) grid.appendChild(builder.buildGauge(def));
   });
-
-  // Rebuild RPM bars
-  buildRPMBars();
+  builder.init();
+  // Push latest data to new gauges
+  updateThemeGauges(latestData);
 }
 
-function buildRPMBox(){
-  const div = document.createElement('div');
-  div.className = 'gbox flicker';
-  div.id = 'box-rpm';
-  div.innerHTML = `
-    <div class="g-corner tl"></div><div class="g-corner tr"></div>
-    <div class="g-corner bl"></div><div class="g-corner br"></div>
-    <div class="gbox-boot" id="boot-rpm"></div>
-    <div class="gbox-live" id="live-rpm" style="opacity:1;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-        <div style="flex:1;">
-          <div class="g-label-rpm" id="rpm-label">ENGINE RPM // REDLINE 8200</div>
-          <div class="g-val-rpm" id="val-rpm">0</div>
-          <div class="rl-warn" id="rl-warn">⚠ REDLINE ⚠</div>
-        </div>
-        <div class="rpm-sim-btns" id="rpm-sim-btns" style="opacity:0;">
-          <button class="rpm-sim-btn" id="rl-btn" onclick="toggleRL()">REDLINE</button>
-          <button class="rpm-sim-btn" id="vtec-btn" onclick="simVTEC()">VTEC</button>
-          <button class="rpm-sim-btn" onclick="resetSim()">RESET</button>
-          <div style="display:flex;align-items:center;gap:6px;margin-left:4px;">
-            <input type="range" id="rpm-slider" min="800" max="8300" value="3240" step="100"
-              style="width:160px;accent-color:#cc2200;cursor:pointer;"
-              oninput="manualRPM(this.value)">
-            <span id="rpm-slider-val" style="font-size:11px;color:#cc2200cc;letter-spacing:1px;min-width:48px;">3240</span>
+// ============================================================
+//  THEME: CYBERPUNK
+// ============================================================
+const THEMES = {};
+THEMES.cyberpunk = {
+  buildRPM(){
+    const div = document.createElement('div');
+    div.className = 'gbox'; div.id = 'box-rpm';
+    div.innerHTML = `
+      <div class="g-corner tl"></div><div class="g-corner tr"></div><div class="g-corner bl"></div><div class="g-corner br"></div>
+      <div style="position:absolute;inset:0;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+          <div style="flex:1;">
+            <div class="g-label-rpm" id="rpm-label">ENGINE RPM // REDLINE 8200</div>
+            <div class="g-val-rpm" id="val-rpm">0</div>
+            <div class="rl-warn" id="rl-warn">⚠ REDLINE ⚠</div>
+          </div>
+          </div>
+        <div style="display:flex;align-items:flex-end;gap:12px;margin-top:4px;">
+          <div class="rpm-bars" id="rpm-bars" style="flex:1;"></div>
+          <div class="inj-row" id="inj-row">
+            <div class="inj-wrap"><div class="inj-body" id="inj-1"><div class="inj-flame"></div></div><div class="inj-label">1</div></div>
+            <div class="inj-wrap"><div class="inj-body" id="inj-3"><div class="inj-flame"></div></div><div class="inj-label">3</div></div>
+            <div class="inj-wrap"><div class="inj-body" id="inj-4"><div class="inj-flame"></div></div><div class="inj-label">4</div></div>
+            <div class="inj-wrap"><div class="inj-body" id="inj-2"><div class="inj-flame"></div></div><div class="inj-label">2</div></div>
+            <div class="inj-order" id="inj-order">1-3-4-2</div>
           </div>
         </div>
-      </div>
-      <div style="display:flex;align-items:flex-end;gap:12px;margin-top:4px;">
-        <div class="rpm-bars" id="rpm-bars" style="flex:1;"></div>
-        <div class="inj-row" id="inj-row">
-          <div class="inj-wrap"><div class="inj-body" id="inj-1"><div class="inj-flame"></div></div><div class="inj-label">1</div></div>
-          <div class="inj-wrap"><div class="inj-body" id="inj-3"><div class="inj-flame"></div></div><div class="inj-label">3</div></div>
-          <div class="inj-wrap"><div class="inj-body" id="inj-4"><div class="inj-flame"></div></div><div class="inj-label">4</div></div>
-          <div class="inj-wrap"><div class="inj-body" id="inj-2"><div class="inj-flame"></div></div><div class="inj-label">2</div></div>
-          <div class="inj-order" id="inj-order">1-3-4-2</div>
-        </div>
-      </div>
-    </div>
-  `;
-  return div;
-}
-
-function buildGaugeBox(def){
-  const div = document.createElement('div');
-  div.className = 'gbox flicker';
-  div.innerHTML = `
-    <div class="g-corner tl"></div><div class="g-corner tr"></div>
-    <div class="g-corner bl"></div><div class="g-corner br"></div>
-    <div class="gbox-live" id="live-${def.id}" style="opacity:1;">
-      <div class="g-label">${def.label}</div>
-      <div class="g-val" id="val-${def.id}">--</div>
-      <div class="g-unit">${def.unit}</div>
-      <div class="g-bar-track"><div class="g-bar-fill" id="bar-${def.id}" style="width:0%"></div></div>
-    </div>
-  `;
-  return div;
-}
-
-function buildRPMBars(){
-  const bars = document.getElementById('rpm-bars');
-  if(!bars) return;
-  bars.innerHTML = '';
-  for(let i=0;i<32;i++){
-    const b = document.createElement('div');
-    b.className = 'rpm-bar';
-    bars.appendChild(b);
+      </div>`;
+    return div;
+  },
+  buildGauge(def){
+    const div = document.createElement('div');
+    div.className = 'gbox';
+    div.innerHTML = `
+      <div class="g-corner tl"></div><div class="g-corner tr"></div><div class="g-corner bl"></div><div class="g-corner br"></div>
+      <div style="position:absolute;inset:0;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;">
+        <div class="g-label">${def.label}</div>
+        <div class="g-val" id="val-${def.id}">--</div>
+        <div class="g-unit">${def.unit}</div>
+        <div class="g-bar-track"><div class="g-bar-fill" id="bar-${def.id}" style="width:0%"></div></div>
+      </div>`;
+    return div;
+  },
+  init(){
+    // Build RPM bars
+    const bars = document.getElementById('rpm-bars');
+    if(bars){ bars.innerHTML=''; for(let i=0;i<32;i++){ const b=document.createElement('div'); b.className='rpm-bar'; bars.appendChild(b); } }
+  },
+  updateRPM(r, vtecOn){
+    const el=document.getElementById('val-rpm'); if(el) el.textContent=Math.round(r);
+    const barsEl=document.getElementById('rpm-bars');
+    if(barsEl){
+      const active=Math.floor(r/8200*32);
+      Array.from(barsEl.children).forEach((b,i)=>{
+        b.classList.toggle('on',i<active);
+        b.classList.toggle('vtec',i<active&&vtecOn&&!simRL);
+        b.classList.toggle('red',i<active&&i>=27);
+      });
+    }
+  },
+  updateGauge(id, value, def){
+    const el=document.getElementById('val-'+id); if(el) el.textContent=def.format(value);
+    const bar=document.getElementById('bar-'+id);
+    if(bar) bar.style.width = Math.max(0,Math.min(100,(value-def.min)/(def.max-def.min)*100))+'%';
   }
+};
+
+// ============================================================
+//  THEME: NEON (canvas-gauges)
+// ============================================================
+THEMES.neon = {
+  buildRPM(){
+    const div = document.createElement('div');
+    div.className = 'gbox'; div.id = 'box-rpm';
+    div.innerHTML = `<canvas id="cg-rpm"></canvas>`;
+    return div;
+  },
+  buildGauge(def){
+    const div = document.createElement('div');
+    div.className = 'gbox';
+    div.innerHTML = `<canvas id="cg-${def.id}"></canvas><div class="canvas-gauge-label">${def.label}</div>`;
+    return div;
+  },
+  init(){
+    if(typeof RadialGauge === 'undefined') { console.warn('canvas-gauges not loaded'); return; }
+    const rpmBox = document.getElementById('box-rpm');
+    const w = rpmBox ? rpmBox.offsetWidth : 400;
+    const h = rpmBox ? rpmBox.offsetHeight : 200;
+    const rpmSize = Math.min(w * 0.85, h * 0.95);
+
+    gaugeInstances.rpm = new RadialGauge({
+      renderTo:'cg-rpm', width:rpmSize, height:rpmSize,
+      value:0, minValue:0, maxValue:8, startAngle:40, ticksAngle:280,
+      majorTicks:['0','1','2','3','4','5','6','7','8'],
+      minorTicks:5, title:'RPM', units:'×1000',
+      colorPlate:'#080818', colorPlateEnd:'#050510',
+      colorMajorTicks:'#00ccff', colorMinorTicks:'#00ccff33', colorNumbers:'#00ccffcc',
+      colorNeedleShadowUp:'rgba(0,204,255,0.4)', colorNeedleShadowDown:'rgba(0,0,0,0.5)',
+      colorNeedle:'#00ffff', colorNeedleEnd:'#00aacc',
+      colorTitle:'#00ccff88', colorUnits:'#00ccff44',
+      colorValueText:'#00ffff', colorValueBoxBackground:'transparent',
+      colorValueBoxRect:'transparent', colorValueBoxRectEnd:'transparent',
+      colorValueBoxShadow:'transparent',
+      colorBarProgress:'#00ccff',
+      colorBorderOuter:'#00ccff33', colorBorderOuterEnd:'#00ccff11',
+      colorBorderMiddle:'#00ccff22', colorBorderMiddleEnd:'transparent',
+      colorBorderInner:'#00ccff11', colorBorderInnerEnd:'transparent',
+      highlights:[{from:0,to:5.8,color:'rgba(0,204,255,0.05)'},{from:5.8,to:7.8,color:'rgba(0,204,255,0.15)'},{from:7.8,to:8,color:'rgba(255,0,0,0.3)'}],
+      valueBox:true, valueInt:1, valueDec:1,
+      needleType:'arrow', needleWidth:3, needleShadow:true,
+      borders:true, borderShadowWidth:0,
+      animationRule:'linear', animationDuration:120,
+      fontNumbersSize:32, fontTitleSize:28, fontUnitsSize:22, fontValueSize:36,
+    }).draw();
+
+    activeGauges.forEach(id => {
+      const def = GAUGE_DEFS.find(g=>g.id===id);
+      if(!def) return;
+      const box = document.getElementById('cg-'+id);
+      if(!box) return;
+      const parent = box.closest('.gbox');
+      const sz = Math.min((parent?parent.offsetWidth:180)*0.85, (parent?parent.offsetHeight:180)*0.9);
+      const ticks = [];
+      const step = (def.max - def.min) / 5;
+      for(let i=0;i<=5;i++) ticks.push(''+ parseFloat((def.min + step*i).toFixed(4)));
+
+      const isFloat = def.max <= 1 || def.id==='ign' || def.id==='stft' || def.id==='ltft' || def.id==='batt';
+      gaugeInstances[id] = new RadialGauge({
+        renderTo:'cg-'+id, width:sz, height:sz,
+        value:def.min, minValue:def.min, maxValue:def.max, startAngle:40, ticksAngle:280,
+        majorTicks:ticks, minorTicks:4, units:def.unit,
+        valueBox:false, fontValueSize:0,
+        colorPlate:'#080818', colorPlateEnd:'#050510',
+        colorMajorTicks:'#00ccff88', colorMinorTicks:'#00ccff22', colorNumbers:'#00ccff99',
+        colorNeedle:'#00ffff', colorNeedleEnd:'#00aacc',
+        colorNeedleShadowUp:'rgba(0,204,255,0.3)', colorNeedleShadowDown:'rgba(0,0,0,0.4)',
+        colorUnits:'#00ccff44',
+        colorValueText:'transparent', colorValueBoxBackground:'transparent',
+        colorValueBoxRect:'transparent', colorValueBoxRectEnd:'transparent', colorValueBoxShadow:'transparent',
+        colorBorderOuter:'#00ccff22', colorBorderOuterEnd:'transparent',
+        colorBorderMiddle:'transparent', colorBorderMiddleEnd:'transparent',
+        colorBorderInner:'transparent', colorBorderInnerEnd:'transparent',
+        highlights:def.warn?[{from:def.warn,to:def.max,color:'rgba(255,50,0,0.25)'}]:[],
+        needleType:'arrow', needleWidth:2, needleShadow:true,
+        borders:true, borderShadowWidth:0,
+        animationRule:'linear', animationDuration:120,
+        fontNumbersSize:28, fontUnitsSize:20,
+      }).draw();
+    });
+  },
+  updateRPM(r){
+    if(gaugeInstances.rpm) gaugeInstances.rpm.value = r/1000;
+  },
+  updateGauge(id, value){
+    if(gaugeInstances[id]) gaugeInstances[id].value = value;
+  }
+};
+
+// ============================================================
+//  THEME: RACING (raw Canvas 2D)
+// ============================================================
+THEMES.racing = {
+  buildRPM(){
+    const div = document.createElement('div');
+    div.className = 'gbox'; div.id = 'box-rpm';
+    div.innerHTML = `<canvas id="rc-rpm" style="width:100%;height:100%;"></canvas>`;
+    return div;
+  },
+  buildGauge(def){
+    const div = document.createElement('div');
+    div.className = 'gbox';
+    div.innerHTML = `<canvas id="rc-${def.id}" style="width:100%;height:100%;" data-gid="${def.id}"></canvas>`;
+    return div;
+  },
+  init(){
+    // Size all canvases
+    document.querySelectorAll('[id^="rc-"]').forEach(c => {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = c.parentElement.getBoundingClientRect();
+      c.width = rect.width * dpr;
+      c.height = rect.height * dpr;
+      c.getContext('2d').scale(dpr, dpr);
+      c._w = rect.width;
+      c._h = rect.height;
+    });
+    this.drawAll();
+  },
+  drawAll(){
+    this._drawRPMGauge(latestData.rpm);
+    activeGauges.forEach(id => {
+      const def = GAUGE_DEFS.find(g=>g.id===id);
+      if(def) this._drawArcGauge(id, latestData[id]||def.min, def);
+    });
+  },
+  _drawRPMGauge(r){
+    const c = document.getElementById('rc-rpm');
+    if(!c) return;
+    const ctx = c.getContext('2d');
+    const W = c._w || c.width, H = c._h || c.height;
+    ctx.clearRect(0,0,W,H);
+
+    const cx=W/2, cy=H*0.55;
+    const radius = Math.min(W*0.42, H*0.48);
+    const startA = 0.8*Math.PI, endA = 2.2*Math.PI;
+    const range = endA-startA;
+    const pct = Math.min(1, r/8200);
+    const valA = startA + pct*range;
+    const vtecA = startA + (5800/8200)*range;
+    const redA = startA + (7800/8200)*range;
+
+    // BG arc
+    ctx.beginPath(); ctx.arc(cx,cy,radius,startA,endA);
+    ctx.strokeStyle='#ffffff0d'; ctx.lineWidth=radius*0.14; ctx.lineCap='butt'; ctx.stroke();
+
+    // Redline zone
+    ctx.beginPath(); ctx.arc(cx,cy,radius,redA,endA);
+    ctx.strokeStyle='rgba(255,0,0,0.15)'; ctx.lineWidth=radius*0.14; ctx.stroke();
+
+    // Value arc
+    ctx.beginPath(); ctx.arc(cx,cy,radius,startA,valA);
+    const isVtec = r>=5800;
+    const grad = ctx.createLinearGradient(cx-radius,cy,cx+radius,cy);
+    if(r>=7800){ grad.addColorStop(0,'#ff4400'); grad.addColorStop(1,'#ff0000'); }
+    else if(isVtec){ grad.addColorStop(0,'#ff8800'); grad.addColorStop(0.6,'#4488ff'); grad.addColorStop(1,'#00ccff'); }
+    else { grad.addColorStop(0,'#ff660044'); grad.addColorStop(1,'#ff8800'); }
+    ctx.strokeStyle=grad; ctx.lineWidth=radius*0.14;
+    ctx.shadowColor=isVtec?'#4488ff':'#ff8800'; ctx.shadowBlur=20; ctx.stroke();
+    ctx.shadowBlur=0;
+
+    // Tick marks
+    for(let i=0;i<=16;i++){
+      const a = startA + (i/16)*range;
+      const rpmVal = (i/16)*8200;
+      const inner = radius - radius*0.25;
+      const outer = radius + radius*0.1;
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(a)*inner, cy+Math.sin(a)*inner);
+      ctx.lineTo(cx+Math.cos(a)*outer, cy+Math.sin(a)*outer);
+      ctx.strokeStyle = rpmVal>=7800 ? '#ff0000aa' : '#ffffff33';
+      ctx.lineWidth = i%2===0 ? 2 : 1;
+      ctx.stroke();
+      if(i%2===0){
+        ctx.fillStyle='#ffffff66'; ctx.font=`${Math.max(10,radius*0.12)}px 'Share Tech Mono'`;
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        const lx=cx+Math.cos(a)*(inner-radius*0.12), ly=cy+Math.sin(a)*(inner-radius*0.12);
+        ctx.fillText(Math.round(rpmVal/1000), lx, ly);
+      }
+    }
+
+    // Needle
+    const nLen = radius*0.85;
+    const nx = cx+Math.cos(valA)*nLen, ny = cy+Math.sin(valA)*nLen;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(nx,ny);
+    ctx.strokeStyle=r>=7800?'#ff2200':'#ff8800'; ctx.lineWidth=3;
+    ctx.shadowColor=r>=7800?'#ff0000':'#ff8800'; ctx.shadowBlur=12; ctx.stroke();
+    ctx.shadowBlur=0;
+
+    // Center dot
+    ctx.beginPath(); ctx.arc(cx,cy,6,0,Math.PI*2);
+    ctx.fillStyle='#ff8800'; ctx.fill();
+
+    // Digital readout
+    ctx.fillStyle=r>=7800?'#ff0000':'#ff8800';
+    ctx.font=`bold ${Math.max(28,radius*0.4)}px Orbitron`;
+    ctx.textAlign='center'; ctx.fillText(Math.round(r), cx, cy+radius*0.5);
+
+    ctx.fillStyle='#ffffff44';
+    ctx.font=`${Math.max(10,radius*0.1)}px 'Share Tech Mono'`;
+    ctx.fillText('RPM', cx, cy+radius*0.65);
+
+    // VTEC marker
+    const vx=cx+Math.cos(vtecA)*(radius+radius*0.18), vy=cy+Math.sin(vtecA)*(radius+radius*0.18);
+    ctx.fillStyle=isVtec?'#4488ff':'#4488ff44';
+    ctx.font=`bold ${Math.max(8,radius*0.08)}px 'Share Tech Mono'`;
+    ctx.fillText('VTEC', vx, vy);
+  },
+  _drawArcGauge(id, value, def){
+    const c = document.getElementById('rc-'+id);
+    if(!c) return;
+    const ctx = c.getContext('2d');
+    const W = c._w || c.width, H = c._h || c.height;
+    ctx.clearRect(0,0,W,H);
+
+    const cx=W/2, cy=H*0.55;
+    const radius = Math.min(W*0.38, H*0.4);
+    const startA=0.75*Math.PI, endA=2.25*Math.PI;
+    const range=endA-startA;
+    const pct=Math.max(0,Math.min(1,(value-def.min)/(def.max-def.min)));
+    const valA=startA+pct*range;
+    const isWarn = def.warn && value >= def.warn;
+
+    // BG arc
+    ctx.beginPath(); ctx.arc(cx,cy,radius,startA,endA);
+    ctx.strokeStyle='#ffffff0d'; ctx.lineWidth=radius*0.15; ctx.lineCap='butt'; ctx.stroke();
+
+    // Warn zone
+    if(def.warn){
+      const warnA=startA+((def.warn-def.min)/(def.max-def.min))*range;
+      ctx.beginPath(); ctx.arc(cx,cy,radius,warnA,endA);
+      ctx.strokeStyle='rgba(255,0,0,0.12)'; ctx.lineWidth=radius*0.15; ctx.stroke();
+    }
+
+    // Value arc
+    ctx.beginPath(); ctx.arc(cx,cy,radius,startA,valA);
+    ctx.strokeStyle=isWarn?'#ff2200':'#ff8800';
+    ctx.lineWidth=radius*0.15;
+    ctx.shadowColor=isWarn?'#ff0000':'#ff8800'; ctx.shadowBlur=10; ctx.stroke();
+    ctx.shadowBlur=0;
+
+    // Ticks
+    for(let i=0;i<=8;i++){
+      const a=startA+(i/8)*range;
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(a)*(radius-radius*0.2), cy+Math.sin(a)*(radius-radius*0.2));
+      ctx.lineTo(cx+Math.cos(a)*(radius+radius*0.08), cy+Math.sin(a)*(radius+radius*0.08));
+      ctx.strokeStyle='#ffffff22'; ctx.lineWidth=1; ctx.stroke();
+    }
+
+    // Needle
+    const nLen=radius*0.75;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(valA)*nLen,cy+Math.sin(valA)*nLen);
+    ctx.strokeStyle=isWarn?'#ff2200':'#ff8800'; ctx.lineWidth=2;
+    ctx.shadowColor=isWarn?'#ff0000':'#ff8800'; ctx.shadowBlur=8; ctx.stroke();
+    ctx.shadowBlur=0;
+
+    ctx.beginPath(); ctx.arc(cx,cy,3,0,Math.PI*2); ctx.fillStyle='#ff8800'; ctx.fill();
+
+    // Value
+    ctx.fillStyle=isWarn?'#ff2200':'#ff8800';
+    ctx.font=`bold ${Math.max(18,radius*0.45)}px Orbitron`;
+    ctx.textAlign='center'; ctx.fillText(def.format(value), cx, cy+radius*0.45);
+
+    // Label + unit
+    ctx.fillStyle='#ffffff55';
+    ctx.font=`${Math.max(9,radius*0.14)}px 'Share Tech Mono'`;
+    ctx.fillText(def.label.toUpperCase(), cx, cy-radius*0.55);
+    ctx.fillStyle='#ffffff33';
+    ctx.fillText(def.unit, cx, cy+radius*0.65);
+  },
+  updateRPM(r){ this._drawRPMGauge(r); },
+  updateGauge(id, value, def){ this._drawArcGauge(id, value, def); }
+};
+
+// ============================================================
+//  THEME: STEELSERIES (raw Canvas — carbon/metal realistic)
+// ============================================================
+THEMES.steelseries = {
+  buildRPM(){
+    const div = document.createElement('div');
+    div.className = 'gbox'; div.id = 'box-rpm';
+    div.innerHTML = `<canvas id="ss-rpm" style="width:100%;height:100%;"></canvas>`;
+    return div;
+  },
+  buildGauge(def){
+    const div = document.createElement('div');
+    div.className = 'gbox';
+    div.innerHTML = `<canvas id="ss-${def.id}" style="width:100%;height:100%;" data-gid="${def.id}"></canvas>`;
+    return div;
+  },
+  init(){
+    document.querySelectorAll('[id^="ss-"]').forEach(c => {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = c.parentElement.getBoundingClientRect();
+      c.width = rect.width * dpr; c.height = rect.height * dpr;
+      c.getContext('2d').scale(dpr, dpr);
+      c._w = rect.width; c._h = rect.height;
+    });
+    this._drawAll();
+  },
+  _drawAll(){
+    this._drawSteelGauge('ss-rpm', latestData.rpm, 0, 8200, 'RPM', '', null, true);
+    activeGauges.forEach(id => {
+      const def = GAUGE_DEFS.find(g=>g.id===id);
+      if(def) this._drawSteelGauge('ss-'+id, latestData[id]||def.min, def.min, def.max, def.label, def.unit, def.warn, false);
+    });
+  },
+  _drawCarbonFiber(ctx, cx, cy, r){
+    // Carbon fiber pattern
+    const sz=4;
+    for(let y=cy-r;y<cy+r;y+=sz*2){
+      for(let x=cx-r;x<cx+r;x+=sz*2){
+        const dx=x-cx, dy=y-cy;
+        if(dx*dx+dy*dy > r*r) continue;
+        const row=Math.floor((y-cy+r)/(sz*2));
+        const off=(row%2)*sz;
+        ctx.fillStyle='#1a1a1a'; ctx.fillRect(x+off,y,sz-0.5,sz-0.5);
+        ctx.fillStyle='#222'; ctx.fillRect(x+off+sz,y,sz-0.5,sz-0.5);
+        ctx.fillStyle='#1e1e1e'; ctx.fillRect(x+off,y+sz,sz-0.5,sz-0.5);
+        ctx.fillStyle='#191919'; ctx.fillRect(x+off+sz,y+sz,sz-0.5,sz-0.5);
+      }
+    }
+  },
+  _drawSteelGauge(canvasId, value, min, max, label, unit, warn, isRPM){
+    const c = document.getElementById(canvasId);
+    if(!c) return;
+    const ctx = c.getContext('2d');
+    const W = c._w || c.width, H = c._h || c.height;
+    ctx.clearRect(0,0,W,H);
+
+    const cx=W/2, cy=H*(isRPM?0.52:0.5);
+    const radius = Math.min(W*(isRPM?0.4:0.38), H*(isRPM?0.46:0.42));
+    const startA=0.75*Math.PI, endA=2.25*Math.PI, range=endA-startA;
+    const pct=Math.max(0,Math.min(1,(value-min)/(max-min)));
+    const valA=startA+pct*range;
+    const isWarn = warn && value >= warn;
+
+    // Outer bezel — brushed metal ring
+    const bezelW = radius*0.18;
+    for(let i=0;i<3;i++){
+      ctx.beginPath(); ctx.arc(cx,cy,radius+bezelW-i*bezelW/3,0,Math.PI*2);
+      const g=ctx.createRadialGradient(cx-radius*0.3,cy-radius*0.3,0,cx,cy,radius+bezelW);
+      g.addColorStop(0,'#555'); g.addColorStop(0.3,'#333'); g.addColorStop(0.6,'#444'); g.addColorStop(1,'#222');
+      ctx.fillStyle=g; ctx.fill();
+    }
+    // Bezel edge highlight
+    ctx.beginPath(); ctx.arc(cx,cy,radius+bezelW,0,Math.PI*2);
+    ctx.strokeStyle='#55555544'; ctx.lineWidth=1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2);
+    ctx.strokeStyle='#11111188'; ctx.lineWidth=1.5; ctx.stroke();
+
+    // Carbon fiber face
+    ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,radius-1,0,Math.PI*2); ctx.clip();
+    this._drawCarbonFiber(ctx,cx,cy,radius);
+    ctx.restore();
+
+    // Tick marks
+    const divisions = isRPM ? 16 : 8;
+    for(let i=0;i<=divisions;i++){
+      const a=startA+(i/divisions)*range;
+      const isMajor = isRPM ? (i%2===0) : true;
+      const inner = radius*(isMajor?0.72:0.78);
+      const outer = radius*0.88;
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(a)*inner, cy+Math.sin(a)*inner);
+      ctx.lineTo(cx+Math.cos(a)*outer, cy+Math.sin(a)*outer);
+      const tickVal = min + (i/divisions)*(max-min);
+      const inRedzone = isRPM ? tickVal>=7800 : (warn && tickVal>=warn);
+      ctx.strokeStyle = inRedzone ? '#cc0000' : '#cccccc';
+      ctx.lineWidth = isMajor ? 2.5 : 1;
+      ctx.stroke();
+
+      // Numbers
+      if(isMajor){
+        const numR = radius*0.63;
+        const nx=cx+Math.cos(a)*numR, ny=cy+Math.sin(a)*numR;
+        ctx.fillStyle = inRedzone ? '#cc0000' : '#cccccc';
+        ctx.font = `bold ${Math.max(9,radius*0.13)}px 'Share Tech Mono'`;
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        const numVal = isRPM ? Math.round(tickVal/1000) : (max<=1 ? (min+i/divisions*(max-min)).toFixed(1) : Math.round(min+i/divisions*(max-min)));
+        ctx.fillText(numVal, nx, ny);
+      }
+    }
+
+    // Redline zone arc
+    if(isRPM){
+      const redA=startA+(7800/8200)*range;
+      ctx.beginPath(); ctx.arc(cx,cy,radius*0.91,redA,endA);
+      ctx.strokeStyle='#cc0000'; ctx.lineWidth=radius*0.04; ctx.stroke();
+    } else if(warn){
+      const warnA=startA+((warn-min)/(max-min))*range;
+      ctx.beginPath(); ctx.arc(cx,cy,radius*0.91,warnA,endA);
+      ctx.strokeStyle='#cc0000'; ctx.lineWidth=radius*0.03; ctx.stroke();
+    }
+
+    // Needle — layered for realism
+    const nLen=radius*0.82, nTail=radius*0.18, nWidth=radius*0.035;
+    // Shadow
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,0.5)'; ctx.shadowBlur=6; ctx.shadowOffsetX=2; ctx.shadowOffsetY=2;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(valA)*nLen, cy+Math.sin(valA)*nLen);
+    ctx.lineTo(cx+Math.cos(valA+Math.PI/2)*nWidth, cy+Math.sin(valA+Math.PI/2)*nWidth);
+    ctx.lineTo(cx+Math.cos(valA+Math.PI)*nTail, cy+Math.sin(valA+Math.PI)*nTail);
+    ctx.lineTo(cx+Math.cos(valA-Math.PI/2)*nWidth, cy+Math.sin(valA-Math.PI/2)*nWidth);
+    ctx.closePath();
+    const nGrad=ctx.createLinearGradient(
+      cx+Math.cos(valA+Math.PI)*nTail, cy+Math.sin(valA+Math.PI)*nTail,
+      cx+Math.cos(valA)*nLen, cy+Math.sin(valA)*nLen);
+    nGrad.addColorStop(0,'#444'); nGrad.addColorStop(0.4,isWarn?'#cc0000':'#88cc00'); nGrad.addColorStop(1,isWarn?'#ff2200':'#aaee00');
+    ctx.fillStyle=nGrad; ctx.fill();
+    ctx.restore();
+
+    // Center cap
+    const capGrad=ctx.createRadialGradient(cx-2,cy-2,0,cx,cy,radius*0.08);
+    capGrad.addColorStop(0,'#666'); capGrad.addColorStop(0.5,'#444'); capGrad.addColorStop(1,'#222');
+    ctx.beginPath(); ctx.arc(cx,cy,radius*0.07,0,Math.PI*2); ctx.fillStyle=capGrad; ctx.fill();
+    ctx.strokeStyle='#555'; ctx.lineWidth=1; ctx.stroke();
+
+    // LCD readout box
+    const lcdW=radius*0.55, lcdH=radius*0.2;
+    const lcdY=cy+radius*0.32;
+    ctx.fillStyle='#0a0a0a'; ctx.fillRect(cx-lcdW/2,lcdY-lcdH/2,lcdW,lcdH);
+    ctx.strokeStyle='#333'; ctx.lineWidth=1; ctx.strokeRect(cx-lcdW/2,lcdY-lcdH/2,lcdW,lcdH);
+    // LCD glow
+    ctx.fillStyle=isWarn?'#ff2200':'#88cc00';
+    ctx.font=`bold ${Math.max(12,radius*0.18)}px Orbitron`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const dispVal = isRPM ? Math.round(value) : (max<=1 ? value.toFixed(2) : (max<=50 ? value.toFixed(1) : Math.round(value)));
+    ctx.fillText(dispVal, cx, lcdY);
+
+    // Title
+    ctx.fillStyle='#888';
+    ctx.font=`${Math.max(8,radius*0.1)}px 'Share Tech Mono'`;
+    ctx.textAlign='center';
+    ctx.fillText(label.toUpperCase(), cx, cy-radius*0.35);
+    if(unit && !isRPM){
+      ctx.fillStyle='#666'; ctx.font=`${Math.max(7,radius*0.08)}px 'Share Tech Mono'`;
+      ctx.fillText(unit, cx, cy-radius*0.22);
+    }
+    if(isRPM){
+      ctx.fillStyle='#666'; ctx.font=`${Math.max(7,radius*0.08)}px 'Share Tech Mono'`;
+      ctx.fillText('×1000', cx, cy-radius*0.22);
+    }
+
+    // Glass reflection overlay
+    ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,radius-1,0,Math.PI*2); ctx.clip();
+    const glassGrad=ctx.createLinearGradient(cx,cy-radius,cx,cy+radius*0.2);
+    glassGrad.addColorStop(0,'rgba(255,255,255,0.07)'); glassGrad.addColorStop(0.5,'rgba(255,255,255,0.02)'); glassGrad.addColorStop(1,'transparent');
+    ctx.fillStyle=glassGrad; ctx.fillRect(cx-radius,cy-radius,radius*2,radius*2);
+    ctx.restore();
+  },
+  updateRPM(r){ this._drawSteelGauge('ss-rpm', r, 0, 8200, 'RPM', '', null, true); },
+  updateGauge(id, value, def){ this._drawSteelGauge('ss-'+id, value, def.min, def.max, def.label, def.unit, def.warn, false); }
+};
+
+// ============================================================
+//  UPDATE DISPATCHER
+// ============================================================
+function updateThemeGauges(d){
+  const theme = THEMES[currentTheme];
+  const vtecOn = d.rpm >= VTEC_RPM;
+  theme.updateRPM(d.rpm, vtecOn);
+  activeGauges.forEach(id => {
+    const def = GAUGE_DEFS.find(g=>g.id===id);
+    if(def && d[id] !== undefined) theme.updateGauge(id, d[id], def);
+  });
 }
 
-// ============ WARP ENGINE ============
+// ============================================================
+//  WARP ENGINE (VTEC)
+// ============================================================
 const warpCanvas = document.getElementById('warp-canvas');
 const wctx = warpCanvas.getContext('2d');
 function resizeWarp(){ warpCanvas.width=window.innerWidth; warpCanvas.height=window.innerHeight; }
-resizeWarp();
-window.addEventListener('resize', resizeWarp);
+resizeWarp(); window.addEventListener('resize', resizeWarp);
 
-const STAR_COUNT = 180;
-let stars = [];
-function initStars(){
-  stars = [];
-  for(let i=0;i<STAR_COUNT;i++){
-    stars.push({ angle:Math.random()*Math.PI*2, baseDist:Math.random()*0.15+0.01, dist:Math.random()*0.15+0.01, speed:Math.random()*0.004+0.002, length:Math.random()*0.25+0.05, width:Math.random()*1.2+0.3, alpha:Math.random()*0.7+0.3 });
-  }
-}
+const STAR_COUNT=180; let stars=[];
+function initStars(){ stars=[]; for(let i=0;i<STAR_COUNT;i++) stars.push({angle:Math.random()*Math.PI*2,baseDist:Math.random()*0.15+0.01,dist:Math.random()*0.15+0.01,speed:Math.random()*0.004+0.002,length:Math.random()*0.25+0.05,width:Math.random()*1.2+0.3,alpha:Math.random()*0.7+0.3}); }
 initStars();
-
-let warpActive=false, warpIntensity=0, warpAnimId=null;
+let warpActive=false,warpIntensity=0,warpAnimId=null;
 
 function drawWarpFrame(){
   const w=warpCanvas.width,h=warpCanvas.height,cx=w/2,cy=h/2;
   wctx.clearRect(0,0,w,h);
-  if(warpIntensity<=0) return;
-  wctx.fillStyle=`rgba(0,0,15,${warpIntensity*0.25})`;
-  wctx.fillRect(0,0,w,h);
+  if(warpIntensity<=0)return;
+  wctx.fillStyle=`rgba(0,0,15,${warpIntensity*0.25})`; wctx.fillRect(0,0,w,h);
   stars.forEach(s=>{
     s.dist+=s.speed*(1+warpIntensity*3);
     const maxDist=Math.sqrt(cx*cx+cy*cy)/Math.min(w,h)*2;
-    if(s.dist>maxDist){ s.dist=s.baseDist; s.angle=Math.random()*Math.PI*2; }
+    if(s.dist>maxDist){s.dist=s.baseDist;s.angle=Math.random()*Math.PI*2;}
     const stretch=warpIntensity*6+0.5;
-    const r1=s.dist*Math.min(w,h)*0.5;
-    const r2=r1*(1+s.length*stretch);
+    const r1=s.dist*Math.min(w,h)*0.5, r2=r1*(1+s.length*stretch);
     const x1=cx+Math.cos(s.angle)*r1,y1=cy+Math.sin(s.angle)*r1;
     const x2=cx+Math.cos(s.angle)*r2,y2=cy+Math.sin(s.angle)*r2;
     const grad=wctx.createLinearGradient(x1,y1,x2,y2);
     grad.addColorStop(0,`rgba(100,160,255,0)`);
     grad.addColorStop(0.4,`rgba(180,210,255,${s.alpha*warpIntensity*0.6})`);
     grad.addColorStop(1,`rgba(255,255,255,${s.alpha*warpIntensity})`);
-    wctx.beginPath(); wctx.strokeStyle=grad; wctx.lineWidth=s.width*(0.5+warpIntensity);
-    wctx.moveTo(x1,y1); wctx.lineTo(x2,y2); wctx.stroke();
+    wctx.beginPath();wctx.strokeStyle=grad;wctx.lineWidth=s.width*(0.5+warpIntensity);
+    wctx.moveTo(x1,y1);wctx.lineTo(x2,y2);wctx.stroke();
   });
   if(warpIntensity>0.3){
     const grd=wctx.createRadialGradient(cx,cy,0,cx,cy,Math.min(w,h)*0.2*warpIntensity);
-    grd.addColorStop(0,`rgba(80,130,255,${warpIntensity*0.3})`);
-    grd.addColorStop(1,`rgba(0,0,80,0)`);
+    grd.addColorStop(0,`rgba(80,130,255,${warpIntensity*0.3})`); grd.addColorStop(1,`rgba(0,0,80,0)`);
     wctx.fillStyle=grd; wctx.fillRect(0,0,w,h);
   }
 }
-
-function warpLoop(){
-  if(!warpActive&&warpIntensity<=0){ warpCanvas.style.opacity='0'; warpAnimId=null; return; }
-  warpIntensity=warpActive?Math.min(1,warpIntensity+0.04):Math.max(0,warpIntensity-0.03);
-  warpCanvas.style.opacity='1';
-  drawWarpFrame();
-  warpAnimId=requestAnimationFrame(warpLoop);
-}
+function warpLoop(){ if(!warpActive&&warpIntensity<=0){warpCanvas.style.opacity='0';warpAnimId=null;return;} warpIntensity=warpActive?Math.min(1,warpIntensity+0.04):Math.max(0,warpIntensity-0.03); warpCanvas.style.opacity='1'; drawWarpFrame(); warpAnimId=requestAnimationFrame(warpLoop); }
 function startWarp(){ warpActive=true; if(!warpAnimId) warpAnimId=requestAnimationFrame(warpLoop); }
 function stopWarp(){ warpActive=false; if(!warpAnimId) warpAnimId=requestAnimationFrame(warpLoop); }
 
-// VTEC text
 function showVTECText(){
   const ov=document.getElementById('vtec-overlay'),tx=document.getElementById('vtec-text'),sub=document.getElementById('vtec-subtext');
-  ov.style.opacity='1'; ov.style.transition='opacity 0.3s';
-  tx.style.transform='scaleX(0.1)'; tx.style.transition='none';
-  setTimeout(()=>{ tx.style.transition='transform 0.15s cubic-bezier(0.25,0.46,0.45,0.94)'; tx.style.transform='scaleX(1)'; },50);
-  setTimeout(()=>{ sub.style.opacity='1'; sub.style.transition='opacity 0.4s'; },200);
-  setTimeout(()=>{ ov.style.opacity='0'; sub.style.opacity='0'; },2500);
+  ov.style.opacity='1';ov.style.transition='opacity 0.3s';
+  tx.style.transform='scaleX(0.1)';tx.style.transition='none';
+  setTimeout(()=>{tx.style.transition='transform 0.15s cubic-bezier(0.25,0.46,0.45,0.94)';tx.style.transform='scaleX(1)';},50);
+  setTimeout(()=>{sub.style.opacity='1';sub.style.transition='opacity 0.4s';},200);
+  setTimeout(()=>{ov.style.opacity='0';sub.style.opacity='0';},2500);
 }
 
-// ============ BOOT ============
+// ============================================================
+//  INJECTOR FIRING (cyberpunk only)
+// ============================================================
+const FIRE_ORDER=[1,3,4,2]; let injInterval=null,currentCyl=0;
+function updateInjectors(r,vtecOn){
+  if(currentTheme!=='cyberpunk'){if(injInterval){clearInterval(injInterval);injInterval=null;}return;}
+  const intervalMs=Math.max(20,(60000/Math.max(r,100))*2/4);
+  if(injInterval)clearInterval(injInterval);
+  injInterval=setInterval(()=>{
+    const cyl=FIRE_ORDER[currentCyl%4];
+    const el=document.getElementById('inj-'+cyl);
+    if(el){el.classList.remove('fire','fire-vtec');void el.offsetWidth;el.classList.add(vtecOn?'fire-vtec':'fire');setTimeout(()=>{el.classList.remove('fire','fire-vtec');},Math.min(intervalMs*0.6,80));}
+    currentCyl++;
+  },intervalMs);
+}
+
+// ============================================================
+//  BOOT SEQUENCE
+// ============================================================
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
-function show(id){ document.getElementById(id).style.opacity='1'; }
+function show(id){document.getElementById(id).style.opacity='1';}
 
 function setP(pct,lbl){
   document.getElementById('pbar').style.width=Math.min(pct,100)+'%';
@@ -421,39 +944,36 @@ function setP(pct,lbl){
 }
 
 async function boot(){
-  // play boot audio
-  try { const a=new Audio('file:///android_asset/bootAudio.mp3'); a.volume=0.8; a.play(); } catch(e){}
-
-  await delay(300); show('honda-bg');
-  await delay(400); show('hbar');
-  await delay(300); show('gauge-grid');
-
-  // Boot text in each box will be added after grid is built
-  await delay(200); show('srbox'); show('progwrap');
+  try{const a=new Audio('bootAudio.mp3');a.volume=0.8;a.play().catch(()=>{});}catch(e){}
+  await delay(300);show('honda-bg');
+  await delay(400);show('hbar');
+  await delay(300);show('gauge-grid');
+  await delay(200);show('srbox');show('progwrap');
 
   const steps=[[5,'LOADING 0x00+100',200],[15,'SENSOR ARRAY INIT',300],[28,'ECU HANDSHAKE',300],[42,'FUEL SYSTEM OK',350],[55,'IGNITION SYNC',300],[68,'O2 CALIBRATE',300],[79,'THROTTLE MAP',300],[91,'VTEC PRESSURE CHECK',300],[102,'STATUS: READY',400]];
-  for(const [pct,lbl,wait] of steps){ await delay(wait); setP(pct,lbl); if(pct>=91)document.getElementById('srstat').textContent='LOAD ADDRESS: 0x12000000     STATUS: READY'; }
+  for(const [pct,lbl,wait] of steps){await delay(wait);setP(pct,lbl);if(pct>=91)document.getElementById('srstat').textContent='LOAD ADDRESS: 0x12000000     STATUS: READY';}
 
   await delay(400);
   document.getElementById('progwrap').style.opacity='0';
   document.getElementById('srbox').style.opacity='0';
   await delay(400);
-  document.getElementById('rpm-sim-btns').style.opacity='1';
-  document.getElementById('picker-btn').classList.add('show');
   startSim();
 }
 
-// ============ SIM ============
+// ============================================================
+//  SIMULATION
+// ============================================================
 let rpm=3240,spd=47,clt=192,tps=38,o2v=0.82,iat=85,ign=18,stft=1.2,ltft=-0.8,batt=14.1,idc=42;
-let simRL=false,simDir=1,simVTECActive=false,inVTEC=false;
-function jit(v,a){ return v+(Math.random()-0.5)*a; }
-function startSim(){ setInterval(simTick,150); }
+let simRL=false,simDir=1,simVTECActive=false,inVTEC=false,manualMode=false;
+const VTEC_RPM=5800;
+function jit(v,a){return v+(Math.random()-0.5)*a;}
+function startSim(){setInterval(simTick,150);}
 
 function simTick(){
-  if(simRL){ rpm+=simDir*100; if(rpm>=8300)simDir=-1; if(rpm<=7600)simDir=1; tps=Math.min(100,Math.max(85,jit(tps,3))); spd=Math.min(140,Math.max(70,jit(spd,2))); }
-  else if(simVTECActive){ rpm=Math.min(7400,rpm+60); tps=Math.min(100,Math.max(85,jit(tps,3))); spd=Math.min(120,Math.max(60,jit(spd,2))); if(rpm>=7200)simVTECActive=false; }
-  else if(manualMode){ rpm=parseInt(document.getElementById('rpm-slider').value); tps=Math.min(100,Math.max(0,jit(rpm/83,5))); spd=Math.min(140,Math.max(0,jit(rpm/60,2))); }
-  else { rpm=Math.max(800,Math.min(7500,jit(rpm,200))); spd=Math.max(0,Math.min(140,jit(spd,3))); tps=Math.max(0,Math.min(100,jit(tps,6))); }
+  if(simRL){rpm+=simDir*100;if(rpm>=8300)simDir=-1;if(rpm<=7600)simDir=1;tps=Math.min(100,Math.max(85,jit(tps,3)));spd=Math.min(140,Math.max(70,jit(spd,2)));}
+  else if(simVTECActive){rpm=Math.min(7400,rpm+60);tps=Math.min(100,Math.max(85,jit(tps,3)));spd=Math.min(120,Math.max(60,jit(spd,2)));if(rpm>=7200)simVTECActive=false;}
+  else if(manualMode){rpm=parseInt(document.getElementById('rpm-slider').value);tps=Math.min(100,Math.max(0,jit(rpm/83,5)));spd=Math.min(140,Math.max(0,jit(rpm/60,2)));}
+  else{rpm=Math.max(800,Math.min(7500,jit(rpm,200)));spd=Math.max(0,Math.min(140,jit(spd,3)));tps=Math.max(0,Math.min(100,jit(tps,6)));}
   clt=Math.max(160,Math.min(230,jit(clt,1)));
   o2v=Math.max(0.1,Math.min(1.0,jit(o2v,0.04)));
   iat=Math.max(60,Math.min(160,jit(iat,1)));
@@ -465,147 +985,93 @@ function simTick(){
   updateGauges(rpm,spd,clt,tps,o2v,iat,ign,stft,ltft,batt,idc);
 }
 
-let manualMode = false;
 function manualRPM(val){
-  manualMode = true;
-  simRL = false; simVTECActive = false;
-  rpm = parseInt(val);
-  document.getElementById('rpm-slider-val').textContent = val;
-  document.getElementById('rl-btn').classList.remove('active');
-  document.getElementById('rl-btn').textContent = 'REDLINE';
+  manualMode=true;simRL=false;simVTECActive=false;rpm=parseInt(val);
+  const sv=document.getElementById('rpm-slider-val');if(sv)sv.textContent=val;
+  const rb=document.getElementById('rl-btn');if(rb){rb.classList.remove('active');rb.textContent='REDLINE';}
 }
-
 function toggleRL(){
-  simRL=!simRL; simVTECActive=false;
+  simRL=!simRL;simVTECActive=false;manualMode=false;
   const btn=document.getElementById('rl-btn');
-  btn.textContent=simRL?'STOP RL':'REDLINE';
-  btn.classList.toggle('active',simRL);
-  if(simRL) rpm=7800;
+  if(btn){btn.textContent=simRL?'STOP RL':'REDLINE';btn.classList.toggle('active',simRL);}
+  if(simRL)rpm=7800;
 }
 function simVTEC(){
-  rpm=5200; simVTECActive=true; simRL=false;
-  document.getElementById('rl-btn').classList.remove('active');
-  document.getElementById('rl-btn').textContent='REDLINE';
+  rpm=5200;simVTECActive=true;simRL=false;manualMode=false;
+  const rb=document.getElementById('rl-btn');if(rb){rb.classList.remove('active');rb.textContent='REDLINE';}
   const btn=document.getElementById('vtec-btn');
-  btn.classList.add('vtec-active');
-  setTimeout(()=>btn.classList.remove('vtec-active'),4000);
+  if(btn){btn.classList.add('vtec-active');setTimeout(()=>btn.classList.remove('vtec-active'),4000);}
 }
 function resetSim(){
-  simRL=false; simVTECActive=false; inVTEC=false; manualMode=false;
+  simRL=false;simVTECActive=false;inVTEC=false;manualMode=false;
   rpm=3240;spd=47;clt=192;tps=38;o2v=0.82;
-  const slider=document.getElementById('rpm-slider');
-  const sliderVal=document.getElementById('rpm-slider-val');
-  if(slider) slider.value=3240;
-  if(sliderVal) sliderVal.textContent='3240';
-  document.getElementById('rl-btn').textContent='REDLINE';
-  document.getElementById('rl-btn').classList.remove('active');
-  document.getElementById('vtec-btn').classList.remove('vtec-active');
+  const slider=document.getElementById('rpm-slider');if(slider)slider.value=3240;
+  const sv=document.getElementById('rpm-slider-val');if(sv)sv.textContent='3240';
+  const rb=document.getElementById('rl-btn');if(rb){rb.textContent='REDLINE';rb.classList.remove('active');}
+  const vb=document.getElementById('vtec-btn');if(vb)vb.classList.remove('vtec-active');
   document.getElementById('vtec-bar').style.opacity='0';
-  document.getElementById('rpm-label').textContent='ENGINE RPM // REDLINE 8200';
-  document.getElementById('rpm-label').style.color='#cc110066';
-  document.getElementById('val-rpm').style.color='#cc1100';
+  const rl=document.getElementById('rpm-label');if(rl){rl.textContent='ENGINE RPM // REDLINE 8200';rl.style.color='';}
+  const vr=document.getElementById('val-rpm');if(vr)vr.style.color='';
   stopWarp();
 }
 
-const VTEC_RPM=5800;
-
-// ============ INJECTOR FIRING ============
-const FIRE_ORDER = [1,3,4,2]; // K20Z3 firing order
-let injInterval = null;
-let currentCyl = 0;
-
-function updateInjectors(r, vtecOn){
-  // Calculate firing interval from RPM
-  // 4-stroke = 2 crankshaft revolutions per full cycle
-  // Each cylinder fires once per 720 degrees = once per 2 revolutions
-  // Interval (ms) = (60000 / RPM) * 2 / 4 cylinders
-  const intervalMs = Math.max(20, (60000 / Math.max(r, 100)) * 2 / 4);
-
-  if(injInterval) clearInterval(injInterval);
-  injInterval = setInterval(() => {
-    const cyl = FIRE_ORDER[currentCyl % 4];
-    const el = document.getElementById('inj-'+cyl);
-    if(el){
-      el.classList.remove('fire','fire-vtec');
-      void el.offsetWidth; // force reflow
-      el.classList.add(vtecOn ? 'fire-vtec' : 'fire');
-      setTimeout(()=>{ el.classList.remove('fire','fire-vtec'); }, Math.min(intervalMs*0.6, 80));
-    }
-    currentCyl++;
-  }, intervalMs);
-}
-
+// ============================================================
+//  MAIN BRIDGE — called from Kotlin or sim
+// ============================================================
 function updateGauges(r,s,c,t,o2,ia,ig,sf,lf,bv,id){
-  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
-  const setW=(id,w)=>{ const el=document.getElementById(id); if(el) el.style.width=w+'%'; };
-  const setC=(id,col)=>{ const el=document.getElementById(id); if(el) el.style.color=col; };
+  latestData = {rpm:r,spd:s,clt:c,tps:t,o2:o2,iat:ia,ign:ig,stft:sf,ltft:lf,batt:bv,idc:id};
 
-  set('val-rpm', Math.round(r));
-  set('val-spd', Math.round(s));
-  set('val-clt', Math.round(c));
-  set('val-tps', Math.round(t));
-  set('val-o2',  parseFloat(o2).toFixed(2));
-  set('val-iat', Math.round(ia));
-  set('val-ign', parseFloat(ig).toFixed(1));
-  set('val-stft',parseFloat(sf).toFixed(1));
-  set('val-ltft',parseFloat(lf).toFixed(1));
-  set('val-batt',parseFloat(bv).toFixed(1));
-  set('val-idc', Math.round(id));
-
-  setW('bar-spd', s/160*100);
-  setW('bar-clt', Math.max(0,(c-160)/70*100));
-  setW('bar-tps', t);
-  setW('bar-o2',  o2*100);
-  setW('bar-iat', Math.max(0,(ia-32)/168*100));
-  setW('bar-ign', Math.max(0,(ig+10)/55*100));
-  setW('bar-stft',Math.max(0,(sf+25)/50*100));
-  setW('bar-ltft',Math.max(0,(lf+25)/50*100));
-  setW('bar-batt',Math.max(0,(bv-11)/4*100));
-  setW('bar-idc', id);
-
-  setC('val-clt', c>215?'#ff4400':'#cc1100');
-  setC('val-batt', bv<12.5?'#ff4400':'#cc1100');
-
-  // INJECTOR FIRING  -  K20Z3 firing order: 1-3-4-2
+  // Injectors (cyberpunk only)
   updateInjectors(r, r>=VTEC_RPM);
 
-  // RPM bars
-  const barsEl=document.getElementById('rpm-bars');
-  if(barsEl){
-    const active=Math.floor(r/8200*32);
-    const vtecOn=r>=VTEC_RPM;
-    Array.from(barsEl.children).forEach((b,i)=>{
-      b.classList.toggle('on',i<active);
-      b.classList.toggle('vtec',i<active&&vtecOn&&!simRL);
-      b.classList.toggle('red',i<active&&i>=27);
-    });
-  }
-
-  // VTEC
+  // VTEC state
   if(r>=VTEC_RPM && !inVTEC){
     inVTEC=true; startWarp(); showVTECText();
     document.getElementById('vtec-bar').style.opacity='1';
-    document.getElementById('rpm-label').textContent='ENGINE RPM // i-VTEC ENGAGED';
-    document.getElementById('rpm-label').style.color='#4488ffaa';
-    document.getElementById('val-rpm').style.color='#4488ff';
+    const rl=document.getElementById('rpm-label');if(rl){rl.textContent='ENGINE RPM // i-VTEC ENGAGED';rl.style.color='#4488ffaa';}
+    const vr=document.getElementById('val-rpm');if(vr)vr.style.color='#4488ff';
   } else if(r<VTEC_RPM && inVTEC){
     inVTEC=false; stopWarp();
     document.getElementById('vtec-bar').style.opacity='0';
-    document.getElementById('rpm-label').textContent='ENGINE RPM // REDLINE 8200';
-    document.getElementById('rpm-label').style.color='#cc110066';
-    document.getElementById('val-rpm').style.color='#cc1100';
+    const rl=document.getElementById('rpm-label');if(rl){rl.textContent='ENGINE RPM // REDLINE 8200';rl.style.color='';}
+    const vr=document.getElementById('val-rpm');if(vr)vr.style.color='';
   }
 
   // Redline
   const isRL=r>=7800;
   document.documentElement.classList.toggle('redlining',isRL);
-  document.getElementById('rl-warn').style.opacity=isRL?'1':'0';
+  const rlw=document.getElementById('rl-warn');if(rlw)rlw.style.opacity=isRL?'1':'0';
   document.getElementById('rl-strip').style.width=(r/8200*100)+'%';
+
+  // Warn colors (cyberpunk)
+  if(currentTheme==='cyberpunk'){
+    const ce=document.getElementById('val-clt');if(ce)ce.style.color=c>215?'#ff4400':'';
+    const be=document.getElementById('val-batt');if(be)be.style.color=bv<12.5?'#ff4400':'';
+  }
+
+  // Update theme gauges
+  updateThemeGauges(latestData);
 }
 
-// ============ INIT ============
+// ============================================================
+//  INIT
+// ============================================================
+// Apply saved theme
+document.body.className = 'theme-' + currentTheme;
+const hue = {cyberpunk:'#880000',neon:'#004488',racing:'#884400',steelseries:'#448800'}[currentTheme];
+document.querySelectorAll('#honda-bg path, #honda-bg polygon').forEach(p => p.setAttribute('fill', hue));
+
 rebuildGrid();
 boot();
+
+// Handle resize for canvas-based themes
+window.addEventListener('resize', () => {
+  if(currentTheme === 'racing' || currentTheme === 'neon' || currentTheme === 'steelseries'){
+    cleanupTheme();
+    rebuildGrid();
+  }
+  resizeWarp();
+});
 </script>
 </body>
 </html>

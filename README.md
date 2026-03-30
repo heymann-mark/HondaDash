@@ -3,64 +3,104 @@
 
 ---
 
+## QUICK START — HOW TO RESUME WORK
+
+### Step 1: Open VS Code
+```
+File → Open Folder → C:\Users\Owner\AndroidStudioProjects\HondaDash
+```
+Open the **full project**, not just the assets folder.
+
+### Step 2: Open terminal in VS Code, start Claude
+```
+claude
+```
+Then tell Claude: **"Read README.md to get up to speed on HondaDash"**
+
+### Step 3: Start the browser dev server
+In a **separate VS Code terminal** (click the + icon):
+```
+python -m http.server 8000 --directory "C:\Users\Owner\AndroidStudioProjects\HondaDash\app\src\main\assets"
+```
+
+### Step 4: Open the app in your browser
+```
+http://127.0.0.1:8000/index.html
+```
+All 9 tabs work. Simulated data runs automatically. No Android needed for UI testing.
+
+### Step 5: Android Studio (only for APK builds)
+Open Android Studio separately when you need to build/deploy to the Nexus 7:
+```
+File → Open → C:\Users\Owner\AndroidStudioProjects\HondaDash
+```
+Shift+F10 to build and run on tablet.
+
+---
+
 ## PROJECT OVERVIEW
 
 Custom Android dashboard app for a 2007 Honda Civic Si (FA5, K20Z3).
 Built in Android Studio (Kotlin + WebView). UI is HTML/CSS/JS loaded via WebView.
-Live OBD2 data from Hondata FlashPro via Bluetooth.
+Live OBD2 data from ELM327 Bluetooth adapter or Hondata FlashPro.
 Runs on a Nexus 7 tablet mounted in the dash.
+Also fully testable in any browser via the dev server.
 
 ---
 
-## WHAT'S NEW (v2)
+## PROJECT STRUCTURE
 
-### App Shell + Persistent Navigation
-- New `index.html` shell with iframe-based page switching
-- Bottom nav bar: GAUGES, VEHICLE, MAPS, MUSIC
-- Pages stay loaded in memory — switching tabs doesn't kill state
-- Music keeps playing while navigating between all screens
-
-### Spotify Music Player + Visualizer
-- Full Spotify Premium integration via Web Playback SDK
-- Browser becomes a Spotify speaker called "HondaDash"
-- Album art, track name, artist display with animated multi-layer background
-- Real-time audio visualizer (bars mode) using tab audio capture
-- Synced lyrics from LRCLIB — highlights current line as song plays
-- Playback controls: play/pause, prev, next, seek, volume slider
-- Browse panel: search, liked songs, playlists, recently played
-- Animated background: 3-layer parallax album art with Ken Burns effect, floating particles, audio-reactive color pulse
-- Blue-to-pink color gradient on visualizer
-
-### Waze-Style Navigation (streetview.html)
-- Redesigned from GTA-style to clean Waze-like UI
-- Turn-by-turn directions with maneuver icons
-- ETA display, Waze-blue route line
-- Camera offset so car sits in lower third of screen
-- Brake model swap: holds brake button → shows brake light GLB model
-- Two preloaded car models (default + brake) for instant visual swap
-
-### 3D Vehicle Diagnostic (carview.html)
-- Increased lighting and tone mapping for better car visibility
-- Ambient light 6.0, key light 7.0, fill 3.0, added top light
-- Tone mapping exposure increased to 1.4
-
-### Config System
-- `config.js` stores API keys: Mapbox, Google Maps, Spotify Client ID
-- Centralized configuration for all pages
+```
+HondaDash/
+├── app/src/main/
+│   ├── assets/                         ← Web UI (all the HTML/JS/CSS)
+│   │   ├── index.html                  ← Browser shell (iframe nav, 9 tabs)
+│   │   ├── dashboard.html              ← Gauges: RPM, speed, VTEC effects
+│   │   ├── carview.html                ← 3D car + DTC codes (Three.js)
+│   │   ├── multisystem.html            ← Multi-module PID viewer (NEW)
+│   │   ├── streetview.html             ← Navigation/maps (Mapbox)
+│   │   ├── music.html                  ← Spotify player + visualizer
+│   │   ├── datalog.html                ← Real-time datalogging + CSV export
+│   │   ├── battery.html                ← Battery health test (NEW)
+│   │   ├── trips.html                  ← Trip tracking + merge
+│   │   ├── hondata.html                ← FlashPro maps + vehicle profile
+│   │   ├── chassis.html                ← Undercarriage schematic (not in nav)
+│   │   ├── config.js                   ← API keys (Mapbox, Google, Spotify)
+│   │   ├── GLTFLoader.js               ← Three.js model loader
+│   │   └── *.glb, *.png, *.mp3        ← 3D models, images, audio
+│   │
+│   ├── java/com/example/hondadash/
+│   │   ├── MainActivity.kt             ← App shell: WebViews, nav bar, BT wiring
+│   │   ├── BluetoothService.kt         ← OBD-II Bluetooth SPP + polling (NEW)
+│   │   ├── OBD2Parser.kt               ← ELM327 hex parser (NEW)
+│   │   └── DevicePickerDialog.kt       ← BT device picker dialog (NEW)
+│   │
+│   └── AndroidManifest.xml             ← Permissions, service registration
+│
+├── app/build.gradle.kts                ← App dependencies (min SDK 24, target 36)
+├── build.gradle.kts                    ← Project-level build config
+└── README.md                           ← THIS FILE
+```
 
 ---
 
-## ANDROID PROJECT
+## ALL 9 TABS
 
-- **Package:** `com.example.hondadash`
-- **Language:** Kotlin
-- **Min SDK:** API 26 (Android 8.0)
-- **Target SDK:** API 36
-- **IDE:** Android Studio
+| # | Tab | File | What it does |
+|---|-----|------|-------------|
+| 1 | GAUGES | dashboard.html | Live RPM gauge, speed, coolant, VTEC warp effect, boot animation |
+| 2 | VEHICLE | carview.html | 3D Honda Civic Si model, tap sensors for DTC codes |
+| 3 | MULTI | multisystem.html | Pick PIDs from ECM/TCM/ABS/BCM, view all on one graph |
+| 4 | MAPS | streetview.html | Waze-style nav with 3D car model on Mapbox |
+| 5 | MUSIC | music.html | Spotify playback, visualizer, synced lyrics |
+| 6 | DATALOG | datalog.html | Real-time ECU graphing, 12 params, CSV recording |
+| 7 | BATTERY | battery.html | SOC ring gauge, voltage/CCA test, export report |
+| 8 | TRIPS | trips.html | Trip cards with maps, stats, merge feature |
+| 9 | HONDATA | hondata.html | FlashPro map details, vehicle spec sheet |
 
 ---
 
-## SCREENS
+## SCREENS — DETAIL
 
 ### 1. GAUGES (dashboard.html)
 - CP2077 boot sequence — hex scramble resolves into live gauges
@@ -75,62 +115,109 @@ Runs on a Nexus 7 tablet mounted in the dash.
 - 6 sensor dots: O2, Coolant, TPS, MAP, VTEC, Knock
 - Tap sensor → info panel with real Honda K20 DTC codes
 - Fault sim panel cycles through DTC codes per sensor
-- `updateDTC(codes)` function ready for Kotlin Bluetooth bridge
 
-### 3. MAPS (streetview.html)
+### 3. MULTI (multisystem.html) — NEW
+- Left sidebar: 4 expandable modules (ECM, TCM, ABS, BCM)
+- 33 total PIDs across all modules
+- Tap PIDs from any module to add to unified real-time graph
+- Top row: 4 hero gauges with module badges
+- Module colors: ECM=red, TCM=green, ABS=blue, BCM=amber
+- Bottom toggle bar to show/hide individual traces
+- Inspired by Launch Throttle 5's multi-system data stream
+
+### 4. MAPS (streetview.html)
 - Mapbox GL JS with Waze-style navigation UI
 - 3D car model on map (2007 Honda Civic Si GLB)
-- Brake model swap — separate GLB with brake lights, hidden underneath default model
+- Brake model swap — separate GLB with brake lights
 - Turn-by-turn with maneuver icons, ETA, speed display
-- Route: Waltham to TD Garden demo route
-- `updatePosition(lng, lat, bearing, speed)` for real GPS data
+- Demo route: Waltham to TD Garden
 
-### 4. MUSIC (music.html)
-- Spotify Web Playback SDK — streams music through the browser
-- **Home screen** — profile, filter pills (All/Music/Podcasts/Audiobooks), quick-play grid, playlists, top tracks, top artists, genre browse, new releases, search
-- **Mini player bar** — always visible with album art, track info, volume, play/pause
-- **Now-playing view** — tap mini player to expand, with animated multi-layer album art, floating particles, audio-reactive color pulse, synced lyrics, visualizer bar
-- Real-time audio visualizer via tab audio capture (digital stream)
-- Synced lyrics from LRCLIB (LRC format with timestamps)
-- Browse: search, liked songs, playlists, recently played, genre playlists
-- Volume slider with mute toggle, prev/play-pause/next/seek
+### 5. MUSIC (music.html)
+- Spotify Web Playback SDK (requires Premium)
+- Home screen: profile, playlists, top tracks, search, genre browse
+- Mini player bar always visible
+- Now-playing: animated album art, floating particles, audio visualizer
+- Synced lyrics from LRCLIB (free, no API key)
 
-### 5. DATALOG (datalog.html)
-- Real-time ECU datalogging for FlashPro via USB OTG
-- 4 hero gauges: RPM, AFR, MAP, Coolant Temp — color-coded with bar indicators
-- Multi-trace scrolling graph with 12 toggleable parameters (RPM, AFR, MAP, ECT, TPS, IAT, Ignition, Knock, Speed, VTEC, Injector %, Battery)
-- REC button — records sessions, exports as CSV for tuner review
-- Simulated spirited drive data for testing without FlashPro connected
-- `updateFromFlashPro(data)` function ready for Kotlin USB bridge
-- Companion to Hondata FlashPro Manager app for deep tuning
+### 6. DATALOG (datalog.html)
+- 4 hero gauges: RPM, AFR, MAP, Coolant Temp
+- Multi-trace scrolling graph, 12 toggleable parameters
+- REC button records sessions, exports CSV
+- Simulated spirited drive data for testing
 
-### 6. HONDATA (hondata.html)
-- FlashPro map management page
-- Stock / Map 1 (Sport) selector with active indicator
-- Map 1 details: VTEC point, rev limit, fuel, timing, speed limiter changes
-- Vehicle profile: complete engine/intake/exhaust/injector/fuel setup for tuners
-- Links to Hondata website and forums
+### 7. BATTERY (battery.html) — NEW
+- Big animated SOC ring gauge
+- Readouts: voltage, CCA (640A rated), internal resistance
+- START TEST button — 3-second animated test sequence
+- Charging system check (alternator output)
+- PASS/MARGINAL/FAIL verdict with color coding
+- Export text report
+- Inspired by Launch Throttle 5's battery tester
+
+### 8. TRIPS (trips.html)
+- Trip card list with thumbnail maps
+- Stats: distance, duration, max/avg speed
+- Detail panel with full route map
+- Trip merge functionality
+
+### 9. HONDATA (hondata.html)
+- Stock / Map 1 (Sport) selector
+- Map details: VTEC point, rev limit, fuel, timing
+- Vehicle profile table (16 specs)
 
 ---
 
-## ASSETS
+## BLUETOOTH OBD-II (Android Only)
 
-| File | Description |
-|------|-------------|
-| `index.html` | App shell — iframe nav, keeps music alive across pages |
-| `dashboard.html` | Gauge dashboard with boot sequence |
-| `carview.html` | 3D car diagnostic viewer |
-| `streetview.html` | Waze-style navigation map |
-| `music.html` | Spotify player + visualizer + lyrics + home screen |
-| `datalog.html` | Real-time ECU datalogging with graphs |
-| `hondata.html` | FlashPro map management + vehicle profile |
-| `chassis.html` | Undercarriage schematic with build specs |
-| `config.js` | API keys (Mapbox, Spotify, etc.) |
-| `GLTFLoader.js` | Three.js GLB model loader |
-| `sky.png` | Background image for car viewer |
-| `2007_honda_civic_si.glb` | Default car model |
-| `2007_honda_civic_si_brake.glb` | Brake lights car model |
-| `honda__civic__sedan_2009.glb` | Original car model (map view) |
+### How it works
+1. `BluetoothService.kt` connects via Bluetooth SPP to an ELM327 adapter
+2. Initializes: ATZ → ATE0 → ATL0 → ATS0 → ATH0 → ATSP6 (Honda CAN bus)
+3. Polls PIDs on rotating schedule:
+   - Every cycle (~7 Hz): RPM, Speed
+   - Every 2nd cycle: Throttle, Coolant
+   - Every 4th cycle: IAT, Timing, STFT, O2
+   - Every 8th cycle: LTFT, MAP
+   - Every 30th cycle: Battery voltage (ATRV)
+   - Every 200th cycle: DTC scan (mode 03)
+4. `OBD2Parser.kt` converts hex → numbers
+5. `MainActivity.kt` pushes to all WebViews via `evaluateJavascript()`
+
+### How to use
+1. Pair your ELM327 adapter in Android Bluetooth settings
+2. Open HondaDash on the tablet
+3. Tap the **BT** button (right side of nav bar)
+4. Select your adapter from the device picker
+5. Button turns **green** = connected, **yellow** = connecting, **dim** = disconnected
+6. Tap BT again while connected to disconnect
+
+### In the browser
+Bluetooth doesn't work — all data is simulated automatically on every page.
+
+---
+
+## JAVASCRIPT BRIDGE FUNCTIONS
+
+Called by Kotlin to push real OBD data into web pages:
+
+| Function | Page | Parameters |
+|----------|------|-----------|
+| `updateGauges(rpm,spd,clt,tps,o2,iat,ign,stft,ltft,batt,idc)` | dashboard | 11 numeric values |
+| `updateDTC(codes)` | carview | Array: `["P0136", "P2646"]` |
+| `updateFromOBD(modKey, pidKey, value)` | multisystem | `"ECM"`, `"rpm"`, `6904` |
+| `updateBatteryFromOBD(voltage)` | battery | Float: `12.55` |
+| `updateFromFlashPro(data)` | datalog | Object: `{rpm:6904, vss:72, ...}` |
+| `updatePosition(lng, lat, bearing, speed)` | streetview | GPS coords |
+
+---
+
+## ANDROID PROJECT
+
+- **Package:** `com.example.hondadash`
+- **Language:** Kotlin
+- **Min SDK:** API 24 (Android 7.0)
+- **Target SDK:** API 36
+- **IDE:** Android Studio
+- **Permissions:** Bluetooth, Location, Internet (all declared in manifest)
 
 ---
 
@@ -138,27 +225,21 @@ Runs on a Nexus 7 tablet mounted in the dash.
 
 | Service | Purpose | Config Key |
 |---------|---------|------------|
-| Mapbox | Navigation map + 3D car model on map | `MAPBOX_TOKEN` |
-| Spotify | Music playback, browse, lyrics | `SPOTIFY_CLIENT_ID` |
-| LRCLIB | Synced lyrics (free, no key needed) | N/A |
-
-Spotify setup:
-1. Create app at https://developer.spotify.com/dashboard
-2. Enable Web API + Web Playback SDK
-3. Add redirect URI matching your host
-4. Copy Client ID to `config.js`
-5. Requires Spotify Premium for Web Playback SDK
+| Mapbox | Navigation map | `MAPBOX_TOKEN` in config.js |
+| Spotify | Music playback | `SPOTIFY_CLIENT_ID` in config.js |
+| LRCLIB | Synced lyrics (free) | No key needed |
 
 ---
 
-## KOTLIN BRIDGE — HOW DATA FLOWS
+## TECH STACK
 
-FlashPro Bluetooth → `BluetoothService.kt` → decodes OBD2 hex → `MainActivity.kt` → `webView.evaluateJavascript()`
-
-### Functions ready for live data:
-- `updateGauges(rpm, spd, clt, tps, o2)` — dashboard.html
-- `updateDTC(codes)` — carview.html (e.g. `["P0136", "P2646"]`)
-- `updatePosition(lng, lat, bearing, speed)` — streetview.html
+- **Frontend:** Vanilla HTML/CSS/JS (no frameworks)
+- **Android:** Kotlin + WebView
+- **3D:** Three.js (r128)
+- **Maps:** Mapbox GL JS v3.17
+- **Music:** Spotify Web Playback SDK
+- **Fonts:** Share Tech Mono, Orbitron, Nunito
+- **Theme:** Dark (#0a0000 bg, #cc2200 accent)
 
 ---
 
@@ -194,12 +275,12 @@ FlashPro Bluetooth → `BluetoothService.kt` → decodes OBD2 hex → `MainActiv
 
 ## TODO
 
-- [ ] Wire up Hondata FlashPro Bluetooth
-- [ ] Physical tablet install — measure dash opening
+- [ ] Test BluetoothService with real ELM327 adapter
 - [ ] Real GPS integration for navigation
+- [ ] Physical tablet install — measure dash opening
 - [ ] EDFC5 Active install + dashboard integration
 - [ ] Facelift front end paint + install
-- [ ] Alcantara steering wheel wrap
+- [ ] GitHub Pages demo site updates
 
 ---
 
