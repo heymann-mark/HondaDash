@@ -1,0 +1,32 @@
+/* PRODUCTION: Touch-only mode for head unit */
+/* Hide mouse cursor */
+* { cursor:none !important; }
+
+/* Disable hover effects — they cause sticky states on touchscreens */
+@media (hover: none) {
+  *:hover { all:unset; }
+}
+
+/* Prevent text selection on long-press */
+* {
+  -webkit-user-select:none !important;
+  user-select:none !important;
+  -webkit-touch-callout:none !important;
+  -webkit-tap-highlight-color:transparent !important;
+}
+
+/* Allow text selection in input fields */
+input, textarea, select {
+  -webkit-user-select:text !important;
+  user-select:text !important;
+}
+
+/* Prevent pull-to-refresh and overscroll */
+html, body {
+  overscroll-behavior:none !important;
+}
+
+/* Prevent context menu on long-press */
+html {
+  -webkit-touch-callout:none;
+}
