@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; color:#ccc; }
+
+/* STATUS BAR */
+.status-bar { position:fixed; top:0; left:0; right:0; height:28px; background:#0d0d0d; border-bottom:1px solid #ffffff0d; display:flex; align-items:center; padding:0 12px; gap:16px; z-index:10; }
+.status-dot { width:8px; height:8px; border-radius:50%; background:#333; flex-shrink:0; }
+.status-dot.live { background:#00cc44; box-shadow:0 0 8px #00cc44; }
+.status-label { font-size:10px; color:#ffffff55; letter-spacing:2px; }
+.status-val { font-size:10px; color:#ffffffaa; letter-spacing:1px; }
+.status-spacer { flex:1; }
+.status-tag { font-size:9px; color:#cc2200; letter-spacing:2px; border:1px solid #cc220033; padding:1px 6px; }
+
+/* MAIN LAYOUT */
+.main { position:fixed; top:28px; left:0; right:0; bottom:0; display:grid; grid-template-columns:1fr 320px; }
+
+/* LEFT: TREE + RESULTS */
+.track-area { display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+
+/* CHRISTMAS TREE */
+.tree { display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:24px; }
+.tree-row { display:flex; gap:10px; align-items:center; justify-content:center; }
+.tree-light { width:36px; height:36px; border-radius:50%; border:2px solid #222; transition:all 0.15s; }
+.tree-light.off { background:#1a1a1a; }
+.tree-light.staging { background:#224488; box-shadow:0 0 12px #224488, 0 0 24px #22448844; border-color:#336699; }
+.tree-light.amber { background:#cc8800; box-shadow:0 0 16px #cc8800, 0 0 32px #cc880044; border-color:#ddaa00; }
+.tree-light.green { background:#00cc44; box-shadow:0 0 20px #00cc44, 0 0 40px #00cc4444; border-color:#00dd55; }
+.tree-light.red { background:#cc2200; box-shadow:0 0 20px #cc2200, 0 0 40px #cc220044; border-color:#dd3300; }
+.tree-label { font-size:8px; color:#ffffff33; letter-spacing:2px; width:60px; text-align:right; }
+.tree-label-r { font-size:8px; color:#ffffff33; letter-spacing:2px; width:60px; text-align:left; }
+
+/* SPEED DISPLAY */
+.speed-hero { text-align:center; margin-bottom:16px; }
+.speed-val { font-family:'Orbitron',monospace; font-size:96px; font-weight:900; color:#cc2200; line-height:1; text-shadow:0 0 30px #cc220044; }
+.speed-unit { font-size:14px; color:#ffffff33; letter-spacing:4px; margin-top:2px; }
+
+/* RPM BAR */
+.rpm-strip { width:80%; max-width:500px; height:24px; background:#111; border:1px solid #ffffff0d; border-radius:2px; position:relative; margin-bottom:20px; overflow:hidden; }
+.rpm-fill { height:100%; border-radius:1px; transition:width 0.1s; background:linear-gradient(90deg, #00cc44 0%, #88cc00 30%, #cccc00 55%, #cc8800 75%, #cc2200 90%, #ff0044 100%); }
+.rpm-text { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:11px; color:#ffffffaa; letter-spacing:2px; }
+.rpm-vtec { position:absolute; top:50%; right:8px; transform:translateY(-50%); font-size:9px; color:#333; letter-spacing:2px; transition:all 0.2s; }
+.rpm-vtec.on { color:#4488ff; text-shadow:0 0 8px #4488ff; }
+
+/* GEAR */
+.gear-display { position:absolute; top:40px; left:50%; transform:translateX(-50%); }
+.gear-val { font-family:'Orbitron',monospace; font-size:48px; font-weight:900; color:#ffffff22; line-height:1; }
+.gear-label { font-size:8px; color:#ffffff22; letter-spacing:3px; text-align:center; }
+
+/* STATUS MESSAGE */
+.run-status { font-size:12px; color:#ffffff44; letter-spacing:3px; margin-top:8px; min-height:18px; }
+.run-status.ready { color:#00cc44; }
+.run-status.go { color:#00ff44; text-shadow:0 0 12px #00ff44; }
+.run-status.foul { color:#cc2200; text-shadow:0 0 12px #cc2200; }
+
+/* CONTROLS */
+.ctrl-bar { display:flex; gap:10px; margin-top:16px; }
+.ctrl-btn { background:transparent; border:1px solid #ffffff22; color:#ffffff55; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:2px; padding:8px 20px; cursor:pointer; transition:all 0.15s; }
+.ctrl-btn:hover { border-color:#cc2200; color:#cc2200; }
+.ctrl-btn.primary { border-color:#cc2200; color:#cc2200; background:rgba(204,34,0,0.08); }
+.ctrl-btn.active { border-color:#00cc44; color:#00cc44; background:rgba(0,204,68,0.08); }
+
+/* MODE SELECTOR */
+.mode-bar { display:flex; gap:6px; margin-top:12px; }
+.mode-btn { background:transparent; border:1px solid #ffffff11; color:#ffffff33; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; padding:3px 10px; cursor:pointer; transition:all 0.15s; }
+.mode-btn.active { border-color:#cc220066; color:#cc2200; background:rgba(204,34,0,0.05); }
+
+/* SHIFT LIGHT STRIP */
+.shift-strip { width:80%; max-width:500px; display:flex; gap:3px; justify-content:center; margin-bottom:12px; }
+.shift-led { width:100%; max-width:28px; height:10px; border-radius:1px; background:#1a1a1a; border:1px solid #ffffff08; transition:all 0.08s; }
+
+/* RIGHT PANEL: RESULTS */
+.results-panel { background:#0d0d0d; border-left:1px solid #ffffff0d; display:flex; flex-direction:column; overflow-y:auto; }
+.results-header { padding:12px 16px; border-bottom:1px solid #ffffff08; }
+.results-title { font-size:10px; color:#ffffff44; letter-spacing:3px; }
+.result-card { padding:12px 16px; border-bottom:1px solid #ffffff08; }
+.result-label { font-size:9px; color:#ffffff33; letter-spacing:2px; margin-bottom:2px; }
+.result-row { display:flex; justify-content:space-between; align-items:baseline; }
+.result-val { font-family:'Orbitron',monospace; font-size:28px; font-weight:700; color:#ff6644; line-height:1.1; }
+.result-unit { font-size:10px; color:#ffffff33; letter-spacing:1px; }
+.result-sub { font-size:9px; color:#ffffff22; margin-top:2px; }
+
+/* BEST TIMES */
+.best-section { padding:12px 16px; border-bottom:1px solid #ffffff08; }
+.best-title { font-size:9px; color:#cc220088; letter-spacing:2px; margin-bottom:8px; }
+.best-row { display:flex; justify-content:space-between; margin-bottom:4px; }
+.best-label { font-size:9px; color:#ffffff33; letter-spacing:1px; }
+.best-val { font-size:11px; font-family:'Orbitron',monospace; color:#cc8844; }
+
+/* HISTORY */
+.history-section { padding:12px 16px; flex:1; }
+.history-title { font-size:9px; color:#ffffff33; letter-spacing:2px; margin-bottom:8px; display:flex; justify-content:space-between; }
+.history-entry { padding:6px 0; border-bottom:1px solid #ffffff06; font-size:10px; color:#ffffff44; display:flex; justify-content:space-between; }
+.history-entry span { font-family:'Orbitron',monospace; color:#ffffff66; }
+
+/* COUNTDOWN OVERLAY */
+.countdown-overlay { position:absolute; top:0; left:0; right:0; bottom:0; display:none; align-items:center; justify-content:center; background:rgba(10,10,10,0.85); z-index:5; }
+.countdown-overlay.active { display:flex; }
+.countdown-num { font-family:'Orbitron',monospace; font-size:180px; font-weight:900; color:#cc2200; text-shadow:0 0 60px #cc220066, 0 0 120px #cc220022; animation:countPulse 0.5s ease-out; }
+.countdown-go { color:#00ff44; text-shadow:0 0 60px #00ff4466, 0 0 120px #00ff4422; }
+@keyframes countPulse { 0%{transform:scale(1.5);opacity:0} 100%{transform:scale(1);opacity:1} }
+
+/* SCREEN FLASH */
+.flash-overlay { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:4; opacity:0; transition:opacity 0.1s; }
+.flash-overlay.green { background:rgba(0,255,68,0.08); opacity:1; }
+.flash-overlay.red { background:rgba(255,0,0,0.08); opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-dot" id="conn-dot"></div>
+  <span class="status-label">OBD2</span>
+  <span class="status-val" id="conn-status">SIMULATED</span>
+  <div class="status-spacer"></div>
+  <span class="status-label" id="mode-label">AUTO MODE</span>
+  <div class="status-tag">DRAG</div>
+</div>
+
+<div class="main">
+  <!-- LEFT: TRACK AREA -->
+  <div class="track-area">
+    <!-- Gear display -->
+    <div class="gear-display">
+      <div class="gear-label">GEAR</div>
+      <div class="gear-val" id="gear-val">N</div>
+    </div>
+
+    <!-- Shift light LEDs -->
+    <div class="shift-strip" id="shift-strip"></div>
+
+    <!-- Christmas Tree -->
+    <div class="tree" id="tree">
+      <!-- Pre-stage -->
+      <div class="tree-row">
+        <span class="tree-label">PRE-STAGE</span>
+        <div class="tree-light off" id="t-prestage-l"></div>
+        <div class="tree-light off" id="t-prestage-r"></div>
+        <span class="tree-label-r">PRE-STAGE</span>
+      </div>
+      <!-- Stage -->
+      <div class="tree-row">
+        <span class="tree-label">STAGE</span>
+        <div class="tree-light off" id="t-stage-l"></div>
+        <div class="tree-light off" id="t-stage-r"></div>
+        <span class="tree-label-r">STAGE</span>
+      </div>
+      <!-- Amber 1 -->
+      <div class="tree-row">
+        <span class="tree-label"></span>
+        <div class="tree-light off" id="t-a1-l"></div>
+        <div class="tree-light off" id="t-a1-r"></div>
+        <span class="tree-label-r"></span>
+      </div>
+      <!-- Amber 2 -->
+      <div class="tree-row">
+        <span class="tree-label"></span>
+        <div class="tree-light off" id="t-a2-l"></div>
+        <div class="tree-light off" id="t-a2-r"></div>
+        <span class="tree-label-r"></span>
+      </div>
+      <!-- Amber 3 -->
+      <div class="tree-row">
+        <span class="tree-label"></span>
+        <div class="tree-light off" id="t-a3-l"></div>
+        <div class="tree-light off" id="t-a3-r"></div>
+        <span class="tree-label-r"></span>
+      </div>
+      <!-- Green -->
+      <div class="tree-row">
+        <span class="tree-label">GO</span>
+        <div class="tree-light off" id="t-green-l"></div>
+        <div class="tree-light off" id="t-green-r"></div>
+        <span class="tree-label-r">GO</span>
+      </div>
+      <!-- Red -->
+      <div class="tree-row">
+        <span class="tree-label">FOUL</span>
+        <div class="tree-light off" id="t-red-l"></div>
+        <div class="tree-light off" id="t-red-r"></div>
+        <span class="tree-label-r">FOUL</span>
+      </div>
+    </div>
+
+    <!-- Speed -->
+    <div class="speed-hero">
+      <div class="speed-val" id="speed-val">0</div>
+      <div class="speed-unit">MPH</div>
+    </div>
+
+    <!-- RPM bar -->
+    <div class="rpm-strip">
+      <div class="rpm-fill" id="rpm-fill" style="width:0%"></div>
+      <div class="rpm-text" id="rpm-text">0 RPM</div>
+      <div class="rpm-vtec" id="rpm-vtec">VTEC</div>
+    </div>
+
+    <!-- Status -->
+    <div class="run-status" id="run-status">STOPPED — TAP START</div>
+
+    <!-- Controls -->
+    <div class="ctrl-bar">
+      <button class="ctrl-btn primary" id="btn-start" onclick="startSequence()">START</button>
+      <button class="ctrl-btn" id="btn-reset" onclick="resetRun()">RESET</button>
+    </div>
+    <div class="mode-bar">
+      <button class="mode-btn active" id="mode-auto" onclick="setMode('auto')">AUTO</button>
+      <button class="mode-btn" id="mode-button" onclick="setMode('button')">BUTTON</button>
+      <button class="mode-btn" id="mode-always" onclick="setMode('always')">ALWAYS ON</button>
+    </div>
+
+    <!-- Countdown overlay -->
+    <div class="countdown-overlay" id="countdown-overlay">
+      <div class="countdown-num" id="countdown-num">3</div>
+    </div>
+    <div class="flash-overlay" id="flash-overlay"></div>
+  </div>
+
+  <!-- RIGHT: RESULTS PANEL -->
+  <div class="results-panel">
+    <div class="results-header">
+      <div class="results-title">RUN RESULTS</div>
+    </div>
+
+    <!-- Reaction Time -->
+    <div class="result-card">
+      <div class="result-label">REACTION TIME</div>
+      <div class="result-row">
+        <div class="result-val" id="res-rt">—</div>
+        <div class="result-unit">SEC</div>
+      </div>
+    </div>
+
+    <!-- 0-60 -->
+    <div class="result-card">
+      <div class="result-label">0 — 60 MPH</div>
+      <div class="result-row">
+        <div class="result-val" id="res-060">—</div>
+        <div class="result-unit">SEC</div>
+      </div>
+    </div>
+
+    <!-- 1/8 mile -->
+    <div class="result-card">
+      <div class="result-label">1/8 MILE (660 FT)</div>
+      <div class="result-row">
+        <div class="result-val" id="res-eighth">—</div>
+        <div class="result-unit">SEC</div>
+      </div>
+      <div class="result-sub">TRAP: <span id="res-eighth-trap">—</span> MPH</div>
+    </div>
+
+    <!-- 1/4 mile -->
+    <div class="result-card">
+      <div class="result-label">1/4 MILE (1320 FT)</div>
+      <div class="result-row">
+        <div class="result-val" id="res-quarter">—</div>
+        <div class="result-unit">SEC</div>
+      </div>
+      <div class="result-sub">TRAP: <span id="res-quarter-trap">—</span> MPH</div>
+    </div>
+
+    <!-- 0-100 -->
+    <div class="result-card">
+      <div class="result-label">0 — 100 MPH</div>
+      <div class="result-row">
+        <div class="result-val" id="res-0100">—</div>
+        <div class="result-unit">SEC</div>
+      </div>
+    </div>
+
+    <!-- Best times -->
+    <div class="best-section">
+      <div class="best-title">BEST TIMES</div>
+      <div class="best-row"><span class="best-label">0-60</span><span class="best-val" id="best-060">—</span></div>
+      <div class="best-row"><span class="best-label">1/8 MILE</span><span class="best-val" id="best-eighth">—</span></div>
+      <div class="best-row"><span class="best-label">1/4 MILE</span><span class="best-val" id="best-quarter">—</span></div>
+      <div class="best-row"><span class="best-label">0-100</span><span class="best-val" id="best-0100">—</span></div>
+    </div>
+
+    <!-- History -->
+    <div class="history-section">
+      <div class="history-title">
+        <span>RUN HISTORY</span>
+        <button class="ctrl-btn" style="font-size:8px;padding:2px 6px;" onclick="clearHistory()">CLEAR</button>
+      </div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  STATE
+// ============================================================
+const EIGHTH_MILE_FT = 660;
+const QUARTER_MILE_FT = 1320;
+const SHIFT_LED_COUNT = 16;
+
+let mode = 'auto'; // auto | button | always
+let state = 'idle'; // idle | staging | countdown | running | finished | foul
+let connected = false;
+
+// Live data
+let currentSpeed = 0; // mph
+let currentRPM = 0;
+let currentGear = 0; // 0=N, 1-6
+
+// Run data
+let runStartTime = 0;
+let greenTime = 0;
+let reactionTime = 0;
+let distanceFt = 0;
+let lastTickTime = 0;
+let time060 = 0, timeEighth = 0, timeQuarter = 0, time0100 = 0;
+let trapEighth = 0, trapQuarter = 0;
+let hit060 = false, hitEighth = false, hitQuarter = false, hit0100 = false;
+
+// Bests (persisted to localStorage)
+let bests = JSON.parse(localStorage.getItem('drag-bests') || '{}');
+
+// History
+let history = JSON.parse(localStorage.getItem('drag-history') || '[]');
+
+// K20Z3 6-speed ratios (same as datalog.html)
+const GEAR_RATIOS = [3.267, 2.130, 1.517, 1.147, 0.921, 0.738];
+const FINAL_DRIVE = 4.764;
+const TIRE_DIAM_IN = 25.7; // 215/45R17
+const TIRE_CIRC_FT = (TIRE_DIAM_IN * Math.PI) / 12;
+
+// ============================================================
+//  INIT SHIFT LEDs
+// ============================================================
+const stripEl = document.getElementById('shift-strip');
+for (let i = 0; i < SHIFT_LED_COUNT; i++) {
+  const led = document.createElement('div');
+  led.className = 'shift-led';
+  stripEl.appendChild(led);
+}
+
+// ============================================================
+//  GEAR CALCULATION
+// ============================================================
+function calcGear(rpm, speed) {
+  if (speed < 2 || rpm < 500) return 0;
+  let bestGear = 0, bestDiff = Infinity;
+  for (let g = 0; g < 6; g++) {
+    const expectedSpeed = (rpm * TIRE_CIRC_FT * 60) / (GEAR_RATIOS[g] * FINAL_DRIVE * 5280);
+    const diff = Math.abs(expectedSpeed - speed);
+    if (diff < bestDiff) { bestDiff = diff; bestGear = g + 1; }
+  }
+  return bestGear;
+}
+
+// ============================================================
+//  TREE CONTROL
+// ============================================================
+function setLight(id, cls) {
+  const el = document.getElementById(id);
+  el.className = 'tree-light ' + cls;
+}
+
+function clearTree() {
+  ['t-prestage-l','t-prestage-r','t-stage-l','t-stage-r',
+   't-a1-l','t-a1-r','t-a2-l','t-a2-r','t-a3-l','t-a3-r',
+   't-green-l','t-green-r','t-red-l','t-red-r'].forEach(id => setLight(id, 'off'));
+}
+
+async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function runTree() {
+  clearTree();
+  state = 'staging';
+  setStatus('STAGING...', '');
+
+  // Pre-stage
+  setLight('t-prestage-l', 'staging');
+  setLight('t-prestage-r', 'staging');
+  await sleep(800);
+
+  // Stage
+  setLight('t-stage-l', 'staging');
+  setLight('t-stage-r', 'staging');
+  await sleep(600);
+
+  // Check for foul (moving before green)
+  state = 'countdown';
+
+  // Amber sequence — 0.5s each (sportsman tree)
+  setLight('t-a1-l', 'amber');
+  setLight('t-a1-r', 'amber');
+  if (checkFoul()) return;
+  await sleep(500);
+
+  setLight('t-a2-l', 'amber');
+  setLight('t-a2-r', 'amber');
+  if (checkFoul()) return;
+  await sleep(500);
+
+  setLight('t-a3-l', 'amber');
+  setLight('t-a3-r', 'amber');
+  if (checkFoul()) return;
+  await sleep(500);
+
+  // GREEN!
+  if (checkFoul()) return;
+  setLight('t-green-l', 'green');
+  setLight('t-green-r', 'green');
+  greenTime = performance.now();
+
+  const flash = document.getElementById('flash-overlay');
+  flash.className = 'flash-overlay green';
+  setTimeout(() => flash.className = 'flash-overlay', 300);
+
+  state = 'running';
+  setStatus('GO!', 'go');
+  lastTickTime = performance.now();
+  distanceFt = 0;
+  hit060 = false; hitEighth = false; hitQuarter = false; hit0100 = false;
+  runStartTime = greenTime;
+}
+
+function checkFoul() {
+  if (currentSpeed > 3 && state === 'countdown') {
+    state = 'foul';
+    setLight('t-red-l', 'red');
+    setLight('t-red-r', 'red');
+    const flash = document.getElementById('flash-overlay');
+    flash.className = 'flash-overlay red';
+    setTimeout(() => flash.className = 'flash-overlay', 500);
+    setStatus('FOUL — JUMPED START', 'foul');
+    document.getElementById('btn-start').textContent = 'START';
+    return true;
+  }
+  return false;
+}
+
+// ============================================================
+//  START / RESET
+// ============================================================
+function startSequence() {
+  if (state === 'running' || state === 'countdown' || state === 'staging') return;
+
+  if (mode === 'button' || mode === 'auto') {
+    // Show countdown overlay then run tree
+    showCountdown();
+  } else {
+    // Always-on: just arm it
+    state = 'armed';
+    setStatus('ARMED — WAITING FOR MOVEMENT', 'ready');
+    document.getElementById('btn-start').textContent = 'ARMED';
+  }
+}
+
+async function showCountdown() {
+  const overlay = document.getElementById('countdown-overlay');
+  const num = document.getElementById('countdown-num');
+  overlay.classList.add('active');
+
+  for (let i = 3; i >= 1; i--) {
+    num.textContent = i;
+    num.className = 'countdown-num';
+    num.offsetHeight; // reflow for animation
+    num.className = 'countdown-num';
+    await sleep(800);
+  }
+
+  overlay.classList.remove('active');
+  clearResults();
+  runTree();
+}
+
+function resetRun() {
+  state = 'idle';
+  clearTree();
+  clearResults();
+  setStatus('STOPPED — TAP START', '');
+  document.getElementById('btn-start').textContent = 'START';
+  document.getElementById('countdown-overlay').classList.remove('active');
+  document.getElementById('flash-overlay').className = 'flash-overlay';
+}
+
+function clearResults() {
+  ['res-rt','res-060','res-eighth','res-quarter','res-0100'].forEach(id =>
+    document.getElementById(id).textContent = '—');
+  document.getElementById('res-eighth-trap').textContent = '—';
+  document.getElementById('res-quarter-trap').textContent = '—';
+}
+
+function setStatus(text, cls) {
+  const el = document.getElementById('run-status');
+  el.textContent = text;
+  el.className = 'run-status' + (cls ? ' ' + cls : '');
+}
+
+// ============================================================
+//  MODE
+// ============================================================
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('mode-' + m).classList.add('active');
+  document.getElementById('mode-label').textContent = m.toUpperCase() + ' MODE';
+  resetRun();
+}
+
+// ============================================================
+//  UPDATE UI
+// ============================================================
+function updateDisplay() {
+  // Speed
+  document.getElementById('speed-val').textContent = Math.round(currentSpeed);
+
+  // RPM
+  const rpmPct = Math.min(100, currentRPM / 8500 * 100);
+  document.getElementById('rpm-fill').style.width = rpmPct + '%';
+  document.getElementById('rpm-text').textContent = Math.round(currentRPM) + ' RPM';
+  const vtec = document.getElementById('rpm-vtec');
+  if (currentRPM >= 5800) { vtec.classList.add('on'); } else { vtec.classList.remove('on'); }
+
+  // Gear
+  currentGear = calcGear(currentRPM, currentSpeed);
+  document.getElementById('gear-val').textContent = currentGear === 0 ? 'N' : currentGear;
+  const gearEl = document.getElementById('gear-val');
+  gearEl.style.color = currentGear > 0 ? '#ffffff55' : '#ffffff22';
+
+  // Shift LEDs
+  const leds = stripEl.children;
+  const rpmNorm = currentRPM / 8500;
+  for (let i = 0; i < SHIFT_LED_COUNT; i++) {
+    const thresh = (i + 1) / SHIFT_LED_COUNT;
+    if (rpmNorm >= thresh) {
+      const t = i / (SHIFT_LED_COUNT - 1);
+      if (t < 0.5) leds[i].style.background = '#00cc44';
+      else if (t < 0.75) leds[i].style.background = '#ccaa00';
+      else if (t < 0.9) leds[i].style.background = '#cc4400';
+      else leds[i].style.background = '#ff0044';
+      leds[i].style.boxShadow = '0 0 6px ' + leds[i].style.background;
+      leds[i].style.borderColor = leds[i].style.background;
+      // Flash at redline
+      if (currentRPM > 7800 && t >= 0.9) {
+        leds[i].style.opacity = Math.sin(performance.now() * 0.02) > 0 ? '1' : '0.2';
+      } else {
+        leds[i].style.opacity = '1';
+      }
+    } else {
+      leds[i].style.background = '#1a1a1a';
+      leds[i].style.boxShadow = 'none';
+      leds[i].style.borderColor = '#ffffff08';
+      leds[i].style.opacity = '1';
+    }
+  }
+
+  // Update bests display
+  updateBestsDisplay();
+}
+
+// ============================================================
+//  RUN TRACKING
+// ============================================================
+function trackRun() {
+  if (state !== 'running') return;
+
+  const now = performance.now();
+  const dt = (now - lastTickTime) / 1000; // seconds
+  lastTickTime = now;
+  const elapsed = (now - runStartTime) / 1000;
+
+  // Accumulate distance (speed in mph -> ft/s)
+  const speedFtPerSec = currentSpeed * 5280 / 3600;
+  distanceFt += speedFtPerSec * dt;
+
+  // Reaction time (time from green to first movement > 3mph)
+  if (!reactionTime && currentSpeed > 3) {
+    reactionTime = elapsed;
+    document.getElementById('res-rt').textContent = reactionTime.toFixed(3);
+  }
+
+  // 0-60
+  if (!hit060 && currentSpeed >= 60) {
+    hit060 = true;
+    time060 = elapsed;
+    document.getElementById('res-060').textContent = time060.toFixed(3);
+  }
+
+  // 1/8 mile
+  if (!hitEighth && distanceFt >= EIGHTH_MILE_FT) {
+    hitEighth = true;
+    timeEighth = elapsed;
+    trapEighth = currentSpeed;
+    document.getElementById('res-eighth').textContent = timeEighth.toFixed(3);
+    document.getElementById('res-eighth-trap').textContent = trapEighth.toFixed(1);
+  }
+
+  // 1/4 mile
+  if (!hitQuarter && distanceFt >= QUARTER_MILE_FT) {
+    hitQuarter = true;
+    timeQuarter = elapsed;
+    trapQuarter = currentSpeed;
+    document.getElementById('res-quarter').textContent = timeQuarter.toFixed(3);
+    document.getElementById('res-quarter-trap').textContent = trapQuarter.toFixed(1);
+    finishRun();
+  }
+
+  // 0-100
+  if (!hit0100 && currentSpeed >= 100) {
+    hit0100 = true;
+    time0100 = elapsed;
+    document.getElementById('res-0100').textContent = time0100.toFixed(3);
+  }
+
+  // Live elapsed display
+  if (!hitQuarter) {
+    setStatus(elapsed.toFixed(2) + 's  |  ' + Math.round(distanceFt) + ' ft  |  ' + currentSpeed.toFixed(1) + ' mph', '');
+  }
+}
+
+function finishRun() {
+  state = 'finished';
+  setStatus('RUN COMPLETE — 1/4 MILE: ' + timeQuarter.toFixed(3) + 's @ ' + trapQuarter.toFixed(1) + ' mph', 'ready');
+  document.getElementById('btn-start').textContent = 'START';
+
+  // Update bests
+  if (!bests['060'] || time060 < bests['060']) bests['060'] = time060;
+  if (!bests['eighth'] || timeEighth < bests['eighth']) bests['eighth'] = timeEighth;
+  if (!bests['quarter'] || timeQuarter < bests['quarter']) bests['quarter'] = timeQuarter;
+  if (hit0100 && (!bests['0100'] || time0100 < bests['0100'])) bests['0100'] = time0100;
+  localStorage.setItem('drag-bests', JSON.stringify(bests));
+
+  // Add to history
+  history.unshift({
+    time: new Date().toLocaleTimeString(),
+    quarter: timeQuarter.toFixed(3),
+    trap: trapQuarter.toFixed(1),
+    sixty: time060.toFixed(3)
+  });
+  if (history.length > 20) history.pop();
+  localStorage.setItem('drag-history', JSON.stringify(history));
+  renderHistory();
+}
+
+function updateBestsDisplay() {
+  document.getElementById('best-060').textContent = bests['060'] ? bests['060'].toFixed(3) + 's' : '—';
+  document.getElementById('best-eighth').textContent = bests['eighth'] ? bests['eighth'].toFixed(3) + 's' : '—';
+  document.getElementById('best-quarter').textContent = bests['quarter'] ? bests['quarter'].toFixed(3) + 's' : '—';
+  document.getElementById('best-0100').textContent = bests['0100'] ? bests['0100'].toFixed(3) + 's' : '—';
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  list.innerHTML = '';
+  history.forEach((h, i) => {
+    const div = document.createElement('div');
+    div.className = 'history-entry';
+    div.innerHTML = '#' + (i+1) + ' ' + h.time +
+      ' <span>' + h.quarter + 's @ ' + h.trap + ' mph</span>';
+    list.appendChild(div);
+  });
+}
+
+function clearHistory() {
+  history = [];
+  bests = {};
+  localStorage.removeItem('drag-history');
+  localStorage.removeItem('drag-bests');
+  renderHistory();
+  updateBestsDisplay();
+}
+
+// ============================================================
+//  OBD2 BRIDGE (called by Kotlin)
+// ============================================================
+function updateFromFlashPro(data) {
+  connected = true;
+  document.getElementById('conn-dot').classList.add('live');
+  document.getElementById('conn-status').textContent = 'CONNECTED';
+  if (data.speed !== undefined) currentSpeed = data.speed;
+  if (data.rpm !== undefined) currentRPM = data.rpm;
+}
+
+function updateConnectionStatus(s) {
+  const dot = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-status');
+  if (s === 'CONNECTED') { dot.classList.add('live'); label.textContent = 'CONNECTED'; connected = true; }
+  else { dot.classList.remove('live'); label.textContent = s; connected = false; }
+}
+
+// ============================================================
+//  SIMULATION — full drag run
+// ============================================================
+let simState = 'idle'; // idle | launch | clutch | run | done
+let simT = 0, simGear = 1, simRPM = 850, simSpeed = 0;
+let simLaunchTime = 0, simClutchEngaged = 0;
+
+// K20Z3 specs: 197 hp @ 7800, 139 lb-ft @ 6200
+// Curb weight ~2900 lbs with driver
+const CAR_MASS_LBS = 2900;
+const PEAK_TORQUE_LBFT = 139;
+const WHEEL_RADIUS_FT = TIRE_DIAM_IN / 2 / 12;
+
+function rpmFromSpeed(speed, gear) {
+  const speedFtSec = speed * 5280 / 3600;
+  return (speedFtSec / (WHEEL_RADIUS_FT * 2 * Math.PI)) * 60 * GEAR_RATIOS[gear - 1] * FINAL_DRIVE;
+}
+
+// K20Z3 torque curve (lb-ft) — VTEC crossover at 5800
+function torqueAtRPM(rpm) {
+  if (rpm < 1500) return 90;
+  if (rpm < 3000) return 90 + (rpm - 1500) / 1500 * 25;   // 90 -> 115
+  if (rpm < 5000) return 115 + (rpm - 3000) / 2000 * 10;   // 115 -> 125
+  if (rpm < 5800) return 125 + (rpm - 5000) / 800 * 5;     // 125 -> 130 (approaching VTEC)
+  if (rpm < 6200) return 130 + (rpm - 5800) / 400 * 9;     // 130 -> 139 (VTEC engaged, peak)
+  if (rpm < 7000) return 139;                                // peak plateau
+  if (rpm < 7800) return 139 - (rpm - 7000) / 800 * 10;    // 139 -> 129
+  return 129 - (rpm - 7800) / 700 * 20;                     // falloff past redline
+}
+
+function simTick() {
+  // Transition to running
+  if (state === 'running' && simState !== 'run' && simState !== 'clutch') {
+    simState = 'clutch'; // clutch dump phase
+    simT = 0;
+    simGear = 1;
+    simRPM = 4500; // Launch RPM (clutch dump from ~4500)
+    simSpeed = 0;
+    simClutchEngaged = 0;
+    simLaunchTime = performance.now();
+  }
+
+  if (state !== 'running' && state !== 'staging' && state !== 'countdown') {
+    // Idle
+    simRPM += (850 - simRPM) * 0.08;
+    simSpeed = 0;
+    currentRPM = simRPM + (Math.random() - 0.5) * 30;
+    currentSpeed = 0;
+    simState = 'idle';
+    return;
+  }
+
+  if (state === 'staging' || state === 'countdown') {
+    // Rev building on the line
+    simRPM += (4500 - simRPM) * 0.05;
+    simSpeed = 0;
+    currentRPM = simRPM + (Math.random() - 0.5) * 50;
+    currentSpeed = 0;
+    return;
+  }
+
+  simT++;
+  const dt = 0.05; // 50ms tick
+
+  const gearRatio = GEAR_RATIOS[simGear - 1] * FINAL_DRIVE;
+
+  // Clutch slip phase (~0.8 seconds) — RPM drops from launch RPM while speed builds
+  if (simState === 'clutch') {
+    simClutchEngaged += dt;
+    const clutchProgress = Math.min(1, simClutchEngaged / 0.8);
+
+    // During clutch slip, engine RPM stays high but transfers increasing torque
+    const slipTorque = torqueAtRPM(simRPM) * (0.5 + clutchProgress * 0.5);
+    const wheelForce = slipTorque * gearRatio / WHEEL_RADIUS_FT;
+    const accelFtSS = (wheelForce / CAR_MASS_LBS) * 32.174; // F=ma, convert to ft/s^2
+    const accelMPH = accelFtSS * 3600 / 5280 * dt;
+
+    simSpeed += accelMPH;
+
+    // RPM transitions from launch RPM toward wheel-speed RPM
+    const wheelRPM = rpmFromSpeed(simSpeed, simGear);
+    simRPM = simRPM * (1 - clutchProgress * 0.15) + wheelRPM * clutchProgress * 0.15;
+    simRPM = Math.max(wheelRPM, simRPM - 200 * dt); // RPM drops as clutch bites
+
+    if (clutchProgress >= 1) {
+      simState = 'run';
+      simRPM = wheelRPM;
+    }
+  }
+
+  // Full engagement — normal acceleration
+  if (simState === 'run') {
+    const torque = torqueAtRPM(simRPM);
+    const wheelForce = torque * gearRatio / WHEEL_RADIUS_FT;
+    // Subtract aero drag: Cd=0.31, A=22 sq ft, rho=0.0023769 slug/ft^3
+    const speedFtSec = simSpeed * 5280 / 3600;
+    const dragForce = 0.5 * 0.0023769 * 0.31 * 22 * speedFtSec * speedFtSec;
+    // Rolling resistance
+    const rollForce = CAR_MASS_LBS * 0.015;
+
+    const netForce = wheelForce - dragForce - rollForce;
+    const accelFtSS = (netForce / CAR_MASS_LBS) * 32.174;
+    const accelMPH = accelFtSS * 3600 / 5280 * dt;
+
+    simSpeed = Math.max(0, simSpeed + accelMPH);
+    simRPM = rpmFromSpeed(simSpeed, simGear);
+
+    // Shift at 8100 RPM (short-shift sim for best ET)
+    if (simRPM > 8100 && simGear < 6) {
+      simGear++;
+      simRPM = rpmFromSpeed(simSpeed, simGear);
+    }
+  }
+
+  simRPM = Math.max(700, Math.min(8500, simRPM));
+  simSpeed = Math.max(0, simSpeed);
+
+  currentRPM = simRPM + (Math.random() - 0.5) * 40;
+  currentSpeed = simSpeed + (Math.random() - 0.5) * 0.3;
+
+  if (state === 'finished') {
+    simState = 'done';
+  }
+}
+
+// ============================================================
+//  ALWAYS-ON MODE
+// ============================================================
+function checkAlwaysOn() {
+  if (mode === 'always' && state === 'armed' && currentSpeed > 3) {
+    clearResults();
+    clearTree();
+    setLight('t-green-l', 'green');
+    setLight('t-green-r', 'green');
+    greenTime = performance.now();
+    state = 'running';
+    runStartTime = greenTime;
+    lastTickTime = performance.now();
+    distanceFt = 0;
+    reactionTime = 0;
+    hit060 = false; hitEighth = false; hitQuarter = false; hit0100 = false;
+    setStatus('GO!', 'go');
+  }
+
+  // Auto mode: auto-arm when stopped
+  if (mode === 'auto' && state === 'idle' && currentSpeed < 1) {
+    // Don't auto-start, wait for button
+  }
+}
+
+// ============================================================
+//  MAIN LOOP
+// ============================================================
+function tick() {
+  if (!connected) simTick();
+  trackRun();
+  checkAlwaysOn();
+  updateDisplay();
+}
+
+setInterval(tick, 50); // 20Hz for smooth updates
+renderHistory();
+updateBestsDisplay();
+</script>
+</body>
+</html>

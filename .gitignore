@@ -16,3 +16,6 @@ local.properties
 secrets.properties
 app/src/main/assets/config.js
 /scratch/
+node_modules/
+.claude/
+app/src/main/assets/.claude/

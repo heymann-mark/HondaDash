@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; color:#ccc; }
+
+/* STATUS BAR */
+.status-bar { position:fixed; top:0; left:0; right:0; height:28px; background:#0d0d0d; border-bottom:1px solid #ffffff0d; display:flex; align-items:center; padding:0 12px; gap:16px; z-index:10; }
+.status-dot { width:8px; height:8px; border-radius:50%; background:#333; flex-shrink:0; }
+.status-dot.live { background:#00cc44; box-shadow:0 0 8px #00cc44; }
+.status-label { font-size:10px; color:#ffffff55; letter-spacing:2px; }
+.status-val { font-size:10px; color:#ffffffaa; letter-spacing:1px; }
+.status-spacer { flex:1; }
+.status-tag { font-size:9px; color:#cc2200; letter-spacing:2px; border:1px solid #cc220033; padding:1px 6px; }
+
+/* LAYOUT */
+.main { position:fixed; top:28px; left:0; right:0; bottom:0; display:grid; grid-template-columns:1fr 280px; }
+
+/* CHART AREA */
+.chart-area { position:relative; overflow:hidden; }
+#dyno-canvas { width:100%; height:100%; }
+
+/* HUD overlay on chart */
+.chart-hud { position:absolute; top:10px; left:14px; pointer-events:none; z-index:2; }
+.chart-hud .hud-val { font-family:'Orbitron',monospace; font-size:14px; color:#ffffffaa; margin-bottom:2px; }
+.chart-hud .hud-label { font-size:8px; color:#ffffff33; letter-spacing:2px; }
+
+/* RIGHT PANEL */
+.info-panel { background:#0d0d0d; border-left:1px solid #ffffff0d; display:flex; flex-direction:column; overflow-y:auto; }
+.panel-section { padding:10px 14px; border-bottom:1px solid #ffffff08; }
+.panel-title { font-size:9px; color:#ffffff44; letter-spacing:2px; margin-bottom:6px; }
+.panel-sub { font-size:8px; color:#ffffff22; line-height:1.5; margin-bottom:6px; }
+
+/* BIG NUMBERS */
+.peak-card { padding:12px 14px; border-bottom:1px solid #ffffff08; text-align:center; }
+.peak-label { font-size:8px; color:#ffffff33; letter-spacing:2px; margin-bottom:2px; }
+.peak-val { font-family:'Orbitron',monospace; font-size:36px; font-weight:900; line-height:1; }
+.peak-unit { font-size:9px; color:#ffffff33; letter-spacing:1px; margin-top:2px; }
+.peak-at { font-size:8px; color:#ffffff22; margin-top:4px; }
+.peak-at span { color:#ff884488; font-family:'Orbitron',monospace; }
+
+/* STATS */
+.stat-row { display:flex; justify-content:space-between; margin-bottom:3px; }
+.stat-label { font-size:8px; color:#ffffff33; letter-spacing:1px; }
+.stat-val { font-size:9px; color:#ffffffaa; font-family:'Orbitron',monospace; }
+
+/* CONFIG */
+.cfg-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.cfg-label { font-size:8px; color:#ffffff44; letter-spacing:1px; flex:1; }
+.cfg-input { width:70px; background:#111; border:1px solid #ffffff15; color:#ff8844; font-family:'Orbitron',monospace; font-size:11px; padding:4px 6px; text-align:right; }
+.cfg-input:focus { border-color:#cc2200; outline:none; }
+.cfg-unit { font-size:8px; color:#ffffff33; width:24px; }
+
+/* BUTTONS */
+.ctrl-btn { width:100%; background:transparent; border:1px solid #ffffff22; color:#ffffff55; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:2px; padding:8px; cursor:pointer; transition:all 0.15s; margin-bottom:4px; }
+.ctrl-btn:hover { border-color:#cc2200; color:#cc2200; }
+.ctrl-btn.primary { border-color:#cc2200; color:#cc2200; background:rgba(204,34,0,0.08); }
+.ctrl-btn.active { border-color:#00cc44; color:#00cc44; background:rgba(0,204,68,0.08); }
+.ctrl-btn.recording { border-color:#ff4444; color:#ff4444; background:rgba(255,68,68,0.08); animation:recPulse 1s infinite; }
+@keyframes recPulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+/* RUN STATUS */
+.run-status { text-align:center; padding:10px 14px; border-bottom:1px solid #ffffff08; }
+.run-status-text { font-size:11px; letter-spacing:2px; }
+
+/* RUN HISTORY */
+.history-entry { padding:6px 14px; border-bottom:1px solid #ffffff06; cursor:pointer; transition:background 0.1s; }
+.history-entry:hover { background:rgba(204,34,0,0.05); }
+.history-entry.active { background:rgba(204,34,0,0.1); border-left:2px solid #cc2200; }
+.history-date { font-size:9px; color:#ffffff55; }
+.history-stats { font-size:8px; color:#ffffff33; margin-top:1px; }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-dot" id="conn-dot"></div>
+  <span class="status-label">OBD2</span>
+  <span class="status-val" id="conn-status">SIMULATED</span>
+  <div class="status-spacer"></div>
+  <span class="status-val" id="run-label">READY</span>
+  <div class="status-tag">DYNO</div>
+</div>
+
+<div class="main">
+  <!-- CHART -->
+  <div class="chart-area">
+    <canvas id="dyno-canvas"></canvas>
+    <div class="chart-hud">
+      <div class="hud-label">LIVE</div>
+      <div class="hud-val" id="hud-rpm">0 RPM</div>
+      <div class="hud-val" id="hud-spd">0 MPH</div>
+      <div class="hud-val" id="hud-gear">GEAR: N</div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="info-panel">
+    <!-- Peak numbers -->
+    <div class="peak-card">
+      <div class="peak-label">PEAK WHEEL HP</div>
+      <div class="peak-val" id="peak-hp" style="color:#cc2200;">—</div>
+      <div class="peak-unit">WHP</div>
+      <div class="peak-at">@ <span id="peak-hp-rpm">—</span> RPM</div>
+    </div>
+
+    <div class="peak-card">
+      <div class="peak-label">PEAK WHEEL TORQUE</div>
+      <div class="peak-val" id="peak-tq" style="color:#4488ff;">—</div>
+      <div class="peak-unit">LB-FT</div>
+      <div class="peak-at">@ <span id="peak-tq-rpm">—</span> RPM</div>
+    </div>
+
+    <!-- Run controls -->
+    <div class="panel-section">
+      <div class="panel-title">DYNO RUN</div>
+      <div class="panel-sub">Floor it in 3rd gear from 2000 RPM to redline. Keep it wide open — the app measures acceleration to estimate HP and torque.</div>
+      <button class="ctrl-btn primary" id="btn-run" onclick="startRun()">START RUN</button>
+      <button class="ctrl-btn" onclick="clearRun()">CLEAR</button>
+    </div>
+
+    <!-- Run status -->
+    <div class="run-status">
+      <div class="run-status-text" id="status-text" style="color:#ffffff33;">READY — TAP START RUN</div>
+    </div>
+
+    <!-- Vehicle config -->
+    <div class="panel-section">
+      <div class="panel-title">VEHICLE CONFIG</div>
+      <div class="cfg-row">
+        <span class="cfg-label">CURB WEIGHT</span>
+        <input class="cfg-input" id="cfg-weight" type="number" value="2900" onchange="saveConfig()">
+        <span class="cfg-unit">LBS</span>
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-label">DRIVER WEIGHT</span>
+        <input class="cfg-input" id="cfg-driver" type="number" value="170" onchange="saveConfig()">
+        <span class="cfg-unit">LBS</span>
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-label">DRIVETRAIN LOSS</span>
+        <input class="cfg-input" id="cfg-loss" type="number" value="15" onchange="saveConfig()">
+        <span class="cfg-unit">%</span>
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-label">DRAG COEFF (Cd)</span>
+        <input class="cfg-input" id="cfg-cd" type="number" value="0.31" step="0.01" onchange="saveConfig()">
+        <span class="cfg-unit"></span>
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-label">FRONTAL AREA</span>
+        <input class="cfg-input" id="cfg-area" type="number" value="22.0" step="0.5" onchange="saveConfig()">
+        <span class="cfg-unit">ft²</span>
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-label">TIRE DIAMETER</span>
+        <input class="cfg-input" id="cfg-tire" type="number" value="25.7" step="0.1" onchange="saveConfig()">
+        <span class="cfg-unit">in</span>
+      </div>
+    </div>
+
+    <!-- Run stats -->
+    <div class="panel-section">
+      <div class="panel-title">RUN STATS</div>
+      <div class="stat-row"><span class="stat-label">RPM RANGE</span><span class="stat-val" id="st-range">—</span></div>
+      <div class="stat-row"><span class="stat-label">SPEED RANGE</span><span class="stat-val" id="st-speed">—</span></div>
+      <div class="stat-row"><span class="stat-label">DURATION</span><span class="stat-val" id="st-dur">—</span></div>
+      <div class="stat-row"><span class="stat-label">DATA POINTS</span><span class="stat-val" id="st-pts">—</span></div>
+      <div class="stat-row"><span class="stat-label">AVG HP</span><span class="stat-val" id="st-avghp">—</span></div>
+    </div>
+
+    <!-- History -->
+    <div class="panel-section">
+      <div class="panel-title">RUN HISTORY</div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  K20Z3 CONSTANTS
+// ============================================================
+const GEAR_RATIOS = [3.267, 2.130, 1.517, 1.147, 0.921, 0.738];
+const FINAL_DRIVE = 4.764;
+const AIR_DENSITY = 0.0023769; // slugs/ft³
+
+// ============================================================
+//  CONFIG
+// ============================================================
+let cfg = {
+  weight: 2900, driver: 170, loss: 15, cd: 0.31, area: 22.0, tire: 25.7
+};
+
+function loadConfig(){
+  try { Object.assign(cfg, JSON.parse(localStorage.getItem('dyno-cfg')||'{}')); } catch(e){}
+  document.getElementById('cfg-weight').value = cfg.weight;
+  document.getElementById('cfg-driver').value = cfg.driver;
+  document.getElementById('cfg-loss').value = cfg.loss;
+  document.getElementById('cfg-cd').value = cfg.cd;
+  document.getElementById('cfg-area').value = cfg.area;
+  document.getElementById('cfg-tire').value = cfg.tire;
+}
+
+function saveConfig(){
+  cfg.weight = parseFloat(document.getElementById('cfg-weight').value) || 2900;
+  cfg.driver = parseFloat(document.getElementById('cfg-driver').value) || 170;
+  cfg.loss = parseFloat(document.getElementById('cfg-loss').value) || 15;
+  cfg.cd = parseFloat(document.getElementById('cfg-cd').value) || 0.31;
+  cfg.area = parseFloat(document.getElementById('cfg-area').value) || 22;
+  cfg.tire = parseFloat(document.getElementById('cfg-tire').value) || 25.7;
+  localStorage.setItem('dyno-cfg', JSON.stringify(cfg));
+}
+
+// ============================================================
+//  STATE
+// ============================================================
+let connected = false;
+let runState = 'idle'; // idle | waiting | recording | done
+let currentRPM = 0, currentSpeed = 0, currentGear = 0;
+
+// Run data — collected during WOT pull
+let runData = []; // [{t, rpm, speed}]
+let runStartTime = 0;
+
+// Computed curves
+let hpCurve = [];  // [{rpm, hp}]
+let tqCurve = [];  // [{rpm, tq}]
+let peakHP = 0, peakHPrpm = 0, peakTQ = 0, peakTQrpm = 0;
+
+// History
+let runs = JSON.parse(localStorage.getItem('dyno-runs') || '[]');
+
+// ============================================================
+//  GEAR DETECTION
+// ============================================================
+function calcGear(rpm, speed){
+  if(speed < 5 || rpm < 800) return 0;
+  const tireCirc = (cfg.tire * Math.PI) / 12;
+  let best=0, bestD=Infinity;
+  for(let g=0;g<6;g++){
+    const exp = (rpm*tireCirc*60)/(GEAR_RATIOS[g]*FINAL_DRIVE*5280);
+    const d = Math.abs(exp-speed);
+    if(d<bestD){bestD=d;best=g+1;}
+  }
+  return best;
+}
+
+// ============================================================
+//  PHYSICS — HP/TQ from acceleration
+// ============================================================
+function computeCurves(){
+  if(runData.length < 10) return;
+
+  const totalMass = cfg.weight + cfg.driver; // lbs
+  const massKg = totalMass * 0.4536;
+  const tireCirc = (cfg.tire * Math.PI) / 12; // ft
+
+  // Smooth the data first
+  const smoothed = [];
+  const windowSize = 5;
+  for(let i=0; i<runData.length; i++){
+    let sumRPM=0, sumSpd=0, cnt=0;
+    for(let j=Math.max(0,i-windowSize); j<=Math.min(runData.length-1,i+windowSize); j++){
+      sumRPM+=runData[j].rpm; sumSpd+=runData[j].speed; cnt++;
+    }
+    smoothed.push({ t:runData[i].t, rpm:sumRPM/cnt, speed:sumSpd/cnt });
+  }
+
+  hpCurve = [];
+  tqCurve = [];
+
+  for(let i=1; i<smoothed.length; i++){
+    const dt = (smoothed[i].t - smoothed[i-1].t) / 1000; // seconds
+    if(dt <= 0 || dt > 1) continue;
+
+    const dv = (smoothed[i].speed - smoothed[i-1].speed) * 5280/3600; // ft/s
+    const accel = dv / dt; // ft/s²
+
+    const speedFtS = ((smoothed[i].speed + smoothed[i-1].speed)/2) * 5280/3600;
+    const rpm = (smoothed[i].rpm + smoothed[i-1].rpm) / 2;
+
+    // Aero drag force: F = 0.5 * rho * Cd * A * v²
+    const dragForce = 0.5 * AIR_DENSITY * cfg.cd * cfg.area * speedFtS * speedFtS;
+
+    // Rolling resistance: ~0.015 * weight
+    const rollForce = totalMass * 0.015;
+
+    // Total force at wheels: F = ma + drag + rolling
+    const accelForce = (totalMass / 32.174) * accel; // F=ma (mass in slugs)
+    const wheelForce = accelForce + dragForce + rollForce;
+
+    // Wheel power: P = F * v
+    const wheelPowerFtLbS = wheelForce * speedFtS;
+    const wheelHP = wheelPowerFtLbS / 550;
+
+    // Wheel torque: T = F * tire_radius
+    const tireRadiusFt = (cfg.tire / 2) / 12;
+    // Torque at the engine = wheel_force * tire_radius / (gear_ratio * final_drive)
+    const gear = calcGear(rpm, (smoothed[i].speed+smoothed[i-1].speed)/2);
+    const gearRatio = gear > 0 ? GEAR_RATIOS[gear-1] * FINAL_DRIVE : GEAR_RATIOS[2] * FINAL_DRIVE;
+    const engineTorque = (wheelForce * tireRadiusFt) / gearRatio;
+
+    if(wheelHP > 0 && wheelHP < 500 && rpm > 1500 && rpm < 9000){
+      hpCurve.push({ rpm:Math.round(rpm), hp:wheelHP });
+      tqCurve.push({ rpm:Math.round(rpm), tq:engineTorque });
+    }
+  }
+
+  // Sort by RPM and smooth into bins
+  hpCurve.sort((a,b) => a.rpm-b.rpm);
+  tqCurve.sort((a,b) => a.rpm-b.rpm);
+
+  // Bin into 250 RPM steps
+  const binSize = 250;
+  const hpBinned = [], tqBinned = [];
+
+  for(let rpm=1500; rpm<=8500; rpm+=binSize){
+    const hpInBin = hpCurve.filter(p => p.rpm >= rpm && p.rpm < rpm+binSize);
+    const tqInBin = tqCurve.filter(p => p.rpm >= rpm && p.rpm < rpm+binSize);
+    if(hpInBin.length > 0){
+      const avgHP = hpInBin.reduce((s,p)=>s+p.hp,0)/hpInBin.length;
+      const avgTQ = tqInBin.reduce((s,p)=>s+p.tq,0)/tqInBin.length;
+      hpBinned.push({ rpm:rpm+binSize/2, hp:avgHP });
+      tqBinned.push({ rpm:rpm+binSize/2, tq:avgTQ });
+    }
+  }
+
+  hpCurve = hpBinned;
+  tqCurve = tqBinned;
+
+  // Find peaks
+  peakHP=0; peakHPrpm=0; peakTQ=0; peakTQrpm=0;
+  hpCurve.forEach(p => { if(p.hp>peakHP){ peakHP=p.hp; peakHPrpm=p.rpm; } });
+  tqCurve.forEach(p => { if(p.tq>peakTQ){ peakTQ=p.tq; peakTQrpm=p.rpm; } });
+}
+
+// ============================================================
+//  RUN CONTROLS
+// ============================================================
+function startRun(){
+  if(runState === 'recording') return;
+  runData = [];
+  hpCurve = []; tqCurve = [];
+  peakHP=0; peakHPrpm=0; peakTQ=0; peakTQrpm=0;
+  runState = 'waiting';
+  setStatus('FLOOR IT — WAITING FOR WOT (RPM > 3000)', '#ffcc00');
+  document.getElementById('btn-run').textContent = 'WAITING...';
+  document.getElementById('btn-run').className = 'ctrl-btn active';
+  document.getElementById('run-label').textContent = 'WAITING';
+}
+
+function setStatus(text, color){
+  const el = document.getElementById('status-text');
+  el.textContent = text;
+  el.style.color = color || '#ffffff33';
+}
+
+function clearRun(){
+  runState = 'idle';
+  runData = []; hpCurve = []; tqCurve = [];
+  peakHP=0; peakHPrpm=0; peakTQ=0; peakTQrpm=0;
+  document.getElementById('btn-run').textContent = 'START RUN';
+  document.getElementById('btn-run').className = 'ctrl-btn primary';
+  document.getElementById('run-label').textContent = 'READY';
+  setStatus('READY — TAP START RUN', '#ffffff33');
+  updatePeaks();
+  updateStats();
+  drawChart();
+}
+
+function finishRun(){
+  runState = 'done';
+  computeCurves();
+  updatePeaks();
+  updateStats();
+
+  document.getElementById('btn-run').textContent = 'START RUN';
+  document.getElementById('btn-run').className = 'ctrl-btn primary';
+  document.getElementById('run-label').textContent = 'COMPLETE';
+  setStatus('RUN COMPLETE — ' + Math.round(peakHP) + ' WHP / ' + Math.round(peakTQ) + ' LB-FT', '#00cc44');
+
+  // Save to history
+  if(peakHP > 0){
+    runs.unshift({
+      time: new Date().toLocaleTimeString(),
+      date: new Date().toLocaleDateString(),
+      hp: Math.round(peakHP),
+      hpRPM: peakHPrpm,
+      tq: Math.round(peakTQ),
+      tqRPM: peakTQrpm,
+      hpCurve: hpCurve.map(p=>({rpm:p.rpm,hp:Math.round(p.hp*10)/10})),
+      tqCurve: tqCurve.map(p=>({rpm:p.rpm,tq:Math.round(p.tq*10)/10}))
+    });
+    if(runs.length > 10) runs.pop();
+    localStorage.setItem('dyno-runs', JSON.stringify(runs));
+    renderHistory();
+  }
+}
+
+function updatePeaks(){
+  document.getElementById('peak-hp').textContent = peakHP > 0 ? Math.round(peakHP) : '—';
+  document.getElementById('peak-hp-rpm').textContent = peakHP > 0 ? peakHPrpm : '—';
+  document.getElementById('peak-tq').textContent = peakTQ > 0 ? Math.round(peakTQ) : '—';
+  document.getElementById('peak-tq-rpm').textContent = peakTQ > 0 ? peakTQrpm : '—';
+}
+
+function updateStats(){
+  if(runData.length < 2){
+    ['st-range','st-speed','st-dur','st-pts','st-avghp'].forEach(id => document.getElementById(id).textContent='—');
+    return;
+  }
+  const rpms = runData.map(d=>d.rpm);
+  const spds = runData.map(d=>d.speed);
+  document.getElementById('st-range').textContent = Math.round(Math.min(...rpms))+' - '+Math.round(Math.max(...rpms));
+  document.getElementById('st-speed').textContent = Math.round(Math.min(...spds))+' - '+Math.round(Math.max(...spds))+' mph';
+  document.getElementById('st-dur').textContent = ((runData[runData.length-1].t-runData[0].t)/1000).toFixed(1)+'s';
+  document.getElementById('st-pts').textContent = runData.length;
+  if(hpCurve.length > 0){
+    const avg = hpCurve.reduce((s,p)=>s+p.hp,0)/hpCurve.length;
+    document.getElementById('st-avghp').textContent = Math.round(avg)+' whp';
+  }
+}
+
+// ============================================================
+//  RECORDING LOGIC
+// ============================================================
+function recordTick(){
+  if(runState === 'waiting'){
+    // Wait for RPM > 3000 to start
+    if(currentRPM > 3000 && currentSpeed > 10){
+      runState = 'recording';
+      runStartTime = performance.now();
+      setStatus('RECORDING — HOLD WOT TO REDLINE', '#ff4444');
+      document.getElementById('btn-run').textContent = 'RECORDING';
+      document.getElementById('btn-run').className = 'ctrl-btn recording';
+      document.getElementById('run-label').textContent = 'RECORDING';
+    }
+  }
+
+  if(runState === 'recording'){
+    runData.push({
+      t: performance.now() - runStartTime,
+      rpm: currentRPM,
+      speed: currentSpeed
+    });
+
+    // Auto-stop conditions: RPM drops significantly (lifted off) or reached redline and dropping
+    if(runData.length > 20){
+      const recentRPM = runData.slice(-5).map(d=>d.rpm);
+      const maxRecentRPM = Math.max(...runData.slice(-20).map(d=>d.rpm));
+      const curAvgRPM = recentRPM.reduce((s,v)=>s+v,0)/recentRPM.length;
+
+      // Stop if RPM dropped more than 500 from recent max (lifted off)
+      if(maxRecentRPM > 4000 && curAvgRPM < maxRecentRPM - 800){
+        finishRun();
+        return;
+      }
+    }
+
+    // Safety timeout — 20 seconds max
+    if(runData.length > 0 && runData[runData.length-1].t > 20000){
+      finishRun();
+    }
+
+    // Live compute every 10 samples for real-time chart
+    if(runData.length % 10 === 0){
+      computeCurves();
+      updatePeaks();
+    }
+  }
+}
+
+// ============================================================
+//  CHART
+// ============================================================
+const canvas = document.getElementById('dyno-canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize(){
+  const dpr = window.devicePixelRatio || 1;
+  const wrap = canvas.parentElement;
+  W = wrap.offsetWidth; H = wrap.offsetHeight;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  ctx.scale(dpr,dpr);
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+}
+
+function drawChart(){
+  if(!W) resize();
+  ctx.clearRect(0,0,W,H);
+
+  const pad = {l:60, r:60, t:30, b:50};
+  const gw = W-pad.l-pad.r, gh = H-pad.t-pad.b;
+
+  const rpmMin = 1500, rpmMax = 8500;
+  const hpMax = Math.max(250, peakHP*1.2, 200);
+  const tqMax = Math.max(200, peakTQ*1.2, 160);
+
+  // Grid
+  ctx.strokeStyle='#ffffff06'; ctx.lineWidth=0.5;
+  for(let i=0;i<=8;i++){
+    const x = pad.l + (i/8)*gw;
+    ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+gh); ctx.stroke();
+    // RPM labels
+    const rpm = rpmMin + (i/8)*(rpmMax-rpmMin);
+    ctx.fillStyle='#ffffff33'; ctx.font='9px Share Tech Mono'; ctx.textAlign='center';
+    ctx.fillText(Math.round(rpm), x, pad.t+gh+16);
+  }
+  for(let i=0;i<=5;i++){
+    const y = pad.t + (i/5)*gh;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+gw,y); ctx.stroke();
+    // HP scale (left)
+    const hpVal = hpMax*(1-i/5);
+    ctx.fillStyle='#cc220088'; ctx.font='9px Share Tech Mono'; ctx.textAlign='right';
+    ctx.fillText(Math.round(hpVal), pad.l-8, y+3);
+    // TQ scale (right)
+    const tqVal = tqMax*(1-i/5);
+    ctx.fillStyle='#4488ff88'; ctx.textAlign='left';
+    ctx.fillText(Math.round(tqVal), pad.l+gw+8, y+3);
+  }
+
+  // Axis labels
+  ctx.fillStyle='#ffffff33'; ctx.font='10px Share Tech Mono'; ctx.textAlign='center';
+  ctx.fillText('RPM', pad.l+gw/2, pad.t+gh+38);
+  // Left axis
+  ctx.save(); ctx.translate(14, pad.t+gh/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#cc220088'; ctx.fillText('WHEEL HP', 0, 0); ctx.restore();
+  // Right axis
+  ctx.save(); ctx.translate(W-10, pad.t+gh/2); ctx.rotate(Math.PI/2);
+  ctx.fillStyle='#4488ff88'; ctx.fillText('TORQUE (LB-FT)', 0, 0); ctx.restore();
+
+  // VTEC line
+  const vtecX = pad.l + ((5800-rpmMin)/(rpmMax-rpmMin))*gw;
+  ctx.beginPath(); ctx.moveTo(vtecX,pad.t); ctx.lineTo(vtecX,pad.t+gh);
+  ctx.strokeStyle='#4488ff22'; ctx.lineWidth=1; ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#4488ff33'; ctx.font='8px Share Tech Mono'; ctx.textAlign='center';
+  ctx.fillText('VTEC', vtecX, pad.t-6);
+
+  // Redline
+  const rlX = pad.l + ((8000-rpmMin)/(rpmMax-rpmMin))*gw;
+  ctx.fillStyle='rgba(255,0,0,0.03)';
+  ctx.fillRect(rlX, pad.t, pad.l+gw-rlX, gh);
+
+  // Draw HP curve
+  if(hpCurve.length > 1){
+    ctx.beginPath();
+    ctx.strokeStyle='#cc2200'; ctx.lineWidth=2.5;
+    ctx.shadowColor='#cc2200'; ctx.shadowBlur=6;
+    hpCurve.forEach((p,i) => {
+      const x = pad.l + ((p.rpm-rpmMin)/(rpmMax-rpmMin))*gw;
+      const y = pad.t + (1-p.hp/hpMax)*gh;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke(); ctx.shadowBlur=0;
+
+    // HP fill
+    ctx.lineTo(pad.l+((hpCurve[hpCurve.length-1].rpm-rpmMin)/(rpmMax-rpmMin))*gw, pad.t+gh);
+    ctx.lineTo(pad.l+((hpCurve[0].rpm-rpmMin)/(rpmMax-rpmMin))*gw, pad.t+gh);
+    ctx.closePath();
+    ctx.fillStyle='rgba(204,34,0,0.06)'; ctx.fill();
+  }
+
+  // Draw TQ curve
+  if(tqCurve.length > 1){
+    ctx.beginPath();
+    ctx.strokeStyle='#4488ff'; ctx.lineWidth=2.5;
+    ctx.shadowColor='#4488ff'; ctx.shadowBlur=6;
+    tqCurve.forEach((p,i) => {
+      const x = pad.l + ((p.rpm-rpmMin)/(rpmMax-rpmMin))*gw;
+      const y = pad.t + (1-p.tq/tqMax)*gh;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke(); ctx.shadowBlur=0;
+
+    // TQ fill
+    ctx.lineTo(pad.l+((tqCurve[tqCurve.length-1].rpm-rpmMin)/(rpmMax-rpmMin))*gw, pad.t+gh);
+    ctx.lineTo(pad.l+((tqCurve[0].rpm-rpmMin)/(rpmMax-rpmMin))*gw, pad.t+gh);
+    ctx.closePath();
+    ctx.fillStyle='rgba(68,136,255,0.04)'; ctx.fill();
+  }
+
+  // Peak markers
+  if(peakHP > 0){
+    const px = pad.l + ((peakHPrpm-rpmMin)/(rpmMax-rpmMin))*gw;
+    const py = pad.t + (1-peakHP/hpMax)*gh;
+    ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2);
+    ctx.fillStyle='#cc2200'; ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle='#ffffffcc'; ctx.font='bold 10px Orbitron'; ctx.textAlign='left';
+    ctx.fillText(Math.round(peakHP)+' HP', px+10, py-6);
+    ctx.fillStyle='#ffffff66'; ctx.font='8px Share Tech Mono';
+    ctx.fillText('@ '+peakHPrpm+' RPM', px+10, py+6);
+  }
+
+  if(peakTQ > 0){
+    const px = pad.l + ((peakTQrpm-rpmMin)/(rpmMax-rpmMin))*gw;
+    const py = pad.t + (1-peakTQ/tqMax)*gh;
+    ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2);
+    ctx.fillStyle='#4488ff'; ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle='#ffffffcc'; ctx.font='bold 10px Orbitron'; ctx.textAlign='right';
+    ctx.fillText(Math.round(peakTQ)+' TQ', px-10, py-6);
+    ctx.fillStyle='#ffffff66'; ctx.font='8px Share Tech Mono';
+    ctx.fillText('@ '+peakTQrpm+' RPM', px-10, py+6);
+  }
+
+  // Live RPM cursor
+  if(currentRPM > 1000){
+    const lx = pad.l + ((currentRPM-rpmMin)/(rpmMax-rpmMin))*gw;
+    ctx.beginPath(); ctx.moveTo(lx,pad.t); ctx.lineTo(lx,pad.t+gh);
+    ctx.strokeStyle='#ffffff22'; ctx.lineWidth=1; ctx.setLineDash([2,4]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // Legend
+  ctx.fillStyle='#cc2200'; ctx.font='10px Share Tech Mono'; ctx.textAlign='left';
+  ctx.fillText('— HP', pad.l+10, pad.t+16);
+  ctx.fillStyle='#4488ff';
+  ctx.fillText('— TORQUE', pad.l+60, pad.t+16);
+
+  // "No data" message
+  if(hpCurve.length === 0 && runState === 'idle'){
+    ctx.fillStyle='#ffffff15'; ctx.font='16px Share Tech Mono'; ctx.textAlign='center';
+    ctx.fillText('TAP START RUN → FLOOR IT IN 3RD GEAR', W/2, H/2);
+    ctx.font='11px Share Tech Mono';
+    ctx.fillText('HP and torque curves will appear here', W/2, H/2+24);
+  }
+}
+
+// ============================================================
+//  HISTORY
+// ============================================================
+function renderHistory(){
+  const list = document.getElementById('history-list');
+  list.innerHTML = '';
+  runs.forEach((r, i) => {
+    const div = document.createElement('div');
+    div.className = 'history-entry';
+    div.innerHTML = `<div class="history-date">${r.date||''} ${r.time}</div><div class="history-stats">${r.hp} WHP @ ${r.hpRPM} | ${r.tq} LB-FT @ ${r.tqRPM}</div>`;
+    div.onclick = () => loadHistoryRun(i);
+    list.appendChild(div);
+  });
+}
+
+function loadHistoryRun(idx){
+  const r = runs[idx];
+  hpCurve = r.hpCurve || [];
+  tqCurve = r.tqCurve || [];
+  peakHP = r.hp; peakHPrpm = r.hpRPM;
+  peakTQ = r.tq; peakTQrpm = r.tqRPM;
+  runState = 'done';
+  updatePeaks();
+  setStatus('LOADED RUN — ' + r.hp + ' WHP / ' + r.tq + ' LB-FT', '#ff8844');
+  document.querySelectorAll('.history-entry').forEach((el,i) => el.classList.toggle('active',i===idx));
+  drawChart();
+}
+
+// ============================================================
+//  OBD2 BRIDGE
+// ============================================================
+function updateFromFlashPro(data){
+  connected = true;
+  document.getElementById('conn-dot').classList.add('live');
+  document.getElementById('conn-status').textContent = 'CONNECTED';
+  if(data.rpm !== undefined) currentRPM = data.rpm;
+  if(data.speed !== undefined) currentSpeed = data.speed;
+}
+
+function updateConnectionStatus(s){
+  const dot = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-status');
+  if(s==='CONNECTED'){dot.classList.add('live');label.textContent='CONNECTED';connected=true;}
+  else{dot.classList.remove('live');label.textContent=s;connected=false;}
+}
+
+// ============================================================
+//  SIMULATION — WOT pull
+// ============================================================
+let simState = 'idle', simT = 0, simGear = 3, simRPM = 850, simSpeed = 30;
+
+function simTick(){
+  simT++;
+
+  // If a run is active, simulate a WOT pull
+  if(runState === 'waiting' || runState === 'recording'){
+    if(simState !== 'pull'){
+      simState = 'pull';
+      simRPM = 2500;
+      simSpeed = 30;
+      simGear = 3;
+    }
+
+    // K20Z3 WOT in 3rd gear
+    const gearRatio = GEAR_RATIOS[simGear-1] * FINAL_DRIVE;
+    const tireCirc = (cfg.tire * Math.PI) / 12;
+
+    // Torque curve
+    let tq;
+    if(simRPM < 2000) tq = 95;
+    else if(simRPM < 3500) tq = 95 + (simRPM-2000)/1500 * 25;
+    else if(simRPM < 5800) tq = 120 + (simRPM-3500)/2300 * 10;
+    else if(simRPM < 6200) tq = 130 + (simRPM-5800)/400 * 9;
+    else if(simRPM < 7200) tq = 139;
+    else tq = 139 - (simRPM-7200)/1000 * 15;
+
+    const totalMass = cfg.weight + cfg.driver;
+    const wheelForce = tq * gearRatio / ((cfg.tire/2)/12);
+    const speedFtS = simSpeed * 5280/3600;
+    const drag = 0.5 * AIR_DENSITY * cfg.cd * cfg.area * speedFtS * speedFtS;
+    const roll = totalMass * 0.015;
+    const netForce = wheelForce - drag - roll;
+    const accel = (netForce / (totalMass / 32.174));
+    const dv = accel * 0.05; // dt = 50ms
+    simSpeed += dv * 3600/5280;
+    simRPM = (simSpeed * 5280/3600) / tireCirc * 60 * GEAR_RATIOS[simGear-1] * FINAL_DRIVE;
+
+    // Add some noise for realism
+    currentRPM = simRPM + (Math.random()-0.5)*30;
+    currentSpeed = simSpeed + (Math.random()-0.5)*0.3;
+
+    // End pull at redline
+    if(simRPM > 8200){
+      simRPM -= 200; // start dropping = lift off
+      currentRPM = simRPM;
+    }
+  } else {
+    // Idle
+    simRPM += (850 - simRPM) * 0.05 + (Math.random()-0.5)*20;
+    simSpeed += (0 - simSpeed) * 0.05;
+    currentRPM = Math.max(700, simRPM);
+    currentSpeed = Math.max(0, simSpeed);
+    simState = 'idle';
+  }
+
+  currentGear = calcGear(currentRPM, currentSpeed);
+}
+
+// ============================================================
+//  MAIN LOOP
+// ============================================================
+function tick(){
+  if(!connected) simTick();
+  recordTick();
+
+  // HUD
+  document.getElementById('hud-rpm').textContent = Math.round(currentRPM) + ' RPM';
+  document.getElementById('hud-spd').textContent = Math.round(currentSpeed) + ' MPH';
+  document.getElementById('hud-gear').textContent = 'GEAR: ' + (currentGear===0?'N':currentGear);
+}
+
+function render(){
+  drawChart();
+  requestAnimationFrame(render);
+}
+
+loadConfig();
+resize();
+renderHistory();
+setInterval(tick, 50);
+render();
+window.addEventListener('resize', () => { resize(); drawChart(); });
+</script>
+</body>
+</html>

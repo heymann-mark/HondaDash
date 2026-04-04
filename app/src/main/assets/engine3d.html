@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; color:#ccc; }
+
+/* STATUS BAR */
+.status-bar { position:fixed; top:0; left:0; right:0; height:28px; background:#0d0d0d; border-bottom:1px solid #ffffff0d; display:flex; align-items:center; padding:0 12px; gap:16px; z-index:10; }
+.status-dot { width:8px; height:8px; border-radius:50%; background:#333; flex-shrink:0; }
+.status-dot.live { background:#00cc44; box-shadow:0 0 8px #00cc44; }
+.status-label { font-size:10px; color:#ffffff55; letter-spacing:2px; }
+.status-val { font-size:10px; color:#ffffffaa; letter-spacing:1px; }
+.status-spacer { flex:1; }
+.status-tag { font-size:9px; color:#cc2200; letter-spacing:2px; border:1px solid #cc220033; padding:1px 6px; }
+
+/* MAIN LAYOUT */
+.main { position:fixed; top:28px; left:0; right:0; bottom:0; display:grid; grid-template-columns:200px 1fr; }
+
+/* LEFT PANEL */
+.info-panel { background:#0d0d0d; border-right:1px solid #ffffff0d; display:flex; flex-direction:column; overflow-y:auto; }
+.panel-section { padding:10px 14px; border-bottom:1px solid #ffffff08; }
+.panel-title { font-size:9px; color:#ffffff44; letter-spacing:2px; margin-bottom:6px; }
+.panel-val { font-family:'Orbitron',monospace; font-size:24px; font-weight:700; line-height:1.1; }
+.panel-sub { font-size:8px; color:#ffffff33; letter-spacing:1px; margin-top:3px; }
+.panel-bar { height:3px; background:#ffffff0a; margin-top:6px; border-radius:1px; }
+.panel-fill { height:3px; border-radius:1px; transition:width 0.15s; }
+
+/* CELL INFO */
+.cell-info { padding:10px 14px; border-bottom:1px solid #ffffff08; }
+.cell-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; margin-top:6px; }
+.cell-label { font-size:8px; color:#ffffff33; letter-spacing:1px; }
+.cell-val { font-size:12px; font-family:'Orbitron',monospace; color:#ff6644; }
+
+/* CONTROLS */
+.ctrl-row { display:flex; gap:6px; padding:8px 14px; border-bottom:1px solid #ffffff08; flex-wrap:wrap; }
+.ctrl-btn { background:transparent; border:1px solid #ffffff15; color:#ffffff44; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; padding:3px 8px; cursor:pointer; transition:all 0.15s; }
+.ctrl-btn:hover { border-color:#cc2200; color:#cc2200; }
+.ctrl-btn.active { border-color:#cc2200; color:#cc2200; background:rgba(204,34,0,0.1); }
+
+/* LEGEND */
+.legend { padding:10px 14px; }
+.legend-title { font-size:8px; color:#ffffff33; letter-spacing:2px; margin-bottom:6px; }
+.legend-bar { height:12px; border-radius:2px; margin-bottom:4px; }
+.legend-labels { display:flex; justify-content:space-between; font-size:8px; color:#ffffff44; }
+
+/* 3D CANVAS */
+.canvas-wrap { position:relative; }
+#fuel-canvas { width:100%; height:100%; display:block; }
+
+/* HUD OVERLAY */
+.hud-overlay { position:absolute; top:8px; left:12px; pointer-events:none; z-index:2; }
+.hud-line { font-size:10px; color:#ffffff44; letter-spacing:1px; margin-bottom:2px; }
+.hud-line span { color:#ffffffaa; }
+
+/* TRACER INFO */
+.tracer-hud { position:absolute; bottom:12px; left:12px; pointer-events:none; z-index:2; background:rgba(10,10,10,0.85); border:1px solid #cc220033; padding:8px 12px; border-radius:2px; }
+.tracer-hud .th-label { font-size:8px; color:#cc220088; letter-spacing:2px; margin-bottom:4px; }
+.tracer-hud .th-row { font-size:11px; color:#ff8866; letter-spacing:1px; margin-bottom:2px; }
+.tracer-hud .th-row span { color:#ffffffaa; }
+
+/* AXIS LABELS */
+.axis-label { position:absolute; font-size:9px; color:#ffffff33; letter-spacing:2px; pointer-events:none; z-index:2; }
+.axis-x { bottom:40px; left:50%; transform:translateX(-50%); }
+.axis-y { bottom:40px; right:20px; }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-dot" id="conn-dot"></div>
+  <span class="status-label">OBD2</span>
+  <span class="status-val" id="conn-status">SIMULATED</span>
+  <div class="status-spacer"></div>
+  <span class="status-label" id="map-label">K20Z3 FUEL MAP</span>
+  <div class="status-tag">3D ENGINE</div>
+</div>
+
+<div class="main">
+  <!-- LEFT PANEL -->
+  <div class="info-panel">
+    <!-- RPM -->
+    <div class="panel-section">
+      <div class="panel-title">RPM</div>
+      <div class="panel-val" id="val-rpm" style="color:#cc2200;">0</div>
+      <div class="panel-bar"><div class="panel-fill" id="bar-rpm" style="background:#cc2200;width:0%"></div></div>
+    </div>
+
+    <!-- MAP -->
+    <div class="panel-section">
+      <div class="panel-title">MAP (kPa)</div>
+      <div class="panel-val" id="val-map" style="color:#4488ff;">0</div>
+      <div class="panel-bar"><div class="panel-fill" id="bar-map" style="background:#4488ff;width:0%"></div></div>
+    </div>
+
+    <!-- TPS -->
+    <div class="panel-section">
+      <div class="panel-title">THROTTLE %</div>
+      <div class="panel-val" id="val-tps" style="color:#ff8844;">0</div>
+      <div class="panel-bar"><div class="panel-fill" id="bar-tps" style="background:#ff8844;width:0%"></div></div>
+    </div>
+
+    <!-- AFR -->
+    <div class="panel-section">
+      <div class="panel-title">AFR</div>
+      <div class="panel-val" id="val-afr" style="color:#00cc88;">14.7</div>
+      <div class="panel-sub">TARGET 14.7</div>
+    </div>
+
+    <!-- CELL INFO -->
+    <div class="cell-info">
+      <div class="panel-title">CURRENT CELL</div>
+      <div class="cell-grid">
+        <div><div class="cell-label">RPM BIN</div><div class="cell-val" id="cell-rpm">—</div></div>
+        <div><div class="cell-label">MAP BIN</div><div class="cell-val" id="cell-map">—</div></div>
+        <div><div class="cell-label">FUEL VAL</div><div class="cell-val" id="cell-fuel">—</div></div>
+        <div><div class="cell-label">ZONE</div><div class="cell-val" id="cell-zone">—</div></div>
+      </div>
+    </div>
+
+    <!-- VIEW CONTROLS -->
+    <div class="ctrl-row">
+      <button class="ctrl-btn active" id="btn-orbit" onclick="setView('orbit')">ORBIT</button>
+      <button class="ctrl-btn" id="btn-top" onclick="setView('top')">TOP</button>
+      <button class="ctrl-btn" id="btn-front" onclick="setView('front')">FRONT</button>
+      <button class="ctrl-btn" id="btn-side" onclick="setView('side')">SIDE</button>
+    </div>
+    <div class="ctrl-row">
+      <button class="ctrl-btn active" id="btn-surface" onclick="toggleSurface()">SURFACE</button>
+      <button class="ctrl-btn active" id="btn-wireframe" onclick="toggleWireframe()">WIRE</button>
+      <button class="ctrl-btn active" id="btn-tracer" onclick="toggleTracer()">TRACER</button>
+    </div>
+    <div class="ctrl-row">
+      <button class="ctrl-btn" id="btn-trail" onclick="toggleTrail()">TRAIL</button>
+      <button class="ctrl-btn" id="btn-rotate" onclick="toggleAutoRotate()">AUTO ROT</button>
+    </div>
+    <div class="ctrl-row">
+      <button class="ctrl-btn" id="btn-afr" onclick="toggleAfrOverlay()">AFR OVERLAY</button>
+      <button class="ctrl-btn" id="btn-afr-clear" onclick="clearAfrData()">CLR AFR</button>
+    </div>
+
+    <!-- AFR DEVIATION INFO -->
+    <div class="cell-info" id="afr-info" style="display:none;">
+      <div class="panel-title">AFR DEVIATION</div>
+      <div class="cell-grid">
+        <div><div class="cell-label">TARGET</div><div class="cell-val" id="afr-target" style="color:#00cc88;">—</div></div>
+        <div><div class="cell-label">ACTUAL</div><div class="cell-val" id="afr-actual" style="color:#ff8844;">—</div></div>
+        <div><div class="cell-label">DELTA</div><div class="cell-val" id="afr-delta">—</div></div>
+        <div><div class="cell-label">SAMPLES</div><div class="cell-val" id="afr-samples" style="color:#ffffff55;">0</div></div>
+      </div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend" id="legend-fuel">
+      <div class="legend-title">FUEL VALUE</div>
+      <div class="legend-bar" style="background:linear-gradient(to right, #0044ff, #00ccff, #00ff88, #ffcc00, #ff4400, #ff0044);"></div>
+      <div class="legend-labels"><span>LEAN</span><span>STOICH</span><span>RICH</span></div>
+    </div>
+    <div class="legend" id="legend-afr" style="display:none;">
+      <div class="legend-title">AFR DEVIATION</div>
+      <div class="legend-bar" style="background:linear-gradient(to right, #4444ff, #2288ff, #00cc88, #ffcc00, #ff4400);"></div>
+      <div class="legend-labels"><span>RICH -2.0</span><span>ON TARGET</span><span>LEAN +2.0</span></div>
+      <div style="font-size:7px;color:#ffffff22;margin-top:4px;">Gray = no data collected</div>
+    </div>
+  </div>
+
+  <!-- 3D CANVAS -->
+  <div class="canvas-wrap">
+    <canvas id="fuel-canvas"></canvas>
+
+    <div class="hud-overlay">
+      <div class="hud-line">RPM: <span id="hud-rpm">0</span> | MAP: <span id="hud-map">0</span> kPa</div>
+      <div class="hud-line">FUEL: <span id="hud-fuel">—</span> | ZONE: <span id="hud-zone">—</span></div>
+      <div class="hud-line" id="hud-afr-line" style="display:none;">AFR: <span id="hud-afr">—</span> TARGET: <span id="hud-afr-target">—</span> <span id="hud-afr-delta" style="color:#00cc88;">—</span></div>
+    </div>
+
+    <div class="tracer-hud" id="tracer-hud">
+      <div class="th-label">TRACER</div>
+      <div class="th-row">RPM <span id="tr-rpm">0</span></div>
+      <div class="th-row">MAP <span id="tr-map">0</span> kPa</div>
+      <div class="th-row">FUEL <span id="tr-fuel">—</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  K20Z3 FUEL MAP DATA
+//  16x16 grid: RPM (cols) x MAP/Load (rows)
+//  Values represent injector pulse width multiplier (approx)
+// ============================================================
+const RPM_BINS  = [750, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000];
+const MAP_BINS  = [20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 140, 160, 180, 200, 230];
+
+// Fuel map values (16x16) — row = MAP index, col = RPM index
+// Inspired by typical K20Z3 calibration: lean at cruise, stoich midrange, rich at WOT/high load
+const FUEL_MAP = [
+  // 20kPa (vacuum/decel)
+  [2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.5, 3.6, 3.6, 3.7, 3.7, 3.8, 3.8, 3.9],
+  // 30kPa
+  [3.2, 3.4, 3.6, 3.8, 4.0, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5.0, 5.1],
+  // 40kPa
+  [3.8, 4.0, 4.3, 4.6, 4.9, 5.1, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 6.0, 6.1, 6.2],
+  // 50kPa (light cruise)
+  [4.4, 4.7, 5.1, 5.5, 5.8, 6.0, 6.2, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 7.0, 7.1, 7.2],
+  // 60kPa
+  [5.0, 5.4, 5.9, 6.3, 6.7, 7.0, 7.2, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9, 8.0, 8.1, 8.2],
+  // 70kPa (part throttle)
+  [5.6, 6.1, 6.7, 7.2, 7.6, 7.9, 8.1, 8.3, 8.5, 8.6, 8.7, 8.8, 8.9, 9.0, 9.1, 9.2],
+  // 80kPa
+  [6.2, 6.8, 7.5, 8.0, 8.5, 8.8, 9.1, 9.3, 9.5, 9.6, 9.7, 9.8, 9.9,10.0,10.1,10.2],
+  // 90kPa (near atmospheric)
+  [6.8, 7.5, 8.3, 8.9, 9.4, 9.8,10.1,10.3,10.5,10.6,10.7,10.8,10.9,11.0,11.1,11.2],
+  // 100kPa (atmospheric)
+  [7.5, 8.2, 9.1, 9.8,10.3,10.7,11.0,11.3,11.5,11.6,11.7,11.8,11.9,12.0,12.1,12.2],
+  // 110kPa
+  [8.0, 8.8, 9.8,10.5,11.1,11.5,11.9,12.2,12.4,12.6,12.7,12.8,12.9,13.0,13.1,13.2],
+  // 120kPa
+  [8.5, 9.4,10.4,11.2,11.8,12.3,12.7,13.0,13.3,13.5,13.6,13.8,13.9,14.0,14.1,14.2],
+  // 140kPa (boosted)
+  [9.2,10.2,11.3,12.2,12.9,13.4,13.9,14.3,14.6,14.8,15.0,15.2,15.3,15.5,15.6,15.7],
+  // 160kPa
+  [9.8,10.9,12.1,13.1,13.9,14.5,15.0,15.4,15.8,16.1,16.3,16.5,16.7,16.9,17.0,17.2],
+  // 180kPa
+  [10.4,11.6,12.9,14.0,14.9,15.6,16.1,16.6,17.0,17.3,17.6,17.8,18.0,18.2,18.4,18.6],
+  // 200kPa
+  [11.0,12.3,13.7,14.9,15.9,16.6,17.2,17.7,18.1,18.5,18.8,19.1,19.3,19.5,19.7,19.9],
+  // 230kPa (max boost)
+  [11.8,13.2,14.7,16.0,17.0,17.8,18.5,19.0,19.5,19.9,20.2,20.5,20.8,21.0,21.2,21.5],
+];
+
+const FUEL_MIN = 2.8;
+const FUEL_MAX = 21.5;
+
+// ============================================================
+//  AFR TARGET MAP — what AFR should be at each RPM/MAP cell
+//  K20Z3: stoich at cruise, rich at WOT for safety
+// ============================================================
+const AFR_TARGET = [
+  // 20kPa (decel — lean/fuel cut)
+  [16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0],
+  // 30kPa
+  [15.5,15.5,15.2,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0],
+  // 40kPa
+  [15.0,15.0,14.9,14.8,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7],
+  // 50kPa (light cruise)
+  [14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7],
+  // 60kPa
+  [14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7,14.7],
+  // 70kPa (part throttle)
+  [14.7,14.7,14.7,14.5,14.3,14.0,13.8,13.5,13.5,13.5,13.5,13.5,13.5,13.5,13.5,13.5],
+  // 80kPa
+  [14.5,14.5,14.3,14.0,13.5,13.2,13.0,12.8,12.8,12.8,12.8,12.8,12.8,12.8,12.8,12.8],
+  // 90kPa
+  [14.0,14.0,13.8,13.5,13.0,12.8,12.5,12.3,12.3,12.3,12.3,12.3,12.3,12.3,12.3,12.3],
+  // 100kPa (atmospheric / WOT NA)
+  [13.5,13.5,13.2,12.8,12.5,12.2,12.0,11.8,11.8,11.8,11.8,11.8,11.8,11.8,11.8,11.8],
+  // 110kPa
+  [13.0,13.0,12.8,12.5,12.2,12.0,11.8,11.5,11.5,11.5,11.5,11.5,11.5,11.5,11.5,11.5],
+  // 120kPa
+  [12.5,12.5,12.3,12.0,11.8,11.5,11.5,11.3,11.3,11.3,11.3,11.3,11.3,11.3,11.3,11.3],
+  // 140kPa
+  [12.0,12.0,11.8,11.5,11.5,11.3,11.2,11.0,11.0,11.0,11.0,11.0,11.0,11.0,11.0,11.0],
+  // 160kPa
+  [11.8,11.8,11.5,11.3,11.2,11.0,11.0,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8],
+  // 180kPa
+  [11.5,11.5,11.3,11.0,11.0,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8],
+  // 200kPa
+  [11.3,11.3,11.0,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8],
+  // 230kPa
+  [11.0,11.0,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8,10.8],
+];
+
+// AFR data collection — actual readings per cell
+// afrGrid[mapIdx][rpmIdx] = { sum, count }
+let afrGrid = [];
+function initAfrGrid(){
+  afrGrid = [];
+  for(let ri=0; ri<16; ri++){
+    afrGrid[ri] = [];
+    for(let ci=0; ci<16; ci++) afrGrid[ri][ci] = { sum:0, count:0 };
+  }
+}
+initAfrGrid();
+
+let showAfrOverlay = false;
+let afrSamples = 0;
+
+// AFR deviation color: negative=rich (blue), zero=on target (green), positive=lean (red)
+function afrDeviationColor(delta){
+  // delta = actual - target. Positive = lean, negative = rich
+  const t = Math.max(-2, Math.min(2, delta)); // clamp to ±2
+  const n = (t + 2) / 4; // normalize 0-1
+  let r, g, b;
+  if(n < 0.25)     { const s=n/0.25;     r=0.27+s*(-0.13); g=0.27+s*0.27; b=1-s*0.47; }  // deep blue -> blue
+  else if(n < 0.5) { const s=(n-0.25)/0.25; r=0.13*s; g=0.53+s*0.27; b=0.53-s*0.2; }     // blue -> green
+  else if(n < 0.75){ const s=(n-0.5)/0.25;  r=0.13+s*0.87; g=0.8-s*0.0; b=0.33-s*0.33; } // green -> yellow
+  else             { const s=(n-0.75)/0.25;  r=1; g=0.8-s*0.53; b=0; }                     // yellow -> red
+  return [r, g, b];
+}
+
+// Build AFR overlay surface colors based on collected data
+function buildAfrOverlayColors(){
+  const colors = new Float32Array(16 * 16 * 4);
+  for(let ri=0; ri<16; ri++){
+    for(let ci=0; ci<16; ci++){
+      const idx = (ri*16+ci)*4;
+      const cell = afrGrid[ri][ci];
+      if(cell.count > 0){
+        const actualAFR = cell.sum / cell.count;
+        const targetAFR = AFR_TARGET[ri][ci];
+        const delta = actualAFR - targetAFR;
+        const [r,g,b] = afrDeviationColor(delta);
+        colors[idx] = r; colors[idx+1] = g; colors[idx+2] = b;
+        colors[idx+3] = Math.min(0.9, 0.4 + cell.count * 0.05); // more samples = more opaque
+      } else {
+        colors[idx] = 0.15; colors[idx+1] = 0.15; colors[idx+2] = 0.15;
+        colors[idx+3] = 0.3; // gray = no data
+      }
+    }
+  }
+  return colors;
+}
+
+// Dynamic buffer for AFR overlay
+let afrOverlayCBO = null;
+
+// ============================================================
+//  THREE.JS — MINIMAL EMBEDDED (WebGL direct)
+//  Using raw WebGL for zero dependencies
+// ============================================================
+
+const canvas = document.getElementById('fuel-canvas');
+const gl = canvas.getContext('webgl', { antialias: true, alpha: false });
+
+// State
+let W, H, aspect;
+let showSurface = true, showWireframe = true, showTracer = true, showTrail = false, autoRotate = false;
+let camTheta = 0.6, camPhi = 0.7, camDist = 2.8;
+let isDragging = false, lastMX = 0, lastMY = 0;
+let connected = false;
+let currentRPM = 850, currentMAP = 30, currentTPS = 0, currentAFR = 14.7;
+
+// Trail history
+const trailMax = 120;
+let trail = [];
+
+// ============================================================
+//  MATRIX / VECTOR MATH
+// ============================================================
+function mat4Identity() { const m = new Float32Array(16); m[0]=m[5]=m[10]=m[15]=1; return m; }
+
+function mat4Perspective(fov, aspect, near, far) {
+  const m = new Float32Array(16);
+  const f = 1.0 / Math.tan(fov / 2);
+  m[0] = f / aspect; m[5] = f;
+  m[10] = (far + near) / (near - far); m[11] = -1;
+  m[14] = (2 * far * near) / (near - far);
+  return m;
+}
+
+function mat4LookAt(eye, center, up) {
+  const m = new Float32Array(16);
+  let zx = eye[0]-center[0], zy = eye[1]-center[1], zz = eye[2]-center[2];
+  let len = Math.sqrt(zx*zx+zy*zy+zz*zz); zx/=len; zy/=len; zz/=len;
+  let xx = up[1]*zz-up[2]*zy, xy = up[2]*zx-up[0]*zz, xz = up[0]*zy-up[1]*zx;
+  len = Math.sqrt(xx*xx+xy*xy+xz*xz); xx/=len; xy/=len; xz/=len;
+  let yx = zy*xz-zz*xy, yy = zz*xx-zx*xz, yz = zx*xy-zy*xx;
+  m[0]=xx; m[1]=yx; m[2]=zx; m[3]=0;
+  m[4]=xy; m[5]=yy; m[6]=zy; m[7]=0;
+  m[8]=xz; m[9]=yz; m[10]=zz; m[11]=0;
+  m[12]=-(xx*eye[0]+xy*eye[1]+xz*eye[2]);
+  m[13]=-(yx*eye[0]+yy*eye[1]+yz*eye[2]);
+  m[14]=-(zx*eye[0]+zy*eye[1]+zz*eye[2]);
+  m[15]=1;
+  return m;
+}
+
+function mat4Multiply(a, b) {
+  const r = new Float32Array(16);
+  for(let i=0;i<4;i++) for(let j=0;j<4;j++) {
+    r[j*4+i] = a[i]*b[j*4] + a[4+i]*b[j*4+1] + a[8+i]*b[j*4+2] + a[12+i]*b[j*4+3];
+  }
+  return r;
+}
+
+// ============================================================
+//  COLOR RAMP — fuel value to RGB
+// ============================================================
+function fuelColor(val) {
+  const t = Math.max(0, Math.min(1, (val - FUEL_MIN) / (FUEL_MAX - FUEL_MIN)));
+  // Blue -> Cyan -> Green -> Yellow -> Red -> Magenta
+  let r, g, b;
+  if (t < 0.2)      { const s=t/0.2;       r=0;           g=s;           b=1;         }
+  else if (t < 0.4) { const s=(t-0.2)/0.2;  r=0;           g=1;           b=1-s;       }
+  else if (t < 0.6) { const s=(t-0.4)/0.2;  r=s;           g=1;           b=0;         }
+  else if (t < 0.8) { const s=(t-0.6)/0.2;  r=1;           g=1-s;         b=0;         }
+  else              { const s=(t-0.8)/0.2;  r=1;           g=0;           b=s*0.3;     }
+  return [r, g, b];
+}
+
+// ============================================================
+//  BUILD MESH GEOMETRY
+// ============================================================
+const GRID = 16;
+const SCALE_X = 2.0;  // total width
+const SCALE_Y = 1.2;  // height (fuel value)
+const SCALE_Z = 2.0;  // total depth
+
+function mapPos(ri, ci) {
+  const x = (ci / (GRID-1) - 0.5) * SCALE_X;
+  const z = (ri / (GRID-1) - 0.5) * SCALE_Z;
+  const fuelNorm = (FUEL_MAP[ri][ci] - FUEL_MIN) / (FUEL_MAX - FUEL_MIN);
+  const y = fuelNorm * SCALE_Y - SCALE_Y * 0.3;
+  return [x, y, z];
+}
+
+// Surface triangles
+function buildSurfaceBuffers() {
+  const verts = [], colors = [], indices = [];
+  for (let ri = 0; ri < GRID; ri++) {
+    for (let ci = 0; ci < GRID; ci++) {
+      const [x, y, z] = mapPos(ri, ci);
+      verts.push(x, y, z);
+      const [r, g, b] = fuelColor(FUEL_MAP[ri][ci]);
+      colors.push(r, g, b, 0.85);
+    }
+  }
+  for (let ri = 0; ri < GRID-1; ri++) {
+    for (let ci = 0; ci < GRID-1; ci++) {
+      const i = ri * GRID + ci;
+      indices.push(i, i+1, i+GRID);
+      indices.push(i+1, i+GRID+1, i+GRID);
+    }
+  }
+  return { verts: new Float32Array(verts), colors: new Float32Array(colors), indices: new Uint16Array(indices) };
+}
+
+// Wireframe lines
+function buildWireBuffers() {
+  const verts = [], colors = [];
+  for (let ri = 0; ri < GRID; ri++) {
+    for (let ci = 0; ci < GRID; ci++) {
+      const [x, y, z] = mapPos(ri, ci);
+      // Horizontal lines
+      if (ci < GRID-1) {
+        const [nx, ny, nz] = mapPos(ri, ci+1);
+        verts.push(x,y,z, nx,ny,nz);
+        const [r,g,b] = fuelColor(FUEL_MAP[ri][ci]);
+        const [r2,g2,b2] = fuelColor(FUEL_MAP[ri][ci+1]);
+        colors.push(r,g,b,0.6, r2,g2,b2,0.6);
+      }
+      // Vertical lines
+      if (ri < GRID-1) {
+        const [nx, ny, nz] = mapPos(ri+1, ci);
+        verts.push(x,y,z, nx,ny,nz);
+        const [r,g,b] = fuelColor(FUEL_MAP[ri][ci]);
+        const [r2,g2,b2] = fuelColor(FUEL_MAP[ri+1][ci]);
+        colors.push(r,g,b,0.6, r2,g2,b2,0.6);
+      }
+    }
+  }
+  return { verts: new Float32Array(verts), colors: new Float32Array(colors) };
+}
+
+// Grid floor
+function buildGridFloor() {
+  const verts = [], colors = [];
+  const y = -SCALE_Y * 0.3 - 0.01;
+  const half = SCALE_X / 2;
+  for (let i = 0; i <= 16; i++) {
+    const t = (i / 16 - 0.5) * SCALE_X;
+    verts.push(t, y, -half, t, y, half);
+    verts.push(-half, y, t, half, y, t);
+    for (let j = 0; j < 4; j++) colors.push(1, 1, 1, 0.04);
+  }
+  return { verts: new Float32Array(verts), colors: new Float32Array(colors) };
+}
+
+// ============================================================
+//  SHADERS
+// ============================================================
+const VERT_SRC = `
+  attribute vec3 aPos;
+  attribute vec4 aColor;
+  uniform mat4 uMVP;
+  varying vec4 vColor;
+  void main() {
+    vColor = aColor;
+    gl_Position = uMVP * vec4(aPos, 1.0);
+    gl_PointSize = 12.0;
+  }
+`;
+
+const FRAG_SRC = `
+  precision mediump float;
+  varying vec4 vColor;
+  uniform float uAlpha;
+  void main() {
+    gl_FragColor = vec4(vColor.rgb, vColor.a * uAlpha);
+  }
+`;
+
+const POINT_FRAG_SRC = `
+  precision mediump float;
+  varying vec4 vColor;
+  uniform float uAlpha;
+  void main() {
+    float d = length(gl_PointCoord - vec2(0.5));
+    if (d > 0.5) discard;
+    float glow = smoothstep(0.5, 0.1, d);
+    gl_FragColor = vec4(vColor.rgb, vColor.a * uAlpha * glow);
+  }
+`;
+
+function compileShader(src, type) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  return s;
+}
+
+function createProgram(vSrc, fSrc) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compileShader(vSrc, gl.VERTEX_SHADER));
+  gl.attachShader(p, compileShader(fSrc, gl.FRAGMENT_SHADER));
+  gl.linkProgram(p);
+  return p;
+}
+
+const progMain = createProgram(VERT_SRC, FRAG_SRC);
+const progPoint = createProgram(VERT_SRC, POINT_FRAG_SRC);
+
+// Uniform/attrib locations
+const loc = {
+  main: {
+    aPos: gl.getAttribLocation(progMain, 'aPos'),
+    aColor: gl.getAttribLocation(progMain, 'aColor'),
+    uMVP: gl.getUniformLocation(progMain, 'uMVP'),
+    uAlpha: gl.getUniformLocation(progMain, 'uAlpha'),
+  },
+  point: {
+    aPos: gl.getAttribLocation(progPoint, 'aPos'),
+    aColor: gl.getAttribLocation(progPoint, 'aColor'),
+    uMVP: gl.getUniformLocation(progPoint, 'uMVP'),
+    uAlpha: gl.getUniformLocation(progPoint, 'uAlpha'),
+  }
+};
+
+// ============================================================
+//  BUFFERS
+// ============================================================
+function createVBO(data) {
+  const b = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, b);
+  gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  return b;
+}
+function createIBO(data) {
+  const b = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  return b;
+}
+
+const surf = buildSurfaceBuffers();
+const surfVBO = createVBO(surf.verts);
+const surfCBO = createVBO(surf.colors);
+const surfIBO = createIBO(surf.indices);
+const surfCount = surf.indices.length;
+
+const wire = buildWireBuffers();
+const wireVBO = createVBO(wire.verts);
+const wireCBO = createVBO(wire.colors);
+const wireVertCount = wire.verts.length / 3;
+
+const floor = buildGridFloor();
+const floorVBO = createVBO(floor.verts);
+const floorCBO = createVBO(floor.colors);
+const floorVertCount = floor.verts.length / 3;
+
+// AFR overlay color buffer
+afrOverlayCBO = gl.createBuffer();
+
+// Dynamic buffers for tracer + trail
+const tracerVBO = gl.createBuffer();
+const tracerCBO = gl.createBuffer();
+const trailVBO = gl.createBuffer();
+const trailCBO = gl.createBuffer();
+
+// ============================================================
+//  INTERPOLATE POSITION ON MAP
+// ============================================================
+function getMapPosition(rpm, map) {
+  // Find fractional indices
+  let ci = 0;
+  for (let i = 0; i < RPM_BINS.length - 1; i++) {
+    if (rpm >= RPM_BINS[i]) ci = i;
+  }
+  let cf = 0;
+  if (ci < RPM_BINS.length - 1) {
+    cf = Math.max(0, Math.min(1, (rpm - RPM_BINS[ci]) / (RPM_BINS[ci+1] - RPM_BINS[ci])));
+  }
+  const cx = ci + cf;
+
+  let ri = 0;
+  for (let i = 0; i < MAP_BINS.length - 1; i++) {
+    if (map >= MAP_BINS[i]) ri = i;
+  }
+  let rf = 0;
+  if (ri < MAP_BINS.length - 1) {
+    rf = Math.max(0, Math.min(1, (map - MAP_BINS[ri]) / (MAP_BINS[ri+1] - MAP_BINS[ri])));
+  }
+  const rz = ri + rf;
+
+  // Bilinear interpolation of fuel value
+  const ci0 = Math.min(ci, GRID-2), ri0 = Math.min(ri, GRID-2);
+  const ci1 = ci0 + 1, ri1 = ri0 + 1;
+  const v00 = FUEL_MAP[ri0][ci0], v10 = FUEL_MAP[ri0][ci1];
+  const v01 = FUEL_MAP[ri1][ci0], v11 = FUEL_MAP[ri1][ci1];
+  const fuel = v00*(1-cf)*(1-rf) + v10*cf*(1-rf) + v01*(1-cf)*rf + v11*cf*rf;
+
+  // 3D position
+  const x = (cx / (GRID-1) - 0.5) * SCALE_X;
+  const z = (rz / (GRID-1) - 0.5) * SCALE_Z;
+  const fuelNorm = (fuel - FUEL_MIN) / (FUEL_MAX - FUEL_MIN);
+  const y = fuelNorm * SCALE_Y - SCALE_Y * 0.3;
+
+  return { x, y, z, fuel, rpmBin: RPM_BINS[ci0], mapBin: MAP_BINS[ri0] };
+}
+
+function getFuelZone(fuel) {
+  const t = (fuel - FUEL_MIN) / (FUEL_MAX - FUEL_MIN);
+  if (t < 0.25) return 'LEAN';
+  if (t < 0.45) return 'CRUISE';
+  if (t < 0.65) return 'STOICH';
+  if (t < 0.8) return 'POWER';
+  return 'RICH';
+}
+
+// ============================================================
+//  RESIZE
+// ============================================================
+function resize() {
+  const wrap = canvas.parentElement;
+  W = wrap.offsetWidth;
+  H = wrap.offsetHeight;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  aspect = W / H;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ============================================================
+//  CAMERA CONTROLS
+// ============================================================
+canvas.addEventListener('pointerdown', e => {
+  isDragging = true;
+  lastMX = e.clientX;
+  lastMY = e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastMX, dy = e.clientY - lastMY;
+  camTheta -= dx * 0.005;
+  camPhi = Math.max(0.1, Math.min(Math.PI/2 - 0.05, camPhi - dy * 0.005));
+  lastMX = e.clientX;
+  lastMY = e.clientY;
+});
+canvas.addEventListener('pointerup', () => isDragging = false);
+canvas.addEventListener('wheel', e => {
+  camDist = Math.max(1.2, Math.min(6, camDist + e.deltaY * 0.003));
+  e.preventDefault();
+}, { passive: false });
+
+// Touch zoom
+let lastTouchDist = 0;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    lastTouchDist = Math.sqrt(dx*dx + dy*dy);
+  }
+}, { passive: true });
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    camDist = Math.max(1.2, Math.min(6, camDist - (dist - lastTouchDist) * 0.01));
+    lastTouchDist = dist;
+  }
+}, { passive: true });
+
+// ============================================================
+//  VIEW PRESETS
+// ============================================================
+function setView(v) {
+  document.querySelectorAll('.ctrl-btn').forEach(b => {
+    if (['btn-orbit','btn-top','btn-front','btn-side'].includes(b.id)) b.classList.remove('active');
+  });
+  document.getElementById('btn-' + v).classList.add('active');
+  if (v === 'top')   { camTheta = 0; camPhi = Math.PI/2 - 0.06; camDist = 3.0; }
+  if (v === 'front') { camTheta = 0; camPhi = 0.3; camDist = 3.0; }
+  if (v === 'side')  { camTheta = Math.PI/2; camPhi = 0.3; camDist = 3.0; }
+  if (v === 'orbit') { camTheta = 0.6; camPhi = 0.7; camDist = 2.8; }
+}
+
+function toggleSurface()    { showSurface = !showSurface; document.getElementById('btn-surface').classList.toggle('active', showSurface); }
+function toggleWireframe()  { showWireframe = !showWireframe; document.getElementById('btn-wireframe').classList.toggle('active', showWireframe); }
+function toggleTracer()     { showTracer = !showTracer; document.getElementById('btn-tracer').classList.toggle('active', showTracer); document.getElementById('tracer-hud').style.display = showTracer ? '' : 'none'; }
+function toggleTrail()      { showTrail = !showTrail; document.getElementById('btn-trail').classList.toggle('active', showTrail); if (!showTrail) trail = []; }
+function toggleAutoRotate() { autoRotate = !autoRotate; document.getElementById('btn-rotate').classList.toggle('active', autoRotate); }
+
+function toggleAfrOverlay(){
+  showAfrOverlay = !showAfrOverlay;
+  document.getElementById('btn-afr').classList.toggle('active', showAfrOverlay);
+  document.getElementById('afr-info').style.display = showAfrOverlay ? '' : 'none';
+  document.getElementById('legend-fuel').style.display = showAfrOverlay ? 'none' : '';
+  document.getElementById('legend-afr').style.display = showAfrOverlay ? '' : 'none';
+  document.getElementById('hud-afr-line').style.display = showAfrOverlay ? '' : 'none';
+}
+
+function clearAfrData(){
+  initAfrGrid();
+  afrSamples = 0;
+}
+
+function collectAfrSample(rpm, mapVal, afr){
+  // Find bin indices
+  let ci=0, ri=0;
+  for(let i=RPM_BINS.length-1; i>=0; i--){ if(rpm>=RPM_BINS[i]){ci=i;break;} }
+  for(let i=MAP_BINS.length-1; i>=0; i--){ if(mapVal>=MAP_BINS[i]){ri=i;break;} }
+  afrGrid[ri][ci].sum += afr;
+  afrGrid[ri][ci].count++;
+  afrSamples++;
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+let pulseT = 0;
+
+function render() {
+  pulseT += 0.05;
+  if (autoRotate && !isDragging) camTheta += 0.003;
+
+  gl.clearColor(0.039, 0.039, 0.039, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  // Camera
+  const eyeX = camDist * Math.cos(camPhi) * Math.sin(camTheta);
+  const eyeY = camDist * Math.sin(camPhi);
+  const eyeZ = camDist * Math.cos(camPhi) * Math.cos(camTheta);
+  const proj = mat4Perspective(0.9, aspect, 0.1, 50);
+  const view = mat4LookAt([eyeX, eyeY, eyeZ], [0, 0.1, 0], [0, 1, 0]);
+  const mvp = mat4Multiply(proj, view);
+
+  // --- Draw floor grid ---
+  gl.useProgram(progMain);
+  gl.uniformMatrix4fv(loc.main.uMVP, false, mvp);
+  gl.uniform1f(loc.main.uAlpha, 1.0);
+  gl.enableVertexAttribArray(loc.main.aPos);
+  gl.enableVertexAttribArray(loc.main.aColor);
+  gl.bindBuffer(gl.ARRAY_BUFFER, floorVBO);
+  gl.vertexAttribPointer(loc.main.aPos, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, floorCBO);
+  gl.vertexAttribPointer(loc.main.aColor, 4, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(gl.LINES, 0, floorVertCount);
+
+  // --- Draw surface ---
+  if (showSurface) {
+    gl.uniform1f(loc.main.uAlpha, 0.75);
+    gl.bindBuffer(gl.ARRAY_BUFFER, surfVBO);
+    gl.vertexAttribPointer(loc.main.aPos, 3, gl.FLOAT, false, 0, 0);
+
+    if(showAfrOverlay){
+      // Use AFR deviation colors instead of fuel colors
+      const afrColors = buildAfrOverlayColors();
+      gl.bindBuffer(gl.ARRAY_BUFFER, afrOverlayCBO);
+      gl.bufferData(gl.ARRAY_BUFFER, afrColors, gl.DYNAMIC_DRAW);
+      gl.vertexAttribPointer(loc.main.aColor, 4, gl.FLOAT, false, 0, 0);
+    } else {
+      gl.bindBuffer(gl.ARRAY_BUFFER, surfCBO);
+      gl.vertexAttribPointer(loc.main.aColor, 4, gl.FLOAT, false, 0, 0);
+    }
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, surfIBO);
+    gl.drawElements(gl.TRIANGLES, surfCount, gl.UNSIGNED_SHORT, 0);
+  }
+
+  // --- Draw wireframe ---
+  if (showWireframe) {
+    gl.uniform1f(loc.main.uAlpha, 0.5);
+    gl.bindBuffer(gl.ARRAY_BUFFER, wireVBO);
+    gl.vertexAttribPointer(loc.main.aPos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, wireCBO);
+    gl.vertexAttribPointer(loc.main.aColor, 4, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.LINES, 0, wireVertCount);
+  }
+
+  // --- Draw trail ---
+  if (showTrail && trail.length >= 2) {
+    const tv = [], tc = [];
+    for (let i = 0; i < trail.length; i++) {
+      const p = trail[i];
+      tv.push(p.x, p.y, p.z);
+      const alpha = (i / trail.length) * 0.7;
+      tc.push(0.8, 0.2, 0.1, alpha);
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, trailVBO);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tv), gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(loc.main.aPos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, trailCBO);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tc), gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(loc.main.aColor, 4, gl.FLOAT, false, 0, 0);
+    gl.uniform1f(loc.main.uAlpha, 1.0);
+    gl.drawArrays(gl.LINE_STRIP, 0, trail.length);
+  }
+
+  // --- Draw tracer dot ---
+  if (showTracer) {
+    const pos = getMapPosition(currentRPM, currentMAP);
+    const pulse = 0.7 + 0.3 * Math.sin(pulseT * 2);
+    const [cr, cg, cb] = fuelColor(pos.fuel);
+
+    // Glow halo (larger, transparent)
+    gl.useProgram(progPoint);
+    gl.uniformMatrix4fv(loc.point.uMVP, false, mvp);
+    gl.uniform1f(loc.point.uAlpha, pulse * 0.6);
+    gl.enableVertexAttribArray(loc.point.aPos);
+    gl.enableVertexAttribArray(loc.point.aColor);
+
+    const dotVerts = new Float32Array([pos.x, pos.y + 0.02, pos.z]);
+    const dotColors = new Float32Array([1.0, 0.4, 0.2, 1.0]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, tracerVBO);
+    gl.bufferData(gl.ARRAY_BUFFER, dotVerts, gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(loc.point.aPos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, tracerCBO);
+    gl.bufferData(gl.ARRAY_BUFFER, dotColors, gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(loc.point.aColor, 4, gl.FLOAT, false, 0, 0);
+
+    gl.disable(gl.DEPTH_TEST);
+    gl.drawArrays(gl.POINTS, 0, 1);
+    gl.enable(gl.DEPTH_TEST);
+
+    // Add to trail
+    if (showTrail) {
+      trail.push({ x: pos.x, y: pos.y + 0.02, z: pos.z });
+      if (trail.length > trailMax) trail.shift();
+    }
+  }
+
+  gl.disableVertexAttribArray(loc.main.aPos);
+  gl.disableVertexAttribArray(loc.main.aColor);
+
+  requestAnimationFrame(render);
+}
+
+// ============================================================
+//  UPDATE UI
+// ============================================================
+function updateUI() {
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  const setW = (id, w) => { const e = document.getElementById(id); if (e) e.style.width = Math.max(0, Math.min(100, w)) + '%'; };
+
+  set('val-rpm', Math.round(currentRPM));
+  setW('bar-rpm', currentRPM / 8500 * 100);
+  set('val-map', Math.round(currentMAP));
+  setW('bar-map', currentMAP / 250 * 100);
+  set('val-tps', Math.round(currentTPS));
+  setW('bar-tps', currentTPS);
+  set('val-afr', currentAFR.toFixed(1));
+
+  // AFR color
+  const afrEl = document.getElementById('val-afr');
+  const delta = Math.abs(currentAFR - 14.7);
+  if (delta < 0.5) afrEl.style.color = '#00cc88';
+  else if (delta < 1.0) afrEl.style.color = '#ffcc00';
+  else afrEl.style.color = '#ff2200';
+
+  const pos = getMapPosition(currentRPM, currentMAP);
+  const zone = getFuelZone(pos.fuel);
+  set('cell-rpm', Math.round(pos.rpmBin));
+  set('cell-map', Math.round(pos.mapBin));
+  set('cell-fuel', pos.fuel.toFixed(1));
+  set('cell-zone', zone);
+
+  set('hud-rpm', Math.round(currentRPM));
+  set('hud-map', Math.round(currentMAP));
+  set('hud-fuel', pos.fuel.toFixed(1));
+  set('hud-zone', zone);
+
+  set('tr-rpm', Math.round(currentRPM));
+  set('tr-map', Math.round(currentMAP));
+  set('tr-fuel', pos.fuel.toFixed(1));
+
+  // Collect AFR sample
+  if(currentRPM > 600 && currentMAP > 15){
+    collectAfrSample(currentRPM, currentMAP, currentAFR);
+  }
+
+  // AFR overlay info
+  if(showAfrOverlay){
+    // Find current cell's target and actual
+    let ci=0, ri=0;
+    for(let i=RPM_BINS.length-1; i>=0; i--){ if(currentRPM>=RPM_BINS[i]){ci=i;break;} }
+    for(let i=MAP_BINS.length-1; i>=0; i--){ if(currentMAP>=MAP_BINS[i]){ri=i;break;} }
+    const target = AFR_TARGET[ri][ci];
+    const cell = afrGrid[ri][ci];
+    const actual = cell.count > 0 ? (cell.sum/cell.count) : currentAFR;
+    const dev = actual - target;
+
+    set('afr-target', target.toFixed(1));
+    set('afr-actual', actual.toFixed(1));
+    set('afr-delta', (dev>=0?'+':'') + dev.toFixed(2));
+    set('afr-samples', afrSamples);
+
+    // Color the delta
+    const deltaEl = document.getElementById('afr-delta');
+    if(deltaEl){
+      if(Math.abs(dev) < 0.3) deltaEl.style.color = '#00cc88';
+      else if(Math.abs(dev) < 1.0) deltaEl.style.color = '#ffcc00';
+      else deltaEl.style.color = '#ff4444';
+    }
+
+    // HUD
+    set('hud-afr', currentAFR.toFixed(1));
+    set('hud-afr-target', target.toFixed(1));
+    const hudDelta = document.getElementById('hud-afr-delta');
+    if(hudDelta){
+      hudDelta.textContent = (dev>=0?'+':'') + dev.toFixed(1);
+      if(Math.abs(dev) < 0.3) hudDelta.style.color = '#00cc88';
+      else if(Math.abs(dev) < 1.0) hudDelta.style.color = '#ffcc00';
+      else hudDelta.style.color = '#ff4444';
+    }
+  }
+}
+
+// ============================================================
+//  OBD2 BRIDGE (called by Kotlin)
+// ============================================================
+function updateFromFlashPro(data) {
+  connected = true;
+  document.getElementById('conn-dot').classList.add('live');
+  document.getElementById('conn-status').textContent = 'CONNECTED';
+
+  if (data.rpm !== undefined) currentRPM = data.rpm;
+  if (data.map !== undefined) currentMAP = data.map;
+  if (data.tps !== undefined) currentTPS = data.tps;
+  if (data.afr !== undefined) currentAFR = data.afr;
+}
+
+function updateConnectionStatus(state) {
+  const dot = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-status');
+  if (state === 'CONNECTED') { dot.classList.add('live'); label.textContent = 'CONNECTED'; connected = true; }
+  else { dot.classList.remove('live'); label.textContent = state; connected = false; }
+}
+
+// ============================================================
+//  SIMULATION — spirited drive cycle
+// ============================================================
+let simT = 0;
+const jit = (v, a) => v + (Math.random() - 0.5) * a;
+
+function simTick() {
+  simT++;
+  const phase = simT % 600;
+
+  let targetRPM, targetTPS;
+  if (phase < 60)       { targetRPM = 850;  targetTPS = 0; }
+  else if (phase < 150) { targetRPM = 3500; targetTPS = 35; }
+  else if (phase < 200) { targetRPM = 5200; targetTPS = 65; }
+  else if (phase < 280) { targetRPM = 7200; targetTPS = 100; }
+  else if (phase < 320) { targetRPM = 6800; targetTPS = 90; }
+  else if (phase < 380) { targetRPM = 3000; targetTPS = 10; }
+  else if (phase < 430) { targetRPM = 4800; targetTPS = 55; }
+  else if (phase < 500) { targetRPM = 6500; targetTPS = 85; }
+  else if (phase < 540) { targetRPM = 2000; targetTPS = 5; }
+  else                  { targetRPM = 850;  targetTPS = 0; }
+
+  currentRPM += (targetRPM - currentRPM) * 0.08 + jit(0, 50);
+  currentRPM = Math.max(700, Math.min(8500, currentRPM));
+  currentTPS += (targetTPS - currentTPS) * 0.1;
+
+  // MAP from RPM/TPS
+  currentMAP = jit(30 + currentTPS * 2.0 + (currentRPM / 9000) * 20, 3);
+  currentMAP = Math.max(20, Math.min(240, currentMAP));
+
+  // AFR
+  let targetAFR;
+  if (currentTPS > 80) targetAFR = 12.2 + jit(0, 0.3);
+  else if (currentTPS > 40) targetAFR = 13.5 + jit(0, 0.4);
+  else if (currentTPS > 10) targetAFR = 14.7 + jit(0, 0.2);
+  else targetAFR = 14.7 + jit(0, 0.15);
+  currentAFR += (targetAFR - currentAFR) * 0.15;
+  currentAFR = Math.max(10.5, Math.min(18, currentAFR));
+}
+
+// ============================================================
+//  MAIN LOOP
+// ============================================================
+function tick() {
+  if (!connected) simTick();
+  updateUI();
+}
+
+setInterval(tick, 100); // 10Hz
+render();
+</script>
+</body>
+</html>

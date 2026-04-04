@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; color:#ccc; }
+
+/* STATUS BAR */
+.status-bar { position:fixed; top:0; left:0; right:0; height:28px; background:#0d0d0d; border-bottom:1px solid #ffffff0d; display:flex; align-items:center; padding:0 12px; gap:16px; z-index:10; }
+.status-dot { width:8px; height:8px; border-radius:50%; background:#333; flex-shrink:0; }
+.status-dot.live { background:#00cc44; box-shadow:0 0 8px #00cc44; }
+.status-label { font-size:10px; color:#ffffff55; letter-spacing:2px; }
+.status-val { font-size:10px; color:#ffffffaa; letter-spacing:1px; }
+.status-spacer { flex:1; }
+.status-tag { font-size:9px; color:#cc2200; letter-spacing:2px; border:1px solid #cc220033; padding:1px 6px; }
+
+/* LAYOUT */
+.main { position:fixed; top:28px; left:0; right:0; bottom:0; display:grid; grid-template-columns:200px 1fr; }
+
+/* LEFT PANEL */
+.ctrl-panel { background:#0d0d0d; border-right:1px solid #ffffff0d; display:flex; flex-direction:column; overflow-y:auto; }
+.panel-section { padding:10px 14px; border-bottom:1px solid #ffffff08; }
+.panel-title { font-size:9px; color:#ffffff44; letter-spacing:2px; margin-bottom:6px; }
+.panel-sub { font-size:8px; color:#ffffff22; margin-bottom:8px; }
+
+/* SELECT */
+.sel { width:100%; background:#111; border:1px solid #ffffff15; color:#ccc; font-family:'Share Tech Mono',monospace; font-size:10px; padding:5px 8px; margin-bottom:6px; appearance:none; cursor:pointer; letter-spacing:1px; }
+.sel:focus { border-color:#cc2200; outline:none; }
+.sel option { background:#111; color:#ccc; }
+
+/* BUTTONS */
+.ctrl-btn { width:100%; background:transparent; border:1px solid #ffffff22; color:#ffffff55; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; padding:6px; cursor:pointer; transition:all 0.15s; margin-bottom:4px; }
+.ctrl-btn:hover { border-color:#cc2200; color:#cc2200; }
+.ctrl-btn.active { border-color:#cc2200; color:#cc2200; background:rgba(204,34,0,0.08); }
+
+/* STATS */
+.stat-row { display:flex; justify-content:space-between; margin-bottom:3px; }
+.stat-label { font-size:8px; color:#ffffff33; letter-spacing:1px; }
+.stat-val { font-size:9px; color:#ffffffaa; font-family:'Orbitron',monospace; }
+
+/* LEGEND */
+.legend-bar { height:14px; border-radius:2px; margin:6px 0 4px; }
+.legend-labels { display:flex; justify-content:space-between; font-size:7px; color:#ffffff44; }
+
+/* CELL TOOLTIP */
+.tooltip { position:fixed; background:rgba(10,10,10,0.95); border:1px solid #cc220044; padding:8px 12px; border-radius:2px; pointer-events:none; z-index:20; display:none; }
+.tooltip .tt-title { font-size:9px; color:#cc2200; letter-spacing:2px; margin-bottom:4px; }
+.tooltip .tt-row { font-size:9px; color:#ffffffaa; margin-bottom:2px; }
+.tooltip .tt-val { color:#ff8844; font-family:'Orbitron',monospace; }
+
+/* HEATMAP CANVAS */
+.heatmap-wrap { position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+#heatmap { cursor:crosshair; }
+
+/* LIVE DOT */
+.live-indicator { position:absolute; top:8px; right:12px; display:flex; align-items:center; gap:6px; pointer-events:none; z-index:5; }
+.live-indicator .dot { width:8px; height:8px; border-radius:50%; background:#333; }
+.live-indicator .dot.on { background:#00cc44; box-shadow:0 0 6px #00cc44; animation:pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+.live-indicator span { font-size:9px; color:#ffffff44; letter-spacing:2px; }
+
+/* CURRENT CELL HIGHLIGHT */
+.cur-cell-info { position:absolute; bottom:8px; left:12px; background:rgba(10,10,10,0.85); border:1px solid #cc220033; padding:6px 10px; border-radius:2px; pointer-events:none; z-index:5; }
+.cur-cell-info span { font-size:9px; color:#ff8844; letter-spacing:1px; }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-dot" id="conn-dot"></div>
+  <span class="status-label">OBD2</span>
+  <span class="status-val" id="conn-status">SIMULATED</span>
+  <div class="status-spacer"></div>
+  <span class="status-val" id="sample-count">0 SAMPLES</span>
+  <div class="status-tag">HEATMAP</div>
+</div>
+
+<div class="main">
+  <!-- LEFT PANEL -->
+  <div class="ctrl-panel">
+    <!-- Axis selection -->
+    <div class="panel-section">
+      <div class="panel-title">X AXIS</div>
+      <select class="sel" id="sel-x" onchange="rebuildMap()">
+        <option value="rpm" selected>RPM</option>
+        <option value="map">MAP (kPa)</option>
+        <option value="tps">THROTTLE %</option>
+        <option value="spd">SPEED (MPH)</option>
+        <option value="iat">INTAKE TEMP</option>
+      </select>
+
+      <div class="panel-title">Y AXIS</div>
+      <select class="sel" id="sel-y" onchange="rebuildMap()">
+        <option value="map" selected>MAP (kPa)</option>
+        <option value="rpm">RPM</option>
+        <option value="tps">THROTTLE %</option>
+        <option value="spd">SPEED (MPH)</option>
+        <option value="iat">INTAKE TEMP</option>
+      </select>
+
+      <div class="panel-title">CELL VALUE</div>
+      <select class="sel" id="sel-val" onchange="rebuildMap()">
+        <option value="afr" selected>AFR</option>
+        <option value="ign">IGN TIMING</option>
+        <option value="knock">KNOCK COUNT</option>
+        <option value="stft">SHORT FUEL TRIM</option>
+        <option value="idc">INJ DUTY %</option>
+        <option value="ect">COOLANT TEMP</option>
+        <option value="count">SAMPLE COUNT</option>
+      </select>
+    </div>
+
+    <!-- Controls -->
+    <div class="panel-section">
+      <div class="panel-title">CONTROLS</div>
+      <button class="ctrl-btn active" id="btn-record" onclick="toggleRecord()">RECORDING</button>
+      <button class="ctrl-btn" onclick="clearData()">CLEAR DATA</button>
+      <button class="ctrl-btn" id="btn-live" onclick="toggleLiveDot()">LIVE TRACER</button>
+      <button class="ctrl-btn" onclick="exportCSV()">EXPORT CSV</button>
+    </div>
+
+    <!-- CSV Import -->
+    <div class="panel-section">
+      <div class="panel-title">IMPORT LOG</div>
+      <div class="panel-sub">Load a tuner CSV datalog</div>
+      <input type="file" id="csv-input" accept=".csv" onchange="importCSV(this)" style="font-size:9px;color:#ffffff44;width:100%;">
+    </div>
+
+    <!-- Stats -->
+    <div class="panel-section">
+      <div class="panel-title">STATISTICS</div>
+      <div class="stat-row"><span class="stat-label">SAMPLES</span><span class="stat-val" id="st-samples">0</span></div>
+      <div class="stat-row"><span class="stat-label">CELLS FILLED</span><span class="stat-val" id="st-filled">0</span></div>
+      <div class="stat-row"><span class="stat-label">MIN VALUE</span><span class="stat-val" id="st-min">—</span></div>
+      <div class="stat-row"><span class="stat-label">MAX VALUE</span><span class="stat-val" id="st-max">—</span></div>
+      <div class="stat-row"><span class="stat-label">AVG VALUE</span><span class="stat-val" id="st-avg">—</span></div>
+    </div>
+
+    <!-- Legend -->
+    <div class="panel-section">
+      <div class="panel-title" id="legend-title">AFR SCALE</div>
+      <div class="legend-bar" id="legend-bar"></div>
+      <div class="legend-labels" id="legend-labels"><span>LEAN</span><span>STOICH</span><span>RICH</span></div>
+    </div>
+
+    <!-- AFR reference -->
+    <div class="panel-section">
+      <div class="panel-title">AFR REFERENCE</div>
+      <div class="stat-row"><span class="stat-label">STOICH</span><span class="stat-val" style="color:#00cc88;">14.7</span></div>
+      <div class="stat-row"><span class="stat-label">CRUISE</span><span class="stat-val" style="color:#44ccff;">14.5-15.5</span></div>
+      <div class="stat-row"><span class="stat-label">WOT</span><span class="stat-val" style="color:#ff4444;">11.5-12.5</span></div>
+      <div class="stat-row"><span class="stat-label">DECEL</span><span class="stat-val" style="color:#888;">15.0+</span></div>
+    </div>
+  </div>
+
+  <!-- HEATMAP -->
+  <div class="heatmap-wrap">
+    <canvas id="heatmap"></canvas>
+    <div class="live-indicator">
+      <div class="dot" id="live-dot"></div>
+      <span id="live-label">LIVE</span>
+    </div>
+    <div class="cur-cell-info" id="cur-cell" style="display:none;">
+      <span id="cur-cell-text">RPM: 3500 | MAP: 85 | AFR: 14.2</span>
+    </div>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div class="tooltip" id="tooltip">
+  <div class="tt-title">CELL DATA</div>
+  <div class="tt-row">X: <span class="tt-val" id="tt-x">—</span></div>
+  <div class="tt-row">Y: <span class="tt-val" id="tt-y">—</span></div>
+  <div class="tt-row">VALUE: <span class="tt-val" id="tt-val">—</span></div>
+  <div class="tt-row">SAMPLES: <span class="tt-val" id="tt-cnt">—</span></div>
+</div>
+
+<script>
+// ============================================================
+//  AXIS / VALUE DEFINITIONS
+// ============================================================
+const AXES = {
+  rpm:  { label:'RPM',         bins:[500,1000,1500,2000,2500,3000,3500,4000,4500,5000,5500,6000,6500,7000,7500,8000], unit:'' },
+  map:  { label:'MAP (kPa)',   bins:[20,30,40,50,60,70,80,90,100,110,120,140,160,180,200,230], unit:'kPa' },
+  tps:  { label:'THROTTLE %',  bins:[0,5,10,15,20,30,40,50,60,70,80,90,100], unit:'%' },
+  spd:  { label:'SPEED (MPH)', bins:[0,10,20,30,40,50,60,70,80,90,100,120,140], unit:'mph' },
+  iat:  { label:'INTAKE TEMP', bins:[40,60,80,90,100,110,120,130,140,160], unit:'°F' },
+};
+
+const VALS = {
+  afr:   { label:'AFR',           min:10, max:18, colorMode:'afr' },
+  ign:   { label:'IGN TIMING',    min:-5, max:45, colorMode:'heat' },
+  knock: { label:'KNOCK COUNT',   min:0,  max:10, colorMode:'danger' },
+  stft:  { label:'SHORT FUEL TRIM', min:-15, max:15, colorMode:'diverge' },
+  idc:   { label:'INJ DUTY %',   min:0,  max:100, colorMode:'heat' },
+  ect:   { label:'COOLANT TEMP',  min:160, max:230, colorMode:'heat' },
+  count: { label:'SAMPLE COUNT',  min:0,  max:50, colorMode:'density' },
+};
+
+// ============================================================
+//  STATE
+// ============================================================
+let recording = true;
+let showLiveDot = true;
+let connected = false;
+let totalSamples = 0;
+
+// Data store: grid[yi][xi] = { sum, count }
+let grid = [];
+let xAxis = 'rpm', yAxis = 'map', valKey = 'afr';
+let xBins = [], yBins = [];
+
+// Current live values
+let live = { rpm:850, map:30, tps:0, spd:0, afr:14.7, ign:15, knock:0, stft:0, idc:20, ect:190, iat:85 };
+
+// ============================================================
+//  GRID MANAGEMENT
+// ============================================================
+function initGrid(){
+  xBins = AXES[xAxis].bins;
+  yBins = AXES[yAxis].bins;
+  grid = [];
+  for(let yi=0; yi<yBins.length; yi++){
+    grid[yi] = [];
+    for(let xi=0; xi<xBins.length; xi++){
+      grid[yi][xi] = { sum:0, count:0 };
+    }
+  }
+}
+
+function findBin(val, bins){
+  for(let i=bins.length-1; i>=0; i--){
+    if(val >= bins[i]) return i;
+  }
+  return 0;
+}
+
+function addSample(data){
+  const xVal = data[xAxis];
+  const yVal = data[yAxis];
+  const v = data[valKey];
+  if(xVal===undefined || yVal===undefined || v===undefined) return;
+
+  const xi = findBin(xVal, xBins);
+  const yi = findBin(yVal, yBins);
+  grid[yi][xi].sum += v;
+  grid[yi][xi].count++;
+  totalSamples++;
+}
+
+function rebuildMap(){
+  xAxis = document.getElementById('sel-x').value;
+  yAxis = document.getElementById('sel-y').value;
+  valKey = document.getElementById('sel-val').value;
+  initGrid();
+  totalSamples = 0;
+  updateLegend();
+  drawHeatmap();
+}
+
+// ============================================================
+//  COLOR SCALES
+// ============================================================
+function afrColor(val){
+  // Rich (11) = red, Stoich (14.7) = green, Lean (17) = blue
+  const t = Math.max(0, Math.min(1, (val-10)/(18-10)));
+  let r,g,b;
+  if(t < 0.3)      { const s=t/0.3;     r=1;     g=s*0.3;   b=0; }       // rich red
+  else if(t < 0.45) { const s=(t-0.3)/0.15; r=1-s*0.3; g=0.3+s*0.5; b=0; } // orange->yellow
+  else if(t < 0.55) { const s=(t-0.45)/0.1; r=0.7-s*0.7; g=0.8+s*0.2; b=s*0.3; } // stoich green
+  else if(t < 0.7)  { const s=(t-0.55)/0.15; r=0; g=1-s*0.3; b=0.3+s*0.4; } // green->teal
+  else              { const s=(t-0.7)/0.3; r=0; g=0.7-s*0.5; b=0.7+s*0.3; } // lean blue
+  return [r,g,b];
+}
+
+function heatColor(t){
+  t = Math.max(0, Math.min(1, t));
+  if(t < 0.25)     { const s=t/0.25;    return [0, s*0.5, 0.8-s*0.3]; }
+  else if(t < 0.5) { const s=(t-0.25)/0.25; return [s*0.5, 0.5+s*0.5, 0.5-s*0.5]; }
+  else if(t < 0.75){ const s=(t-0.5)/0.25;  return [0.5+s*0.5, 1-s*0.3, 0]; }
+  else             { const s=(t-0.75)/0.25;  return [1, 0.7-s*0.7, 0]; }
+}
+
+function dangerColor(t){
+  t = Math.max(0, Math.min(1, t));
+  if(t < 0.01) return [0.1, 0.3, 0.1];
+  return [t, (1-t)*0.4, 0];
+}
+
+function divergeColor(t){
+  // -1 to 1 mapped to blue->white->red
+  t = Math.max(0, Math.min(1, t));
+  if(t < 0.45)     { const s=t/0.45;    return [s*0.3, s*0.4, 0.6+s*0.2]; }
+  else if(t < 0.55){ return [0.3, 0.5, 0.5]; }
+  else             { const s=(t-0.55)/0.45; return [0.3+s*0.7, 0.5-s*0.4, 0.5-s*0.5]; }
+}
+
+function densityColor(t){
+  t = Math.max(0, Math.min(1, t));
+  return [t*0.8, 0.1+t*0.2, 0.3-t*0.2];
+}
+
+function getCellColor(val){
+  const vDef = VALS[valKey];
+  const t = (val - vDef.min) / (vDef.max - vDef.min);
+  switch(vDef.colorMode){
+    case 'afr': return afrColor(val);
+    case 'heat': return heatColor(t);
+    case 'danger': return dangerColor(t);
+    case 'diverge': return divergeColor(t);
+    case 'density': return densityColor(t);
+    default: return heatColor(t);
+  }
+}
+
+// ============================================================
+//  LEGEND
+// ============================================================
+function updateLegend(){
+  const vDef = VALS[valKey];
+  document.getElementById('legend-title').textContent = vDef.label + ' SCALE';
+
+  // Build gradient
+  const stops = [];
+  for(let i=0; i<=20; i++){
+    const t = i/20;
+    const val = vDef.min + t*(vDef.max-vDef.min);
+    const [r,g,b] = getCellColor(val);
+    stops.push(`rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)})`);
+  }
+  document.getElementById('legend-bar').style.background = `linear-gradient(to right, ${stops.join(',')})`;
+
+  // Labels
+  const labels = document.getElementById('legend-labels');
+  if(valKey === 'afr'){
+    labels.innerHTML = '<span>RICH (10)</span><span>STOICH (14.7)</span><span>LEAN (18)</span>';
+  } else if(valKey === 'stft'){
+    labels.innerHTML = '<span>RICH (-15%)</span><span>0%</span><span>LEAN (+15%)</span>';
+  } else {
+    labels.innerHTML = `<span>${vDef.min}</span><span>${((vDef.min+vDef.max)/2).toFixed(0)}</span><span>${vDef.max}</span>`;
+  }
+}
+
+// ============================================================
+//  DRAW HEATMAP
+// ============================================================
+const canvas = document.getElementById('heatmap');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize(){
+  const wrap = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  W = wrap.offsetWidth;
+  H = wrap.offsetHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+}
+
+function drawHeatmap(){
+  if(!W) resize();
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = { l:60, r:20, t:20, b:40 };
+  const gw = W - pad.l - pad.r;
+  const gh = H - pad.t - pad.b;
+  const cellW = gw / xBins.length;
+  const cellH = gh / yBins.length;
+
+  // Draw cells
+  let filledCount = 0, minVal = Infinity, maxVal = -Infinity, sumVal = 0, valCount = 0;
+
+  for(let yi = 0; yi < yBins.length; yi++){
+    for(let xi = 0; xi < xBins.length; xi++){
+      const cell = grid[yi][xi];
+      const x = pad.l + xi * cellW;
+      const y = pad.t + (yBins.length - 1 - yi) * cellH; // Y inverted so low values at bottom
+
+      if(cell.count > 0){
+        const avg = cell.sum / cell.count;
+        const [r,g,b] = getCellColor(avg);
+        ctx.fillStyle = `rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)})`;
+        ctx.globalAlpha = Math.min(1, 0.4 + cell.count * 0.1);
+        ctx.fillRect(x+0.5, y+0.5, cellW-1, cellH-1);
+        ctx.globalAlpha = 1;
+
+        filledCount++;
+        if(avg < minVal) minVal = avg;
+        if(avg > maxVal) maxVal = avg;
+        sumVal += avg;
+        valCount++;
+
+        // Cell value text (if cells big enough)
+        if(cellW > 30 && cellH > 18){
+          ctx.fillStyle = '#ffffffcc';
+          ctx.font = `bold ${Math.max(8, Math.min(11, cellW*0.25))}px 'Share Tech Mono'`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(avg.toFixed(1), x+cellW/2, y+cellH/2);
+        }
+      } else {
+        ctx.fillStyle = '#ffffff04';
+        ctx.fillRect(x+0.5, y+0.5, cellW-1, cellH-1);
+      }
+
+      // Cell border
+      ctx.strokeStyle = '#ffffff08';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(x+0.5, y+0.5, cellW-1, cellH-1);
+    }
+  }
+
+  // X axis labels
+  ctx.fillStyle = '#ffffff44';
+  ctx.font = '9px Share Tech Mono';
+  ctx.textAlign = 'center';
+  for(let xi = 0; xi < xBins.length; xi++){
+    const x = pad.l + xi * cellW + cellW/2;
+    if(xi % Math.max(1, Math.floor(xBins.length/10)) === 0 || xBins.length <= 13){
+      ctx.fillText(xBins[xi], x, pad.t + gh + 14);
+    }
+  }
+  // X axis title
+  ctx.fillStyle = '#ffffff33';
+  ctx.font = '10px Share Tech Mono';
+  ctx.fillText(AXES[xAxis].label, pad.l + gw/2, pad.t + gh + 30);
+
+  // Y axis labels
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#ffffff44';
+  ctx.font = '9px Share Tech Mono';
+  for(let yi = 0; yi < yBins.length; yi++){
+    const y = pad.t + (yBins.length - 1 - yi) * cellH + cellH/2;
+    if(yi % Math.max(1, Math.floor(yBins.length/10)) === 0 || yBins.length <= 13){
+      ctx.fillText(yBins[yi], pad.l - 6, y + 3);
+    }
+  }
+  // Y axis title
+  ctx.save();
+  ctx.translate(14, pad.t + gh/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillStyle = '#ffffff33';
+  ctx.font = '10px Share Tech Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText(AXES[yAxis].label, 0, 0);
+  ctx.restore();
+
+  // Live position marker
+  if(showLiveDot){
+    const lxi = findBin(live[xAxis], xBins);
+    const lyi = findBin(live[yAxis], yBins);
+    const lx = pad.l + lxi * cellW + cellW/2;
+    const ly = pad.t + (yBins.length - 1 - lyi) * cellH + cellH/2;
+
+    // Pulsing ring
+    const pulse = 0.6 + 0.4 * Math.sin(performance.now() * 0.005);
+    ctx.beginPath(); ctx.arc(lx, ly, Math.max(cellW, cellH)*0.4, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(255,255,255,${pulse*0.6})`;
+    ctx.lineWidth = 2; ctx.stroke();
+    // Center dot
+    ctx.beginPath(); ctx.arc(lx, ly, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#ffffff'; ctx.fill();
+
+    // Current cell info
+    const cellEl = document.getElementById('cur-cell');
+    const cellText = document.getElementById('cur-cell-text');
+    cellEl.style.display = '';
+    const cell = grid[lyi][lxi];
+    const avgText = cell.count > 0 ? (cell.sum/cell.count).toFixed(1) : '—';
+    cellText.textContent = `${AXES[xAxis].label}: ${Math.round(live[xAxis])} | ${AXES[yAxis].label}: ${Math.round(live[yAxis])} | ${VALS[valKey].label}: ${avgText} (${cell.count} samples)`;
+  }
+
+  // Update stats
+  document.getElementById('st-samples').textContent = totalSamples;
+  document.getElementById('st-filled').textContent = filledCount + ' / ' + (xBins.length * yBins.length);
+  document.getElementById('st-min').textContent = valCount > 0 ? minVal.toFixed(1) : '—';
+  document.getElementById('st-max').textContent = valCount > 0 ? maxVal.toFixed(1) : '—';
+  document.getElementById('st-avg').textContent = valCount > 0 ? (sumVal/valCount).toFixed(1) : '—';
+  document.getElementById('sample-count').textContent = totalSamples + ' SAMPLES';
+}
+
+// ============================================================
+//  TOOLTIP
+// ============================================================
+const tooltip = document.getElementById('tooltip');
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  const pad = { l:60, r:20, t:20, b:40 };
+  const gw = W - pad.l - pad.r;
+  const gh = H - pad.t - pad.b;
+  const cellW = gw / xBins.length;
+  const cellH = gh / yBins.length;
+
+  const xi = Math.floor((mx - pad.l) / cellW);
+  const yi = yBins.length - 1 - Math.floor((my - pad.t) / cellH);
+
+  if(xi >= 0 && xi < xBins.length && yi >= 0 && yi < yBins.length){
+    const cell = grid[yi][xi];
+    document.getElementById('tt-x').textContent = AXES[xAxis].label + ': ' + xBins[xi];
+    document.getElementById('tt-y').textContent = AXES[yAxis].label + ': ' + yBins[yi];
+    document.getElementById('tt-val').textContent = cell.count > 0 ? (cell.sum/cell.count).toFixed(2) : 'NO DATA';
+    document.getElementById('tt-cnt').textContent = cell.count;
+    tooltip.style.display = '';
+    tooltip.style.left = (e.clientX + 16) + 'px';
+    tooltip.style.top = (e.clientY - 10) + 'px';
+  } else {
+    tooltip.style.display = 'none';
+  }
+});
+
+canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+// ============================================================
+//  CONTROLS
+// ============================================================
+function toggleRecord(){
+  recording = !recording;
+  const btn = document.getElementById('btn-record');
+  btn.textContent = recording ? 'RECORDING' : 'PAUSED';
+  btn.classList.toggle('active', recording);
+}
+
+function toggleLiveDot(){
+  showLiveDot = !showLiveDot;
+  document.getElementById('btn-live').classList.toggle('active', showLiveDot);
+  document.getElementById('cur-cell').style.display = showLiveDot ? '' : 'none';
+}
+
+function clearData(){
+  initGrid();
+  totalSamples = 0;
+  drawHeatmap();
+}
+
+function exportCSV(){
+  const vDef = VALS[valKey];
+  let csv = AXES[xAxis].label + ',' + AXES[yAxis].label + ',' + vDef.label + ',SampleCount\n';
+  for(let yi=0; yi<yBins.length; yi++){
+    for(let xi=0; xi<xBins.length; xi++){
+      const cell = grid[yi][xi];
+      if(cell.count > 0){
+        csv += xBins[xi] + ',' + yBins[yi] + ',' + (cell.sum/cell.count).toFixed(2) + ',' + cell.count + '\n';
+      }
+    }
+  }
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'heatmap_' + valKey + '_' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.csv';
+  a.click();
+}
+
+function importCSV(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n');
+    if(lines.length < 2) return;
+
+    // Parse header to find column indices
+    const header = lines[0].toLowerCase().split(',').map(s => s.trim());
+    const colMap = {};
+    header.forEach((h, i) => {
+      if(h.includes('rpm')) colMap.rpm = i;
+      if(h.includes('afr') || h.includes('o2') || h.includes('wideband')) colMap.afr = i;
+      if(h.includes('map') && !h.includes('time')) colMap.map = i;
+      if(h.includes('tps') || h.includes('throttle')) colMap.tps = i;
+      if(h.includes('ign') || h.includes('timing')) colMap.ign = i;
+      if(h.includes('knock')) colMap.knock = i;
+      if(h.includes('stft') || h.includes('short')) colMap.stft = i;
+      if(h.includes('inj') || h.includes('idc') || h.includes('duty')) colMap.idc = i;
+      if(h.includes('ect') || h.includes('coolant')) colMap.ect = i;
+      if(h.includes('iat') || h.includes('intake')) colMap.iat = i;
+      if(h.includes('spd') || h.includes('speed') || h.includes('vss')) colMap.spd = i;
+    });
+
+    clearData();
+
+    for(let i=1; i<lines.length; i++){
+      const cols = lines[i].split(',').map(s => parseFloat(s.trim()));
+      if(cols.length < 2) continue;
+
+      const row = {};
+      Object.entries(colMap).forEach(([key, idx]) => {
+        if(!isNaN(cols[idx])) row[key] = cols[idx];
+      });
+
+      if(Object.keys(row).length >= 2) addSample(row);
+    }
+
+    drawHeatmap();
+    document.getElementById('conn-status').textContent = 'IMPORTED ' + (lines.length-1) + ' ROWS';
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+//  OBD2 BRIDGE
+// ============================================================
+function updateFromFlashPro(data){
+  connected = true;
+  document.getElementById('conn-dot').classList.add('live');
+  document.getElementById('conn-status').textContent = 'CONNECTED';
+
+  if(data.rpm !== undefined) live.rpm = data.rpm;
+  if(data.map !== undefined) live.map = data.map;
+  if(data.tps !== undefined) live.tps = data.tps;
+  if(data.afr !== undefined) live.afr = data.afr;
+  if(data.ign !== undefined) live.ign = data.ign;
+  if(data.knock !== undefined) live.knock = data.knock;
+  if(data.stft !== undefined) live.stft = data.stft;
+  if(data.inj !== undefined) live.idc = data.inj;
+  if(data.ect !== undefined) live.ect = data.ect;
+  if(data.iat !== undefined) live.iat = data.iat;
+  if(data.speed !== undefined) live.spd = data.speed;
+
+  if(recording) addSample(live);
+}
+
+// ============================================================
+//  SIMULATION
+// ============================================================
+let simT = 0;
+const jit = (v,a) => v + (Math.random()-0.5)*a;
+
+function simTick(){
+  simT++;
+  const phase = simT % 600;
+
+  let targetRPM, targetTPS;
+  if(phase < 60)       { targetRPM=850;  targetTPS=0; }
+  else if(phase < 150) { targetRPM=3500; targetTPS=35; }
+  else if(phase < 200) { targetRPM=5200; targetTPS=65; }
+  else if(phase < 280) { targetRPM=7200; targetTPS=100; }
+  else if(phase < 320) { targetRPM=6800; targetTPS=90; }
+  else if(phase < 380) { targetRPM=3000; targetTPS=10; }
+  else if(phase < 430) { targetRPM=4800; targetTPS=55; }
+  else if(phase < 500) { targetRPM=6500; targetTPS=85; }
+  else if(phase < 540) { targetRPM=2000; targetTPS=5; }
+  else                 { targetRPM=850;  targetTPS=0; }
+
+  live.rpm += (targetRPM - live.rpm) * 0.08 + jit(0,50);
+  live.rpm = Math.max(700, Math.min(8500, live.rpm));
+  live.tps += (targetTPS - live.tps) * 0.1;
+  live.map = jit(30 + live.tps*2.0 + (live.rpm/9000)*20, 3);
+  live.map = Math.max(20, Math.min(240, live.map));
+  live.spd = Math.max(0, live.tps * 1.2 + jit(0, 3));
+
+  let targetAFR;
+  if(live.tps > 80) targetAFR = 12.2 + jit(0,0.3);
+  else if(live.tps > 40) targetAFR = 13.5 + jit(0,0.4);
+  else if(live.tps > 10) targetAFR = 14.7 + jit(0,0.2);
+  else targetAFR = 14.7 + jit(0,0.15);
+  live.afr += (targetAFR - live.afr) * 0.15;
+  live.afr = Math.max(10.5, Math.min(18, live.afr));
+
+  if(live.rpm > 7000) live.ign = 22 + jit(0,1);
+  else if(live.rpm > 5000) live.ign = 28 + jit(0,1.5);
+  else if(live.rpm > 2500) live.ign = 32 + jit(0,1);
+  else live.ign = 15 + jit(0,0.5);
+
+  live.idc = Math.max(5, Math.min(95, (live.rpm/9000)*60 + live.tps*0.35 + jit(0,2)));
+  live.stft = jit(live.stft * 0.95, 0.8);
+  live.stft = Math.max(-15, Math.min(15, live.stft));
+  live.ect = Math.max(180, Math.min(215, jit(195, 1)));
+  live.iat = Math.max(70, Math.min(150, jit(live.iat, 0.5)));
+  if(live.tps > 60) live.iat = Math.min(150, live.iat + 0.1);
+  else live.iat = Math.max(82, live.iat - 0.05);
+  live.knock = (live.rpm > 5500 && live.tps > 70 && Math.random() < 0.008) ? 1 : 0;
+
+  if(recording) addSample(live);
+}
+
+// ============================================================
+//  MAIN LOOP
+// ============================================================
+function tick(){
+  if(!connected) simTick();
+}
+
+function render(){
+  drawHeatmap();
+  requestAnimationFrame(render);
+}
+
+initGrid();
+updateLegend();
+resize();
+setInterval(tick, 100);
+render();
+window.addEventListener('resize', () => { resize(); drawHeatmap(); });
+</script>
+</body>
+</html>

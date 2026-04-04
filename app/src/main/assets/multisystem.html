@@ -113,8 +113,8 @@ html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech
 
 <div class="status-bar">
   <div class="status-dot" id="conn-dot"></div>
-  <div class="status-title">MULTI-SYSTEM STREAM</div>
-  <div class="status-text" id="conn-text">OBD NOT CONNECTED - SIMULATED DATA</div>
+  <div class="status-title">LIVE DATA STREAM</div>
+  <div class="status-text" id="conn-text">FLASHPRO NOT CONNECTED - SIMULATED</div>
 </div>
 
 <div class="main">
@@ -130,103 +130,125 @@ html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech
       <canvas class="graph-canvas" id="graph"></canvas>
     </div>
     <div class="toggle-bar" id="toggle-bar">
-      <div class="no-selection" id="no-sel">SELECT PIDS FROM MODULES</div>
+      <div class="no-selection" id="no-sel">SELECT PIDS FROM SENSORS</div>
       <button class="clear-btn" id="clear-btn" onclick="clearAll()" style="display:none">CLEAR</button>
     </div>
   </div>
 </div>
 
 <script>
-// ============ MODULE DEFINITIONS ============
-const MODULES = {
-  ECM: {
-    label: 'ECM', fullName: 'ENGINE CONTROL', color: '#cc2200',
+// ============ SENSOR DEFINITIONS ============
+const SENSORS = {
+  ENGINE: {
+    label: 'ENGINE', fullName: 'ENGINE',
     pids: {
-      rpm:   { label:'RPM',          min:0,   max:9000, unit:'REV/MIN', val:0 },
-      spd:   { label:'SPEED',        min:0,   max:160,  unit:'MPH',     val:0 },
-      tps:   { label:'THROTTLE',     min:0,   max:100,  unit:'%',       val:0 },
-      map:   { label:'MAP',          min:0,   max:250,  unit:'KPA',     val:101 },
-      iat:   { label:'INTAKE TEMP',  min:30,  max:180,  unit:'°F',      val:75 },
-      ect:   { label:'COOLANT',      min:100, max:250,  unit:'°F',      val:185 },
-      ign:   { label:'TIMING',       min:-10, max:50,   unit:'°BTDC',   val:15 },
-      stft:  { label:'FUEL TRIM ST', min:-25, max:25,   unit:'%',       val:0 },
-      ltft:  { label:'FUEL TRIM LT', min:-25, max:25,   unit:'%',       val:0 },
-      inj:   { label:'INJECTOR',     min:0,   max:100,  unit:'%',       val:0 },
-      afr:   { label:'AFR',          min:10,  max:20,   unit:'λ',       val:14.7 },
-      vtec:  { label:'VTEC',         min:0,   max:1,    unit:'ON/OFF',  val:0 },
+      rpm:   { label:'RPM',          min:0,   max:9000, unit:'RPM',    val:850 },
+      map:   { label:'MAP',          min:0,   max:255,  unit:'KPA',    val:35 },
+      tpedal:{ label:'THROTTLE',     min:0,   max:100,  unit:'%',      val:0 },
+      tplate:{ label:'PLATE POS',    min:0,   max:100,  unit:'%',      val:0 },
+      vss:   { label:'SPEED',        min:0,   max:180,  unit:'MPH',    val:0 },
+      gear:  { label:'GEAR',         min:0,   max:6,    unit:'',       val:0 },
     }
   },
-  TCM: {
-    label: 'TCM', fullName: 'TRANSMISSION', color: '#00cc88',
+  FUEL: {
+    label: 'FUEL', fullName: 'FUEL SYSTEM',
     pids: {
-      gear:    { label:'GEAR POS',     min:0,  max:6,    unit:'',     val:1 },
-      iss:     { label:'INPUT SHAFT',  min:0,  max:9000, unit:'RPM',  val:0 },
-      oss:     { label:'OUTPUT SHAFT', min:0,  max:6000, unit:'RPM',  val:0 },
-      tslip:   { label:'TC SLIP',      min:0,  max:500,  unit:'RPM',  val:0 },
-      tft:     { label:'TRANS TEMP',   min:60, max:300,  unit:'°F',   val:160 },
-      solA:    { label:'SHIFT SOL A',  min:0,  max:1,    unit:'ON/OFF', val:0 },
-      solB:    { label:'SHIFT SOL B',  min:0,  max:1,    unit:'ON/OFF', val:0 },
+      inj:   { label:'INJ DURATION', min:0,   max:30,   unit:'MS',     val:2.1 },
+      duty:  { label:'INJ DUTY',     min:0,   max:100,  unit:'%',      val:8 },
+      afr:   { label:'AFR',          min:10,  max:20,   unit:':1',     val:14.7 },
+      afm:   { label:'AFM VOLTS',    min:0,   max:5,    unit:'V',      val:0.8 },
+      strim: { label:'SHORT TRIM',   min:-25, max:25,   unit:'%',      val:0 },
+      ltrim: { label:'LONG TRIM',    min:-15, max:15,   unit:'%',      val:0 },
+      fstat: { label:'FUEL STATUS',  min:0,   max:8,    unit:'',       val:2 },
     }
   },
-  ABS: {
-    label: 'ABS', fullName: 'ANTI-LOCK BRAKE', color: '#4488ff',
+  IGNITION: {
+    label: 'IGN', fullName: 'IGNITION / KNOCK',
     pids: {
-      wsFL:   { label:'WHEEL FL',    min:0,  max:160, unit:'MPH',    val:0 },
-      wsFR:   { label:'WHEEL FR',    min:0,  max:160, unit:'MPH',    val:0 },
-      wsRL:   { label:'WHEEL RL',    min:0,  max:160, unit:'MPH',    val:0 },
-      wsRR:   { label:'WHEEL RR',    min:0,  max:160, unit:'MPH',    val:0 },
-      brkPsi: { label:'BRAKE PSI',   min:0,  max:2000, unit:'PSI',   val:0 },
-      absAct: { label:'ABS ACTIVE',  min:0,  max:1,   unit:'ON/OFF', val:0 },
-      vsaAct: { label:'VSA ACTIVE',  min:0,  max:1,   unit:'ON/OFF', val:0 },
-      yaw:    { label:'YAW RATE',    min:-60, max:60,  unit:'°/S',   val:0 },
+      ign:    { label:'TIMING',      min:-10, max:50,   unit:'°BTDC',  val:15 },
+      kcount: { label:'KNOCK COUNT', min:0,   max:50,   unit:'',       val:0 },
+      klevel: { label:'KNOCK LEVEL', min:0,   max:100,  unit:'%',      val:0 },
+      kretard:{ label:'KNOCK RETARD',min:0,   max:15,   unit:'°',      val:0 },
     }
   },
-  BCM: {
-    label: 'BCM', fullName: 'BODY CONTROL', color: '#ffaa00',
+  VTEC: {
+    label: 'VTEC', fullName: 'VTEC / VTC',
     pids: {
-      batt:    { label:'BATTERY',     min:10, max:16,  unit:'V',      val:12.6 },
-      altLoad: { label:'ALT LOAD',    min:0,  max:100, unit:'%',      val:30 },
-      hdlamp:  { label:'HEADLIGHTS',  min:0,  max:1,   unit:'ON/OFF', val:0 },
-      fanRly:  { label:'FAN RELAY',   min:0,  max:1,   unit:'ON/OFF', val:0 },
-      acClut:  { label:'AC CLUTCH',   min:0,  max:1,   unit:'ON/OFF', val:0 },
-      fuelPmp: { label:'FUEL PUMP',   min:0,  max:1,   unit:'ON/OFF', val:1 },
-      brkSw:   { label:'BRAKE SW',    min:0,  max:1,   unit:'ON/OFF', val:0 },
+      vts:    { label:'VTEC STATUS', min:0,   max:1,    unit:'ON/OFF', val:0 },
+      cam:    { label:'CAM ACTUAL',  min:0,   max:50,   unit:'°',      val:0 },
+      camcmd: { label:'CAM COMMAND', min:0,   max:50,   unit:'°',      val:0 },
+    }
+  },
+  TEMPS: {
+    label: 'TEMP', fullName: 'TEMPERATURES',
+    pids: {
+      ect:   { label:'COOLANT',      min:-40, max:300,  unit:'°F',     val:185 },
+      iat:   { label:'INTAKE AIR',   min:-40, max:300,  unit:'°F',     val:85 },
+    }
+  },
+  ELECTRICAL: {
+    label: 'ELEC', fullName: 'ELECTRICAL',
+    pids: {
+      bat:   { label:'BATTERY',      min:10,  max:16,   unit:'V',      val:14.2 },
+      pa:    { label:'ATMOS PRESS',  min:70,  max:110,  unit:'KPA',    val:101 },
     }
   }
 };
 
 // State
-const selected = {}; // key: "MOD.pid", value: { module, pid, color, history:[], visible:true }
+const selected = {}; // key: "GROUP.pid", value: { group, pid, color, dash, history:[], visible:true }
 const MAX_HISTORY = 600;
 let heroSlots = [null, null, null, null]; // up to 4 hero gauges
 
-// PID color palette per module (cycle through shades)
-function pidColor(modColor, index) {
-  // Shift hue slightly for each PID in a module
-  const r = parseInt(modColor.slice(1,3),16);
-  const g = parseInt(modColor.slice(3,5),16);
-  const b = parseInt(modColor.slice(5,7),16);
-  const shift = (index * 35) % 180;
-  const nr = Math.min(255, r + shift) % 256;
-  const ng = Math.min(255, g + shift) % 256;
-  const nb = Math.min(255, b + shift) % 256;
-  // Keep it vivid: blend toward module color
-  const fr = Math.round(nr * 0.5 + r * 0.5);
-  const fg = Math.round(ng * 0.5 + g * 0.5);
-  const fb = Math.round(nb * 0.5 + b * 0.5);
-  return '#' + [fr,fg,fb].map(c => c.toString(16).padStart(2,'0')).join('');
+// Master color palette — maximally distinct colors
+const COLOR_PALETTE = [
+  '#ff4444',  // red
+  '#33bbee',  // cyan
+  '#ffdd33',  // yellow
+  '#ee77ff',  // magenta
+  '#44ff88',  // green
+  '#ff8833',  // orange
+  '#7788ff',  // blue
+  '#ffaacc',  // pink
+  '#88ffee',  // teal
+  '#ddff44',  // lime
+];
+
+// Line styles for when we run out of distinct colors
+const LINE_STYLES = [
+  [],           // solid
+  [8, 4],       // dashed
+  [2, 4],       // dotted
+  [12, 4, 2, 4],// dash-dot
+];
+
+let nextColorIndex = 0;
+
+function getNextStyle() {
+  const colorIdx = nextColorIndex % COLOR_PALETTE.length;
+  const styleIdx = Math.floor(nextColorIndex / COLOR_PALETTE.length) % LINE_STYLES.length;
+  nextColorIndex++;
+  return {
+    color: COLOR_PALETTE[colorIdx],
+    dash: LINE_STYLES[styleIdx]
+  };
+}
+
+function releaseStyle() {
+  // Recalculate nextColorIndex from currently selected count
+  nextColorIndex = Object.keys(selected).length;
 }
 
 // ============ BUILD SIDEBAR ============
 function buildSidebar() {
   const sb = document.getElementById('sidebar');
   sb.innerHTML = '';
-  Object.entries(MODULES).forEach(([modKey, mod]) => {
+  Object.entries(SENSORS).forEach(([grpKey, grp]) => {
     const header = document.createElement('div');
     header.className = 'module-header';
-    header.innerHTML = `<div class="module-dot" style="background:${mod.color};box-shadow:0 0 4px ${mod.color}44"></div>
-      <span style="color:${mod.color}">${mod.label}</span>
-      <span style="color:#ffffff33;font-size:7px;letter-spacing:1px">${mod.fullName}</span>
+    header.innerHTML = `<div class="module-dot" style="background:#ffffff55;box-shadow:0 0 4px #ffffff22"></div>
+      <span style="color:#ffffffaa">${grp.label}</span>
+      <span style="color:#ffffff33;font-size:7px;letter-spacing:1px">${grp.fullName}</span>
       <span class="module-arrow">▶</span>`;
 
     const list = document.createElement('div');
@@ -237,17 +259,20 @@ function buildSidebar() {
       list.classList.toggle('open');
     };
 
-    let pidIdx = 0;
-    Object.entries(mod.pids).forEach(([pidKey, pid]) => {
+    Object.entries(grp.pids).forEach(([pidKey, pid]) => {
       const item = document.createElement('div');
       item.className = 'pid-item';
-      item.style.setProperty('--mc', mod.color);
-      const key = modKey + '.' + pidKey;
-      if (selected[key]) item.classList.add('selected');
+      const key = grpKey + '.' + pidKey;
+      const sel = selected[key];
+      if (sel) {
+        item.classList.add('selected');
+        item.style.setProperty('--mc', sel.color);
+      } else {
+        item.style.setProperty('--mc', '#ffffff55');
+      }
       item.innerHTML = `<div class="pid-check"></div>${pid.label}`;
-      item.onclick = () => togglePid(modKey, pidKey, pidIdx, item);
+      item.onclick = () => togglePid(grpKey, pidKey, item);
       list.appendChild(item);
-      pidIdx++;
     });
 
     sb.appendChild(header);
@@ -255,20 +280,21 @@ function buildSidebar() {
   });
 }
 
-function togglePid(modKey, pidKey, pidIdx, el) {
-  const key = modKey + '.' + pidKey;
+function togglePid(grpKey, pidKey, el) {
+  const key = grpKey + '.' + pidKey;
   if (selected[key]) {
     delete selected[key];
     el.classList.remove('selected');
+    releaseStyle();
     // Remove from hero slots
     heroSlots = heroSlots.map(h => h === key ? null : h);
   } else {
-    const mod = MODULES[modKey];
-    const pid = mod.pids[pidKey];
+    const grp = SENSORS[grpKey];
+    const pid = grp.pids[pidKey];
+    const style = getNextStyle();
     selected[key] = {
-      module: modKey, pid: pidKey,
-      color: pidColor(mod.color, pidIdx),
-      modColor: mod.color,
+      group: grpKey, pid: pidKey,
+      color: style.color, dash: style.dash,
       label: pid.label, unit: pid.unit,
       min: pid.min, max: pid.max,
       history: [], visible: true
@@ -277,6 +303,7 @@ function togglePid(modKey, pidKey, pidIdx, el) {
     const emptySlot = heroSlots.indexOf(null);
     if (emptySlot >= 0) heroSlots[emptySlot] = key;
   }
+  buildSidebar();
   buildToggleBar();
   updateHeroGauges();
 }
@@ -298,7 +325,7 @@ function buildToggleBar() {
     const btn = document.createElement('button');
     btn.className = 'pid-toggle' + (s.visible ? ' active' : '');
     btn.style.setProperty('--c', s.color);
-    btn.innerHTML = `<span class="mod-tag">${s.module}</span>${s.label}`;
+    btn.innerHTML = `<span class="mod-tag">${s.group}</span>${s.label}`;
     btn.onclick = () => {
       s.visible = !s.visible;
       btn.classList.toggle('active', s.visible);
@@ -326,12 +353,12 @@ function updateHeroGauges() {
       continue;
     }
     const s = selected[key];
-    const mod = MODULES[s.module];
-    const pid = mod.pids[s.pid];
+    const grp = SENSORS[s.group];
+    const pid = grp.pids[s.pid];
     const pct = Math.max(0, Math.min(100, ((pid.val - s.min) / (s.max - s.min)) * 100));
     cell.className = 'gauge-cell';
     cell.innerHTML = `
-      <div class="gauge-module-badge" style="color:${s.modColor};border-color:${s.modColor}44">${s.module}</div>
+      <div class="gauge-module-badge" style="background:${s.color};border-color:${s.color}44;width:8px;height:8px;border-radius:50%;padding:0"></div>
       <div class="gauge-label">${s.label}</div>
       <div class="gauge-value" style="color:${s.color}">${formatVal(pid.val)}</div>
       <div class="gauge-unit">${s.unit}</div>
@@ -344,93 +371,156 @@ function formatVal(v) {
   return v;
 }
 
-// ============ SIMULATION ============
+// ============ K20Z3 SIMULATION ============
 let simTime = 0;
-let simGear = 1;
-let simRPM = 800;
+let simGear = 0;
+let simRPM = 850;
 let simSpeed = 0;
 let simThrottle = 0;
+let simCamActual = 0;
+let simCamCmd = 0;
+let simVtec = 0;
+let simKnockCount = 0;
+let simPhase = 'idle'; // idle, pull, cruise, decel
+let simPhaseTime = 0;
+
+// K20Z3 gear ratios (Si 6-speed) — final drive 4.764
+const K20_GEARS = [0, 3.267, 2.130, 1.517, 1.147, 0.921, 0.738];
+const K20_FINAL = 4.764;
+const TIRE_REV_PER_MILE = 819; // 215/45R17
 
 function simUpdate() {
   simTime += 0.1;
-  const cycle = simTime % 30;
+  simPhaseTime += 0.1;
+  const cycle = simTime % 40;
 
-  if (cycle < 8) {
-    simThrottle = 60 + Math.sin(simTime * 0.5) * 30;
-    simRPM = Math.min(8000, simRPM + (simThrottle * 3));
-    if (simRPM > 7500) { simRPM = 3500; simGear = Math.min(6, simGear + 1); }
-  } else if (cycle < 12) {
-    simThrottle = 15 + Math.sin(simTime * 2) * 5;
-    simRPM = 3000 + Math.sin(simTime * 0.3) * 500;
-  } else if (cycle < 18) {
-    simThrottle = 85 + Math.sin(simTime * 0.8) * 15;
-    simRPM = Math.min(8200, simRPM + (simThrottle * 5));
-    if (simRPM > 7800) { simRPM = 4000; simGear = Math.min(6, simGear + 1); }
-  } else if (cycle < 22) {
+  // Phase state machine: idle -> pull -> cruise -> decel -> idle
+  if (cycle < 5) {
+    // Idle
+    simPhase = 'idle';
     simThrottle = 0;
-    simRPM = Math.max(800, simRPM - 400);
-    simGear = Math.max(1, Math.floor(simRPM / 1500));
+    simRPM = 850 + Math.sin(simTime * 3) * 25 + (Math.random() - 0.5) * 15;
+    simGear = 0;
+    simSpeed = 0;
+  } else if (cycle < 20) {
+    // WOT pull through gears
+    simPhase = 'pull';
+    simThrottle = 92 + Math.sin(simTime * 0.8) * 8;
+    simRPM += simThrottle * 4.5;
+    if (simGear === 0) simGear = 1;
+    // Shift at 8100 RPM
+    if (simRPM > 8100 && simGear < 6) {
+      simGear++;
+      // Drop RPM based on ratio change
+      simRPM = simRPM * (K20_GEARS[simGear] / K20_GEARS[simGear - 1]);
+    }
+    if (simRPM > 8300) simRPM = 8300;
+  } else if (cycle < 30) {
+    // Cruise
+    simPhase = 'cruise';
+    simThrottle = 18 + Math.sin(simTime * 0.5) * 6;
+    simRPM = 3200 + Math.sin(simTime * 0.3) * 300 + (Math.random() - 0.5) * 50;
+    simGear = 6;
+  } else if (cycle < 35) {
+    // Decel / engine braking
+    simPhase = 'decel';
+    simThrottle = 0;
+    simRPM = Math.max(850, simRPM - 350);
+    if (simRPM < 2000 && simGear > 1) {
+      simGear--;
+      simRPM = 3000;
+    }
+    if (simRPM <= 900) simGear = 0;
   } else {
-    simThrottle = 5 + Math.random() * 3;
-    simRPM = 800 + Math.sin(simTime * 3) * 50;
-    simGear = 1;
-    simSpeed = Math.max(0, simSpeed - 2);
+    // Back to idle
+    simPhase = 'idle';
+    simThrottle = 0;
+    simRPM = 850 + Math.sin(simTime * 3) * 25;
+    simGear = 0;
+    simSpeed = 0;
   }
-  simSpeed = Math.max(0, Math.min(150, simRPM * simGear * 0.003));
-  const vtecOn = simRPM > 5800 ? 1 : 0;
-  const knock = simRPM > 7000 && simThrottle > 80 ? Math.floor(Math.random() * 3) : 0;
-  const braking = simThrottle === 0 && cycle >= 18 && cycle < 22;
 
-  // ECM
-  const ecm = MODULES.ECM.pids;
-  ecm.rpm.val = Math.round(simRPM);
-  ecm.spd.val = Math.round(simSpeed);
-  ecm.tps.val = Math.round(simThrottle);
-  ecm.map.val = Math.round(30 + simThrottle * 1.7 + Math.random() * 5);
-  ecm.iat.val = Math.round(75 + Math.sin(simTime * 0.1) * 8);
-  ecm.ect.val = Math.round(185 + Math.sin(simTime * 0.05) * 10 + (simThrottle > 50 ? 5 : 0));
-  ecm.ign.val = parseFloat((15 + (simRPM / 1000) * 2 - knock * 3 + Math.sin(simTime) * 2).toFixed(1));
-  ecm.stft.val = parseFloat((Math.sin(simTime * 1.5) * 4).toFixed(1));
-  ecm.ltft.val = parseFloat((Math.sin(simTime * 0.1) * 3 + 1).toFixed(1));
-  ecm.inj.val = Math.round(simThrottle * 0.6 + simRPM / 200 + Math.random() * 5);
-  ecm.afr.val = parseFloat((14.7 - (simThrottle / 100) * 2.5 + Math.sin(simTime * 2) * 0.3).toFixed(1));
-  ecm.vtec.val = vtecOn;
+  // Speed from RPM and gear
+  if (simGear > 0) {
+    simSpeed = (simRPM / (K20_GEARS[simGear] * K20_FINAL)) * (60 / TIRE_REV_PER_MILE);
+  } else {
+    simSpeed = Math.max(0, simSpeed - 1.5);
+  }
+  simSpeed = Math.max(0, Math.min(160, simSpeed));
 
-  // TCM - derived from ECM state
-  const tcm = MODULES.TCM.pids;
-  tcm.gear.val = simGear;
-  tcm.iss.val = Math.round(simRPM * 0.95 + Math.random() * 20);
-  tcm.oss.val = Math.round(simRPM / (simGear * 0.8 + 0.5));
-  tcm.tslip.val = Math.round(Math.max(0, tcm.iss.val - tcm.oss.val * (simGear * 0.8 + 0.5) / 0.95));
-  tcm.tft.val = Math.round(160 + Math.sin(simTime * 0.03) * 15 + (simThrottle > 60 ? 10 : 0));
-  tcm.solA.val = (simGear <= 2) ? 1 : 0;
-  tcm.solB.val = (simGear >= 3) ? 1 : 0;
+  // VTEC engagement at 5800 RPM
+  const vtecTarget = simRPM >= 5800 ? 1 : 0;
+  simVtec = vtecTarget;
 
-  // ABS - wheel speeds from vehicle speed
-  const abs = MODULES.ABS.pids;
-  const baseWS = simSpeed;
-  abs.wsFL.val = Math.round(baseWS + (Math.random() - 0.5) * 1.5);
-  abs.wsFR.val = Math.round(baseWS + (Math.random() - 0.5) * 1.5);
-  abs.wsRL.val = Math.round(baseWS + (Math.random() - 0.5) * 1.0);
-  abs.wsRR.val = Math.round(baseWS + (Math.random() - 0.5) * 1.0);
-  abs.brkPsi.val = braking ? Math.round(800 + Math.random() * 400) : 0;
-  abs.absAct.val = 0;
-  abs.vsaAct.val = 0;
-  abs.yaw.val = parseFloat((Math.sin(simTime * 0.7) * 5).toFixed(1));
+  // VTC cam angle — command leads, actual lags behind
+  simCamCmd = simRPM > 2000 ? Math.min(40, (simRPM - 2000) / 150) : 0;
+  simCamActual += (simCamCmd - simCamActual) * 0.15; // lag
 
-  // BCM
-  const bcm = MODULES.BCM.pids;
-  bcm.batt.val = parseFloat((12.4 + Math.sin(simTime * 0.2) * 0.3 + (simRPM > 1500 ? 1.2 : 0)).toFixed(1));
-  bcm.altLoad.val = Math.round(30 + simThrottle * 0.3 + Math.random() * 5);
-  bcm.hdlamp.val = 1;
-  bcm.fanRly.val = ecm.ect.val > 200 ? 1 : 0;
-  bcm.acClut.val = 0;
-  bcm.fuelPmp.val = 1;
-  bcm.brkSw.val = braking ? 1 : 0;
+  // Knock simulation — occasional at high RPM/load
+  const knockChance = simRPM > 7000 && simThrottle > 80 ? 0.08 : 0;
+  const knockEvent = Math.random() < knockChance;
+  if (knockEvent) simKnockCount++;
+
+  // MAP sensor — vacuum at idle, positive at WOT
+  const mapVal = simThrottle < 5 ? 30 + Math.random() * 4 :
+    30 + simThrottle * 2.2 + (Math.random() - 0.5) * 5;
+
+  // Throttle plate lags behind pedal
+  const plateTarget = simThrottle * 0.95 + (simRPM > 5800 ? 3 : 0);
+
+  // ENGINE sensors
+  const eng = SENSORS.ENGINE.pids;
+  eng.rpm.val = Math.round(simRPM);
+  eng.map.val = Math.round(Math.min(255, Math.max(0, mapVal)));
+  eng.tpedal.val = Math.round(simThrottle);
+  eng.tplate.val = Math.round(Math.min(100, plateTarget));
+  eng.vss.val = Math.round(simSpeed);
+  eng.gear.val = simGear;
+
+  // FUEL sensors
+  const fuel = SENSORS.FUEL.pids;
+  const injDur = simThrottle < 5 ? 2.1 + Math.random() * 0.3 :
+    2.0 + (simRPM / 1000) * 2.5 + (simThrottle / 100) * 4;
+  fuel.inj.val = parseFloat(injDur.toFixed(1));
+  fuel.duty.val = Math.round(Math.min(95, (injDur / (120000 / simRPM / 2)) * 100));
+  // AFR — stoich at cruise, rich at WOT, lean at decel
+  const afrBase = simThrottle > 80 ? 11.8 + Math.random() * 0.4 :
+    simThrottle < 3 && simRPM > 1200 ? 16.5 + Math.random() * 1.0 :
+    14.68 + Math.sin(simTime * 2) * 0.15;
+  fuel.afr.val = parseFloat(afrBase.toFixed(1));
+  fuel.afm.val = parseFloat((0.5 + simThrottle * 0.04 + (simRPM / 9000) * 1.5).toFixed(2));
+  fuel.strim.val = parseFloat((Math.sin(simTime * 1.5) * 3.5).toFixed(1));
+  fuel.ltrim.val = parseFloat((Math.sin(simTime * 0.08) * 2.5 + 0.8).toFixed(1));
+  fuel.fstat.val = simThrottle > 80 ? 4 : simRPM < 1000 ? 1 : 2;
+
+  // IGNITION sensors
+  const ign = SENSORS.IGNITION.pids;
+  const baseAdv = 12 + (simRPM / 1000) * 3.5 - (simThrottle > 80 ? 3 : 0);
+  const knockRetard = knockEvent ? 2 + Math.random() * 3 : 0;
+  ign.ign.val = parseFloat((baseAdv - knockRetard + Math.sin(simTime) * 0.5).toFixed(1));
+  ign.kcount.val = simKnockCount;
+  ign.klevel.val = Math.round(knockEvent ? 30 + Math.random() * 40 : Math.max(0, ign.klevel.val - 2));
+  ign.kretard.val = parseFloat(knockRetard.toFixed(1));
+
+  // VTEC sensors
+  const vtc = SENSORS.VTEC.pids;
+  vtc.vts.val = simVtec;
+  vtc.cam.val = parseFloat(simCamActual.toFixed(1));
+  vtc.camcmd.val = parseFloat(simCamCmd.toFixed(1));
+
+  // TEMP sensors
+  const tmp = SENSORS.TEMPS.pids;
+  tmp.ect.val = Math.round(185 + Math.sin(simTime * 0.04) * 8 + (simThrottle > 60 ? 5 : 0));
+  tmp.iat.val = Math.round(85 + Math.sin(simTime * 0.07) * 6 + (simThrottle > 50 ? 3 : 0));
+
+  // ELECTRICAL sensors
+  const elec = SENSORS.ELECTRICAL.pids;
+  elec.bat.val = parseFloat((12.4 + (simRPM > 1200 ? 1.8 : 0) + Math.sin(simTime * 0.2) * 0.2).toFixed(1));
+  elec.pa.val = Math.round(101 + Math.sin(simTime * 0.01) * 0.5);
 
   // Push history for selected PIDs
   Object.entries(selected).forEach(([key, s]) => {
-    const pid = MODULES[s.module].pids[s.pid];
+    const pid = SENSORS[s.group].pids[s.pid];
     s.history.push(pid.val);
     if (s.history.length > MAX_HISTORY) s.history.shift();
   });
@@ -486,6 +576,7 @@ function drawGraph() {
     ctx.lineWidth = 1.5;
     ctx.shadowColor = s.color;
     ctx.shadowBlur = 4;
+    ctx.setLineDash(s.dash || []);
 
     for (let i = 0; i < len; i++) {
       const x = (i / Math.max(1, len - 1)) * W;
@@ -494,6 +585,7 @@ function drawGraph() {
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();
+    ctx.setLineDash([]);
     ctx.shadowBlur = 0;
 
     // Label
@@ -502,17 +594,17 @@ function drawGraph() {
     const lastY = H - (Math.max(0, Math.min(1, lastNorm)) * (H - 20)) - 10;
     ctx.fillStyle = s.color;
     ctx.font = '9px Share Tech Mono';
-    ctx.fillText(s.module + ':' + s.label + ' ' + formatVal(lastVal), W - 120, lastY - 4);
+    ctx.fillText(s.group + ':' + s.label + ' ' + formatVal(lastVal), W - 130, lastY - 4);
   });
 }
 
-// ============ BRIDGE (for Kotlin) ============
-function updateFromOBD(modKey, pidKey, value) {
-  if (MODULES[modKey] && MODULES[modKey].pids[pidKey]) {
-    MODULES[modKey].pids[pidKey].val = value;
+// ============ BRIDGE (for Kotlin / FlashPro) ============
+function updateFromOBD(grpKey, pidKey, value) {
+  if (SENSORS[grpKey] && SENSORS[grpKey].pids[pidKey]) {
+    SENSORS[grpKey].pids[pidKey].val = value;
   }
   document.getElementById('conn-dot').classList.add('connected');
-  document.getElementById('conn-text').textContent = 'OBD CONNECTED';
+  document.getElementById('conn-text').textContent = 'FLASHPRO CONNECTED';
 }
 
 // ============ MAIN LOOP ============

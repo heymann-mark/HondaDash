@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.17.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.17.0/mapbox-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
+<script src="config.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+@font-face { font-family:'DSEG7'; src:url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2'); font-weight:bold; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; color:#ccc; }
+
+/* STATUS BAR */
+.status-bar { position:fixed; top:0; left:0; right:0; height:28px; background:#0d0d0d; border-bottom:1px solid #ffffff0d; display:flex; align-items:center; padding:0 12px; gap:16px; z-index:10; }
+.status-label { font-size:10px; color:#ffffff55; letter-spacing:2px; }
+.status-val { font-size:10px; color:#ffffffaa; letter-spacing:1px; }
+.status-spacer { flex:1; }
+.status-tag { font-size:9px; color:#cc2200; letter-spacing:2px; border:1px solid #cc220033; padding:1px 6px; }
+
+/* LAYOUT */
+.main { position:fixed; top:28px; left:0; right:0; bottom:0; display:grid; grid-template-columns:1fr 280px; grid-template-rows:1fr auto; }
+
+/* MAP */
+#map { width:100%; height:100%; }
+
+/* RIGHT PANEL */
+.gauge-panel { background:#0d0d0d; border-left:1px solid #ffffff0d; display:flex; flex-direction:column; overflow-y:auto; grid-row:1/3; }
+.panel-section { padding:10px 14px; border-bottom:1px solid #ffffff08; }
+.panel-title { font-size:9px; color:#ffffff44; letter-spacing:2px; margin-bottom:6px; }
+.gauge-row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+.gauge-label { font-size:8px; color:#ffffff33; letter-spacing:1px; }
+.gauge-val { font-family:'DSEG7','Orbitron',monospace; font-size:20px; font-weight:700; line-height:1; }
+.gauge-bar { height:3px; background:#ffffff0a; margin-top:4px; border-radius:1px; }
+.gauge-fill { height:3px; border-radius:1px; transition:width 0.2s; }
+.gauge-card { padding:8px 14px; border-bottom:1px solid #ffffff08; }
+
+/* GRAPH */
+.graph-section { flex:1; min-height:120px; position:relative; }
+#trace-canvas { width:100%; height:100%; display:block; }
+
+/* TRANSPORT BAR */
+.transport { background:#0d0d0d; border-top:1px solid #ffffff0d; padding:8px 12px; display:flex; align-items:center; gap:10px; }
+.transport-btn { background:transparent; border:1px solid #ffffff22; color:#ffffff55; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:1px; padding:5px 12px; cursor:pointer; transition:all 0.15s; }
+.transport-btn:hover { border-color:#cc2200; color:#cc2200; }
+.transport-btn.active { border-color:#cc2200; color:#cc2200; background:rgba(204,34,0,0.08); }
+.scrub-wrap { flex:1; display:flex; align-items:center; gap:8px; }
+.scrub-bar { flex:1; height:6px; background:#ffffff0a; border-radius:3px; cursor:pointer; position:relative; }
+.scrub-fill { height:100%; background:#cc2200; border-radius:3px; pointer-events:none; }
+.scrub-handle { position:absolute; top:50%; width:14px; height:14px; background:#cc2200; border-radius:50%; transform:translate(-50%,-50%); cursor:grab; box-shadow:0 0 6px #cc220066; }
+.time-label { font-size:10px; color:#ffffff44; letter-spacing:1px; min-width:50px; text-align:center; }
+.speed-btn { background:transparent; border:1px solid #ffffff11; color:#ffffff33; font-family:'Share Tech Mono',monospace; font-size:9px; padding:3px 6px; cursor:pointer; transition:all 0.15s; }
+.speed-btn.active { border-color:#cc220066; color:#cc2200; }
+
+/* TRIP SELECTOR */
+.trip-list { max-height:200px; overflow-y:auto; }
+.trip-item { padding:8px 14px; border-bottom:1px solid #ffffff06; cursor:pointer; transition:background 0.1s; }
+.trip-item:hover { background:rgba(204,34,0,0.05); }
+.trip-item.active { background:rgba(204,34,0,0.1); border-left:2px solid #cc2200; }
+.trip-date { font-size:10px; color:#ffffff66; }
+.trip-stats { font-size:9px; color:#ffffff33; margin-top:2px; }
+
+/* EMPTY STATE */
+.empty-state { padding:20px; text-align:center; color:#ffffff22; font-size:11px; letter-spacing:1px; }
+
+/* POSITION MARKER */
+.playback-marker { width:16px; height:16px; background:#cc2200; border:2px solid #ffffff; border-radius:50%; box-shadow:0 0 12px #cc220088; }
+.start-marker { width:10px; height:10px; background:#00cc44; border-radius:50%; border:2px solid #ffffff88; }
+.end-marker { width:10px; height:10px; background:#cc2200; border-radius:50%; border:2px solid #ffffff88; }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <span class="status-label">LOG PLAYBACK</span>
+  <span class="status-val" id="trip-name">NO TRIP LOADED</span>
+  <div class="status-spacer"></div>
+  <span class="status-val" id="play-status">STOPPED</span>
+  <div class="status-tag">REPLAY</div>
+</div>
+
+<div class="main">
+  <!-- MAP -->
+  <div id="map"></div>
+
+  <!-- RIGHT PANEL -->
+  <div class="gauge-panel">
+    <!-- Trip selector -->
+    <div class="panel-section">
+      <div class="panel-title">SELECT TRIP</div>
+      <div class="trip-list" id="trip-list"></div>
+    </div>
+
+    <!-- Live gauges -->
+    <div class="gauge-card">
+      <div class="gauge-row">
+        <span class="gauge-label">SPEED</span>
+        <span class="gauge-val" id="g-spd" style="color:#cc2200;">0</span>
+        <span class="gauge-label">MPH</span>
+      </div>
+      <div class="gauge-bar"><div class="gauge-fill" id="b-spd" style="background:#cc2200;width:0%"></div></div>
+    </div>
+
+    <div class="gauge-card">
+      <div class="gauge-row">
+        <span class="gauge-label">RPM</span>
+        <span class="gauge-val" id="g-rpm" style="color:#ff6644;">0</span>
+      </div>
+      <div class="gauge-bar"><div class="gauge-fill" id="b-rpm" style="background:#ff6644;width:0%"></div></div>
+    </div>
+
+    <div class="gauge-card">
+      <div class="gauge-row">
+        <span class="gauge-label">THROTTLE</span>
+        <span class="gauge-val" id="g-tps" style="color:#ff8844;font-size:16px;">0</span>
+        <span class="gauge-label">%</span>
+      </div>
+      <div class="gauge-bar"><div class="gauge-fill" id="b-tps" style="background:#ff8844;width:0%"></div></div>
+    </div>
+
+    <div class="gauge-card">
+      <div class="gauge-row">
+        <span class="gauge-label">COOLANT</span>
+        <span class="gauge-val" id="g-clt" style="color:#ffaa00;font-size:16px;">0</span>
+        <span class="gauge-label">°F</span>
+      </div>
+    </div>
+
+    <div class="gauge-card">
+      <div style="display:flex;gap:12px;">
+        <div style="flex:1;">
+          <div class="gauge-label">VTEC</div>
+          <div id="g-vtec" style="font-size:10px;color:#333;letter-spacing:2px;margin-top:2px;">OFF</div>
+        </div>
+        <div style="flex:1;">
+          <div class="gauge-label">GEAR</div>
+          <div id="g-gear" style="font-family:Orbitron;font-size:18px;color:#ffffff22;margin-top:2px;">N</div>
+        </div>
+        <div style="flex:1;">
+          <div class="gauge-label">DIST</div>
+          <div id="g-dist" style="font-size:12px;color:#ffffff44;margin-top:2px;">0.0 mi</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trace graph -->
+    <div class="panel-section" style="padding:4px 0;">
+      <div style="padding:0 14px 4px;"><span class="panel-title">SPEED TRACE</span></div>
+    </div>
+    <div class="graph-section">
+      <canvas id="trace-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- TRANSPORT BAR -->
+  <div class="transport">
+    <button class="transport-btn" id="btn-play" onclick="togglePlay()">PLAY</button>
+    <button class="transport-btn" onclick="stopPlayback()">STOP</button>
+    <div class="scrub-wrap">
+      <span class="time-label" id="time-cur">0:00</span>
+      <div class="scrub-bar" id="scrub-bar">
+        <div class="scrub-fill" id="scrub-fill" style="width:0%"></div>
+        <div class="scrub-handle" id="scrub-handle" style="left:0%"></div>
+      </div>
+      <span class="time-label" id="time-total">0:00</span>
+    </div>
+    <button class="speed-btn active" data-speed="1" onclick="setSpeed(1,this)">1×</button>
+    <button class="speed-btn" data-speed="2" onclick="setSpeed(2,this)">2×</button>
+    <button class="speed-btn" data-speed="5" onclick="setSpeed(5,this)">5×</button>
+    <button class="speed-btn" data-speed="10" onclick="setSpeed(10,this)">10×</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  STATE
+// ============================================================
+const TRIP_KEY = 'hondadash_trips_v2';
+let trips = [];
+let activeTrip = null;
+let playing = false;
+let playSpeed = 1;
+let playProgress = 0; // 0-1
+let playTimer = null;
+let routeLine = null;
+
+// K20Z3 gear ratios for gear calc
+const GEAR_RATIOS = [3.267, 2.130, 1.517, 1.147, 0.921, 0.738];
+const FINAL_DRIVE = 4.764;
+const TIRE_CIRC_FT = (25.7 * Math.PI) / 12;
+
+function calcGear(rpm, speed){
+  if(speed < 3 || rpm < 600) return 0;
+  let best=0, bestD=Infinity;
+  for(let g=0;g<6;g++){
+    const exp = (rpm*TIRE_CIRC_FT*60)/(GEAR_RATIOS[g]*FINAL_DRIVE*5280);
+    const d = Math.abs(exp-speed);
+    if(d<bestD){bestD=d;best=g+1;}
+  }
+  return best;
+}
+
+// ============================================================
+//  MAP INIT
+// ============================================================
+mapboxgl.accessToken = MAPBOX_TOKEN;
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/dark-v11',
+  center: [-71.2, 42.37],
+  zoom: 12
+});
+
+let marker = null;
+let startMarker = null;
+let endMarker = null;
+
+function createMarker(className){
+  const el = document.createElement('div');
+  el.className = className;
+  return el;
+}
+
+// ============================================================
+//  LOAD TRIPS
+// ============================================================
+function loadTrips(){
+  try {
+    trips = JSON.parse(localStorage.getItem(TRIP_KEY) || '[]');
+  } catch(e){ trips = []; }
+
+  const list = document.getElementById('trip-list');
+
+  if(trips.length === 0){
+    // Load demo trip
+    loadDemoTrip();
+    return;
+  }
+
+  list.innerHTML = '';
+  trips.forEach((trip, i) => {
+    if(!trip.path || trip.path.length < 2) return;
+    const div = document.createElement('div');
+    div.className = 'trip-item';
+    const date = new Date(trip.startTime || trip.id);
+    const dur = trip.duration ? formatTime(trip.duration) : '--:--';
+    const dist = trip.distance ? trip.distance.toFixed(1) : '0.0';
+    div.innerHTML = `
+      <div class="trip-date">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</div>
+      <div class="trip-stats">${dist} mi | ${dur} | Top: ${Math.round(trip.topSpeed||0)} mph | Max RPM: ${Math.round(trip.maxRPM||0)}</div>
+    `;
+    div.onclick = () => selectTrip(i);
+    list.appendChild(div);
+  });
+
+  if(trips.filter(t=>t.path&&t.path.length>=2).length === 0){
+    loadDemoTrip();
+  } else {
+    // Auto-select first trip
+    setTimeout(() => selectTrip(0), 100);
+  }
+}
+
+function loadDemoTrip(){
+  // Generate a demo trip for testing
+  const path = [];
+  const centerLng = -71.19, centerLat = 42.37;
+  const points = 200;
+  for(let i=0;i<points;i++){
+    const t = i/points;
+    const angle = t * Math.PI * 2 * 1.5;
+    const r = 0.01 + t*0.015;
+    path.push([
+      centerLng + Math.cos(angle)*r + (Math.random()-0.5)*0.001,
+      centerLat + Math.sin(angle)*r*0.7 + (Math.random()-0.5)*0.001
+    ]);
+  }
+
+  // Generate speed profile: accelerate, cruise, corners, sprint
+  const speedSamples = [];
+  for(let i=0;i<points;i++){
+    const t = i/points;
+    let spd;
+    if(t < 0.05) spd = t/0.05 * 35;
+    else if(t < 0.15) spd = 35 + (t-0.05)/0.1 * 30;
+    else if(t < 0.25) spd = 65 - Math.sin((t-0.15)/0.1*Math.PI)*20;
+    else if(t < 0.4) spd = 45 + (t-0.25)/0.15 * 40;
+    else if(t < 0.5) spd = 85 - (t-0.4)/0.1 * 30;
+    else if(t < 0.65) spd = 55 + (t-0.5)/0.15 * 35;
+    else if(t < 0.75) spd = 90;
+    else if(t < 0.85) spd = 90 - (t-0.75)/0.1 * 50;
+    else spd = 40 - (t-0.85)/0.15 * 35;
+    speedSamples.push(Math.max(0, spd + (Math.random()-0.5)*5));
+  }
+
+  const demo = {
+    id: Date.now(),
+    startTime: Date.now() - 600000,
+    endTime: Date.now(),
+    distance: 4.2,
+    duration: 600,
+    topSpeed: 92,
+    avgSpeed: 45,
+    maxRPM: 7400,
+    maxCoolant: 198,
+    vtecCount: 3,
+    path: path,
+    speedSamples: speedSamples
+  };
+
+  trips = [demo];
+  const list = document.getElementById('trip-list');
+  list.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'trip-item';
+  div.innerHTML = `
+    <div class="trip-date">DEMO TRIP — Simulated Route</div>
+    <div class="trip-stats">4.2 mi | 10:00 | Top: 92 mph | Max RPM: 7400</div>
+  `;
+  div.onclick = () => selectTrip(0);
+  list.appendChild(div);
+
+  // Auto-select demo trip
+  setTimeout(() => selectTrip(0), 100);
+}
+
+// ============================================================
+//  SELECT & DISPLAY TRIP
+// ============================================================
+function selectTrip(idx){
+  stopPlayback();
+  activeTrip = trips[idx];
+  playProgress = 0;
+
+  // Highlight in list
+  document.querySelectorAll('.trip-item').forEach((el,i) => el.classList.toggle('active', i===idx));
+
+  // Status
+  const date = new Date(activeTrip.startTime || activeTrip.id);
+  document.getElementById('trip-name').textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  document.getElementById('time-total').textContent = formatTime(activeTrip.duration || 0);
+
+  // Draw route on map
+  drawRoute();
+
+  // Reset gauges
+  updateGaugesAt(0);
+  updateScrub();
+  drawTrace();
+}
+
+function drawRoute(){
+  if(!activeTrip || !activeTrip.path || activeTrip.path.length < 2) return;
+
+  // Remove old layers/sources
+  if(map.getLayer('route-bg')) map.removeLayer('route-bg');
+  if(map.getLayer('route-line')) map.removeLayer('route-line');
+  if(map.getSource('route')) map.removeSource('route');
+  if(marker){ marker.remove(); marker=null; }
+  if(startMarker){ startMarker.remove(); startMarker=null; }
+  if(endMarker){ endMarker.remove(); endMarker=null; }
+
+  const coords = activeTrip.path;
+
+  map.addSource('route', {
+    type:'geojson',
+    data:{ type:'Feature', geometry:{ type:'LineString', coordinates:coords } }
+  });
+
+  map.addLayer({
+    id:'route-bg', type:'line', source:'route',
+    paint:{ 'line-color':'#cc2200', 'line-width':6, 'line-opacity':0.2, 'line-blur':3 }
+  });
+
+  map.addLayer({
+    id:'route-line', type:'line', source:'route',
+    paint:{ 'line-color':'#cc2200', 'line-width':3, 'line-opacity':0.8 }
+  });
+
+  // Start marker
+  startMarker = new mapboxgl.Marker({ element:createMarker('start-marker') })
+    .setLngLat(coords[0]).addTo(map);
+
+  // End marker
+  endMarker = new mapboxgl.Marker({ element:createMarker('end-marker') })
+    .setLngLat(coords[coords.length-1]).addTo(map);
+
+  // Playback marker
+  marker = new mapboxgl.Marker({ element:createMarker('playback-marker') })
+    .setLngLat(coords[0]).addTo(map);
+
+  // Fit bounds
+  const bounds = new mapboxgl.LngLatBounds();
+  coords.forEach(c => bounds.extend(c));
+  map.fitBounds(bounds, { padding:60 });
+}
+
+// ============================================================
+//  INTERPOLATION — get data at any progress point
+// ============================================================
+function getDataAtProgress(progress){
+  if(!activeTrip) return { spd:0, rpm:0, tps:0, clt:0, lat:0, lng:0, vtec:false, gear:0, dist:0 };
+
+  const path = activeTrip.path;
+  const samples = activeTrip.speedSamples || [];
+  const t = Math.max(0, Math.min(1, progress));
+  const idx = t * (path.length - 1);
+  const i0 = Math.floor(idx);
+  const i1 = Math.min(i0 + 1, path.length - 1);
+  const frac = idx - i0;
+
+  // Position
+  const lng = path[i0][0] + (path[i1][0] - path[i0][0]) * frac;
+  const lat = path[i0][1] + (path[i1][1] - path[i0][1]) * frac;
+
+  // Speed — interpolate from samples
+  let spd = 0;
+  if(samples.length > 0){
+    const si = t * (samples.length - 1);
+    const s0 = Math.floor(si);
+    const s1 = Math.min(s0+1, samples.length-1);
+    spd = samples[s0] + (samples[s1]-samples[s0]) * (si-s0);
+  }
+
+  // Derive engine params from speed
+  // Estimate RPM from speed + likely gear
+  let rpm = 850, gear = 0, tps = 0;
+  if(spd > 3){
+    // Find which gear gives reasonable RPM
+    let bestGear = 1, bestRPM = 0;
+    for(let g=0;g<6;g++){
+      const r = (spd * 5280/3600) / TIRE_CIRC_FT * 60 * GEAR_RATIOS[g] * FINAL_DRIVE;
+      if(r >= 1500 && r <= 8000){
+        if(g+1 > bestGear || (r > 2500 && r < 7000)){
+          bestGear = g+1;
+          bestRPM = r;
+        }
+      }
+    }
+    // Pick highest gear that keeps RPM above 2000
+    for(let g=5;g>=0;g--){
+      const r = (spd * 5280/3600) / TIRE_CIRC_FT * 60 * GEAR_RATIOS[g] * FINAL_DRIVE;
+      if(r >= 1800 && r <= 7500){ bestGear=g+1; bestRPM=r; break; }
+    }
+    rpm = bestRPM || 2500;
+    gear = bestGear;
+    tps = Math.min(100, Math.max(0, spd/120*70 + (Math.random()-0.5)*5));
+  }
+
+  const vtec = rpm >= 5800;
+  const clt = Math.min(210, 185 + spd*0.1 + (Math.random()-0.5)*2);
+  const dist = (activeTrip.distance || 0) * t;
+
+  return { spd, rpm, tps, clt, lng, lat, vtec, gear, dist };
+}
+
+// ============================================================
+//  PLAYBACK CONTROLS
+// ============================================================
+function togglePlay(){
+  if(!activeTrip) return;
+  playing = !playing;
+  document.getElementById('btn-play').textContent = playing ? 'PAUSE' : 'PLAY';
+  document.getElementById('btn-play').classList.toggle('active', playing);
+  document.getElementById('play-status').textContent = playing ? 'PLAYING' : 'PAUSED';
+
+  if(playing){
+    if(playProgress >= 0.999) playProgress = 0;
+    startPlayTimer();
+  } else {
+    clearInterval(playTimer);
+  }
+}
+
+function stopPlayback(){
+  playing = false;
+  playProgress = 0;
+  clearInterval(playTimer);
+  document.getElementById('btn-play').textContent = 'PLAY';
+  document.getElementById('btn-play').classList.remove('active');
+  document.getElementById('play-status').textContent = 'STOPPED';
+  if(activeTrip) updateGaugesAt(0);
+  updateScrub();
+  drawTrace();
+}
+
+function startPlayTimer(){
+  clearInterval(playTimer);
+  const dur = activeTrip.duration || 300;
+  const tickMs = 50;
+  const increment = (tickMs / 1000) * playSpeed / dur;
+
+  playTimer = setInterval(() => {
+    playProgress += increment;
+    if(playProgress >= 1){
+      playProgress = 1;
+      playing = false;
+      clearInterval(playTimer);
+      document.getElementById('btn-play').textContent = 'PLAY';
+      document.getElementById('btn-play').classList.remove('active');
+      document.getElementById('play-status').textContent = 'FINISHED';
+    }
+    updateGaugesAt(playProgress);
+    updateScrub();
+    drawTrace();
+  }, tickMs);
+}
+
+function setSpeed(s, btn){
+  playSpeed = s;
+  document.querySelectorAll('.speed-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.speed)===s));
+  if(playing) startPlayTimer(); // restart with new speed
+}
+
+// ============================================================
+//  SCRUB BAR
+// ============================================================
+const scrubBar = document.getElementById('scrub-bar');
+let scrubbing = false;
+
+scrubBar.addEventListener('pointerdown', e => {
+  scrubbing = true;
+  scrubTo(e);
+  scrubBar.setPointerCapture(e.pointerId);
+});
+scrubBar.addEventListener('pointermove', e => { if(scrubbing) scrubTo(e); });
+scrubBar.addEventListener('pointerup', () => scrubbing = false);
+
+function scrubTo(e){
+  if(!activeTrip) return;
+  const rect = scrubBar.getBoundingClientRect();
+  playProgress = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  updateGaugesAt(playProgress);
+  updateScrub();
+  drawTrace();
+}
+
+function updateScrub(){
+  const pct = (playProgress*100).toFixed(1) + '%';
+  document.getElementById('scrub-fill').style.width = pct;
+  document.getElementById('scrub-handle').style.left = pct;
+  const dur = activeTrip ? (activeTrip.duration||0) : 0;
+  document.getElementById('time-cur').textContent = formatTime(dur * playProgress);
+}
+
+// ============================================================
+//  UPDATE GAUGES AT POSITION
+// ============================================================
+function updateGaugesAt(progress){
+  const d = getDataAtProgress(progress);
+
+  document.getElementById('g-spd').textContent = Math.round(d.spd);
+  document.getElementById('b-spd').style.width = Math.min(100, d.spd/140*100)+'%';
+
+  document.getElementById('g-rpm').textContent = Math.round(d.rpm);
+  document.getElementById('b-rpm').style.width = Math.min(100, d.rpm/8500*100)+'%';
+
+  document.getElementById('g-tps').textContent = Math.round(d.tps);
+  document.getElementById('b-tps').style.width = d.tps+'%';
+
+  document.getElementById('g-clt').textContent = Math.round(d.clt);
+
+  const vtecEl = document.getElementById('g-vtec');
+  if(d.vtec){ vtecEl.textContent='ON'; vtecEl.style.color='#4488ff'; vtecEl.style.textShadow='0 0 6px #4488ff'; }
+  else { vtecEl.textContent='OFF'; vtecEl.style.color='#333'; vtecEl.style.textShadow='none'; }
+
+  document.getElementById('g-gear').textContent = d.gear===0?'N':d.gear;
+  document.getElementById('g-gear').style.color = d.gear>0?'#ffffff55':'#ffffff22';
+
+  document.getElementById('g-dist').textContent = d.dist.toFixed(1)+' mi';
+
+  // Update marker position
+  if(marker) marker.setLngLat([d.lng, d.lat]);
+
+  // Pan map to follow (smooth)
+  if(playing && !scrubbing){
+    map.easeTo({ center:[d.lng, d.lat], duration:200 });
+  }
+}
+
+// ============================================================
+//  SPEED TRACE GRAPH
+// ============================================================
+const traceCanvas = document.getElementById('trace-canvas');
+const tctx = traceCanvas.getContext('2d');
+
+function resizeTrace(){
+  const dpr = window.devicePixelRatio || 1;
+  const wrap = traceCanvas.parentElement;
+  traceCanvas.width = wrap.offsetWidth * dpr;
+  traceCanvas.height = wrap.offsetHeight * dpr;
+  tctx.scale(dpr, dpr);
+  traceCanvas._w = wrap.offsetWidth;
+  traceCanvas._h = wrap.offsetHeight;
+}
+
+function drawTrace(){
+  if(!traceCanvas._w) resizeTrace();
+  const W = traceCanvas._w, H = traceCanvas._h;
+  tctx.clearRect(0,0,W,H);
+
+  if(!activeTrip || !activeTrip.speedSamples || activeTrip.speedSamples.length < 2) return;
+
+  const samples = activeTrip.speedSamples;
+  const maxSpd = Math.max(60, activeTrip.topSpeed || 60);
+  const pad = {l:32, r:8, t:8, b:16};
+  const gw = W-pad.l-pad.r, gh = H-pad.t-pad.b;
+
+  // Grid
+  tctx.strokeStyle='#ffffff08'; tctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y = pad.t + (i/4)*gh;
+    tctx.beginPath(); tctx.moveTo(pad.l,y); tctx.lineTo(pad.l+gw,y); tctx.stroke();
+    tctx.fillStyle='#ffffff22'; tctx.font='8px Share Tech Mono'; tctx.textAlign='right';
+    tctx.fillText(Math.round(maxSpd*(1-i/4)), pad.l-4, y+3);
+  }
+
+  // Speed trace
+  tctx.beginPath();
+  tctx.strokeStyle='#cc2200'; tctx.lineWidth=1.5;
+  tctx.shadowColor='#cc2200'; tctx.shadowBlur=3;
+  for(let i=0;i<samples.length;i++){
+    const x = pad.l + (i/(samples.length-1))*gw;
+    const y = pad.t + (1 - samples[i]/maxSpd)*gh;
+    if(i===0) tctx.moveTo(x,y); else tctx.lineTo(x,y);
+  }
+  tctx.stroke();
+  tctx.shadowBlur=0;
+
+  // Playhead line
+  const px = pad.l + playProgress*gw;
+  tctx.beginPath(); tctx.moveTo(px, pad.t); tctx.lineTo(px, pad.t+gh);
+  tctx.strokeStyle='#ffffff44'; tctx.lineWidth=1; tctx.setLineDash([3,3]); tctx.stroke();
+  tctx.setLineDash([]);
+
+  // Current speed dot
+  const si = playProgress * (samples.length-1);
+  const s0 = Math.floor(si), s1 = Math.min(s0+1, samples.length-1);
+  const curSpd = samples[s0] + (samples[s1]-samples[s0])*(si-s0);
+  const dotY = pad.t + (1 - curSpd/maxSpd)*gh;
+  tctx.beginPath(); tctx.arc(px, dotY, 4, 0, Math.PI*2);
+  tctx.fillStyle='#cc2200'; tctx.fill();
+  tctx.strokeStyle='#ffffff'; tctx.lineWidth=1.5; tctx.stroke();
+
+  // Speed label at dot
+  tctx.fillStyle='#ffffffaa'; tctx.font='bold 9px Share Tech Mono'; tctx.textAlign='left';
+  tctx.fillText(Math.round(curSpd)+' mph', px+8, dotY+3);
+}
+
+// ============================================================
+//  HELPERS
+// ============================================================
+function formatTime(secs){
+  const m = Math.floor(secs/60);
+  const s = Math.floor(secs%60);
+  return m+':'+String(s).padStart(2,'0');
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+map.on('load', () => {
+  loadTrips();
+  resizeTrace();
+  drawTrace();
+});
+
+window.addEventListener('resize', () => {
+  resizeTrace();
+  drawTrace();
+});
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<script src="nightmode.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -15,6 +16,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
 }
 .page-frame.active { display:block; }
 
+/* NAV BAR */
 .app-nav {
   position:fixed; bottom:0; left:0; right:0; height:56px;
   background:#0d0000; border-top:1px solid #cc110033;
@@ -22,70 +24,158 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
 }
 .nav-btn {
   flex:1; background:transparent; border:none;
-  font-family:'Share Tech Mono',monospace; font-size:12px; font-weight:bold;
-  letter-spacing:2px; color:#cc110066; padding:8px 0;
+  font-family:'Share Tech Mono',monospace; font-size:11px; font-weight:bold;
+  letter-spacing:1px; color:#cc110066; padding:8px 0;
   cursor:pointer; transition:color 0.15s; text-align:center;
 }
 .nav-btn:hover { color:#cc2200; }
 .nav-btn.active { color:#cc2200; }
+
+/* MORE MENU */
+.more-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.7);
+  z-index:1500; display:none; align-items:flex-end;
+}
+.more-overlay.open { display:flex; }
+.more-panel {
+  width:100%; background:#0d0000; border-top:1px solid #cc110033;
+  padding:16px 12px 12px; max-height:70vh; overflow-y:auto;
+}
+.more-title {
+  font-family:'Share Tech Mono',monospace; font-size:10px;
+  color:#cc110066; letter-spacing:3px; margin-bottom:10px; padding:0 4px;
+}
+.more-grid {
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;
+}
+.more-item {
+  background:transparent; border:1px solid #cc110022;
+  font-family:'Share Tech Mono',monospace; font-size:10px; font-weight:bold;
+  letter-spacing:1px; color:#cc110088; padding:14px 4px;
+  cursor:pointer; transition:all 0.15s; text-align:center;
+}
+.more-item:hover { border-color:#cc2200; color:#cc2200; }
+.more-item.active { border-color:#cc2200; color:#cc2200; background:rgba(204,34,0,0.06); }
+.more-close {
+  width:100%; background:transparent; border:1px solid #cc110033;
+  font-family:'Share Tech Mono',monospace; font-size:11px;
+  color:#cc110066; letter-spacing:3px; padding:10px;
+  cursor:pointer; margin-top:10px; transition:color 0.15s;
+}
+.more-close:hover { color:#cc2200; }
+.more-section-label {
+  font-size:8px; color:#cc110044; letter-spacing:2px; padding:8px 4px 4px;
+  grid-column:1/-1;
+}
 </style>
 </head>
 <body>
 
+<!-- IFRAMES — all pages -->
 <iframe id="frame-gauges" class="page-frame active" src="dashboard.html"></iframe>
 <iframe id="frame-vehicle" class="page-frame" src="about:blank"></iframe>
-<iframe id="frame-multi" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-maps" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-music" class="page-frame" src="about:blank"></iframe>
-<iframe id="frame-datalog" class="page-frame" src="about:blank"></iframe>
-<iframe id="frame-battery" class="page-frame" src="about:blank"></iframe>
-<iframe id="frame-trips" class="page-frame" src="about:blank"></iframe>
-<iframe id="frame-hondata" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-tuner" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-drag" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-engine3d" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-heatmap" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-playback" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-gforce" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-dyno" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-timers" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-datalog" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-trips" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-battery" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-chassis" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-maintenance" class="page-frame" src="about:blank"></iframe>
+<iframe id="frame-settings" class="page-frame" src="about:blank"></iframe>
 
+<!-- MAIN NAV -->
 <nav class="app-nav">
   <button class="nav-btn active" onclick="switchPage('gauges')">GAUGES</button>
-  <button class="nav-btn" onclick="switchPage('vehicle')">VEHICLE</button>
-  <button class="nav-btn" onclick="switchPage('multi')">MULTI</button>
+  <button class="nav-btn" onclick="switchPage('tuner')">FLASHPRO</button>
   <button class="nav-btn" onclick="switchPage('maps')">MAPS</button>
   <button class="nav-btn" onclick="switchPage('music')">MUSIC</button>
-  <button class="nav-btn" onclick="switchPage('datalog')">DATALOG</button>
-  <button class="nav-btn" onclick="switchPage('battery')">BATTERY</button>
-  <button class="nav-btn" onclick="switchPage('trips')">TRIPS</button>
-  <button class="nav-btn" onclick="switchPage('hondata')">HONDATA</button>
-  <button class="nav-btn" onclick="switchPage('tuner')">TUNER</button>
+  <button class="nav-btn" onclick="switchPage('drag')">DRAG</button>
+  <button class="nav-btn" onclick="toggleMore()">MORE</button>
 </nav>
+
+<!-- MORE MENU -->
+<div class="more-overlay" id="more-overlay" onclick="closeMore(event)">
+  <div class="more-panel">
+    <div class="more-title">ALL PAGES</div>
+    <div class="more-grid">
+      <div class="more-section-label">PERFORMANCE</div>
+      <div class="more-item" onclick="switchPage('drag')">DRAG</div>
+      <div class="more-item" onclick="switchPage('timers')">TIMERS</div>
+      <div class="more-item" onclick="switchPage('dyno')">DYNO</div>
+      <div class="more-item" onclick="switchPage('gforce')">G-FORCE</div>
+
+      <div class="more-section-label">TUNING</div>
+      <div class="more-item" onclick="switchPage('tuner')">FLASHPRO</div>
+      <div class="more-item" onclick="switchPage('engine3d')">3D MAP</div>
+      <div class="more-item" onclick="switchPage('heatmap')">HEATMAP</div>
+      <div class="more-item" onclick="switchPage('datalog')">DATALOG</div>
+
+      <div class="more-section-label">NAVIGATION</div>
+      <div class="more-item" onclick="switchPage('maps')">MAPS</div>
+      <div class="more-item" onclick="switchPage('trips')">TRIPS</div>
+      <div class="more-item" onclick="switchPage('playback')">PLAYBACK</div>
+
+      <div class="more-section-label">VEHICLE</div>
+      <div class="more-item" onclick="switchPage('gauges')">GAUGES</div>
+      <div class="more-item" onclick="switchPage('vehicle')">3D CAR</div>
+      <div class="more-item" onclick="switchPage('chassis')">CHASSIS</div>
+      <div class="more-item" onclick="switchPage('battery')">BATTERY</div>
+
+      <div class="more-section-label">SYSTEM</div>
+      <div class="more-item" onclick="switchPage('music')">MUSIC</div>
+      <div class="more-item" onclick="switchPage('maintenance')">SERVICE</div>
+      <div class="more-item" onclick="switchPage('settings')">SETTINGS</div>
+    </div>
+    <button class="more-close" onclick="document.getElementById('more-overlay').classList.remove('open')">CLOSE</button>
+  </div>
+</div>
 
 <script>
 const pages = {
-  gauges:  { src:'dashboard.html',    loaded:true },
-  vehicle: { src:'carview.html',      loaded:false },
-  multi:   { src:'multisystem.html',  loaded:false },
-  maps:    { src:'streetview.html',   loaded:false },
-  music:   { src:'music.html',        loaded:false },
-  datalog: { src:'datalog.html',      loaded:false },
-  battery: { src:'battery.html',      loaded:false },
-  trips:   { src:'trips.html',        loaded:false },
-  hondata: { src:'hondata.html',      loaded:false },
-  tuner:   { src:'tuner.html',        loaded:false }
+  gauges:      { src:'dashboard.html',       loaded:true },
+  vehicle:     { src:'carview.html',         loaded:false },
+  maps:        { src:'streetview.html?v=28', loaded:false },
+  music:       { src:'music.html',           loaded:false },
+  tuner:       { src:'hondata.html?v=6',     loaded:false },
+  drag:        { src:'drag.html',            loaded:false },
+  engine3d:    { src:'engine3d.html',        loaded:false },
+  heatmap:     { src:'heatmap.html',         loaded:false },
+  playback:    { src:'playback.html',        loaded:false },
+  gforce:      { src:'gforce.html',          loaded:false },
+  dyno:        { src:'dyno.html',            loaded:false },
+  timers:      { src:'timers.html',          loaded:false },
+  datalog:     { src:'datalog.html',         loaded:false },
+  trips:       { src:'trips.html',           loaded:false },
+  battery:     { src:'battery.html',         loaded:false },
+  chassis:     { src:'chassis.html',         loaded:false },
+  maintenance: { src:'maintenance.html',     loaded:false },
+  settings:    { src:'settings.html',        loaded:false },
 };
 
 let currentPage = 'gauges';
 
-// Handle Spotify auth callback  -  if we landed here with a ?code=, pass it to music page
+// Spotify auth callback
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('code')) {
-  // Load music iframe with the auth code
   const musicUrl = 'music.html' + window.location.search;
   document.getElementById('frame-music').src = musicUrl;
   pages.music.loaded = true;
-  // Clean URL
   window.history.replaceState({}, '', window.location.pathname);
-  // Auto-switch to music
   setTimeout(() => switchPage('music'), 100);
 }
 
 function switchPage(name) {
+  // Close more menu
+  document.getElementById('more-overlay').classList.remove('open');
+
   // Hide current
   document.getElementById('frame-' + currentPage).classList.remove('active');
 
@@ -98,11 +188,28 @@ function switchPage(name) {
   // Show new
   document.getElementById('frame-' + name).classList.add('active');
 
-  // Update nav buttons
+  // Update nav buttons — check if it's a main nav item
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.nav-btn')[Object.keys(pages).indexOf(name)].classList.add('active');
+  const mainNavMap = { gauges:0, tuner:1, maps:2, music:3, drag:4 };
+  if (name in mainNavMap) {
+    document.querySelectorAll('.nav-btn')[mainNavMap[name]].classList.add('active');
+  }
+
+  // Update more menu active states
+  document.querySelectorAll('.more-item').forEach(item => item.classList.remove('active'));
 
   currentPage = name;
+}
+
+function toggleMore() {
+  document.getElementById('more-overlay').classList.toggle('open');
+}
+
+function closeMore(e) {
+  // Close if clicking the overlay background (not the panel)
+  if (e.target === document.getElementById('more-overlay')) {
+    document.getElementById('more-overlay').classList.remove('open');
+  }
 }
 </script>
 </body>

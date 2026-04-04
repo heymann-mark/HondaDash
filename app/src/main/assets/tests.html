@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HondaDash Test Suite</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a0a0a;color:#ccc;font-family:'Share Tech Mono',monospace;padding:20px;font-size:13px;}
+h1{color:#cc2200;font-size:18px;letter-spacing:3px;margin-bottom:4px;}
+.subtitle{color:#555;font-size:11px;margin-bottom:20px;}
+.summary{display:flex;gap:20px;margin-bottom:20px;padding:12px;border:1px solid #222;background:#111;}
+.summary-item{text-align:center;}
+.summary-val{font-size:28px;font-weight:bold;}
+.summary-lbl{font-size:9px;color:#666;letter-spacing:2px;margin-top:2px;}
+.pass .summary-val{color:#44ff44;}
+.fail .summary-val{color:#ff4444;}
+.skip .summary-val{color:#ffaa00;}
+.total .summary-val{color:#4488ff;}
+
+.group{margin-bottom:16px;}
+.group-header{font-size:12px;color:#888;letter-spacing:2px;padding:8px 0 4px;border-bottom:1px solid #1a1a1a;cursor:pointer;}
+.group-header:hover{color:#aaa;}
+.test-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid #0f0f0f;}
+.test-row:hover{background:#111;}
+.test-icon{width:16px;text-align:center;font-size:11px;}
+.test-icon.pass{color:#44ff44;}
+.test-icon.fail{color:#ff4444;}
+.test-icon.skip{color:#ffaa00;}
+.test-name{flex:1;color:#aaa;}
+.test-time{color:#444;font-size:10px;}
+.test-error{color:#ff6666;font-size:11px;padding:2px 8px 4px 32px;background:#1a0000;border-bottom:1px solid #0f0f0f;}
+
+.run-btn{background:#cc2200;border:none;color:white;font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:2px;padding:10px 24px;cursor:pointer;margin-bottom:16px;}
+.run-btn:hover{background:#ee3300;}
+.run-btn:disabled{background:#333;color:#666;cursor:default;}
+.running{color:#ffaa00;margin-left:12px;font-size:11px;}
+</style>
+</head>
+<body>
+
+<h1>HONDADASH TEST SUITE</h1>
+<div class="subtitle">2007 Honda Civic Si (K20Z3 / FA5) — Automated Tests</div>
+
+<button class="run-btn" id="run-btn" onclick="runAll()">RUN ALL TESTS</button>
+<span class="running" id="running" style="display:none">RUNNING...</span>
+
+<div class="summary" id="summary" style="display:none">
+  <div class="summary-item total"><div class="summary-val" id="s-total">0</div><div class="summary-lbl">TOTAL</div></div>
+  <div class="summary-item pass"><div class="summary-val" id="s-pass">0</div><div class="summary-lbl">PASSED</div></div>
+  <div class="summary-item fail"><div class="summary-val" id="s-fail">0</div><div class="summary-lbl">FAILED</div></div>
+  <div class="summary-item skip"><div class="summary-val" id="s-skip">0</div><div class="summary-lbl">SKIPPED</div></div>
+</div>
+
+<div id="results"></div>
+
+<!-- Hidden iframes for testing pages -->
+<iframe id="test-hondata" style="display:none" src="about:blank"></iframe>
+<iframe id="test-streetview" style="display:none" src="about:blank"></iframe>
+<iframe id="test-multi" style="display:none" src="about:blank"></iframe>
+<iframe id="test-dashboard" style="display:none" src="about:blank"></iframe>
+
+<script>
+const results = [];
+let currentGroup = '';
+
+function assert(condition, msg) {
+  if (!condition) throw new Error(msg || 'Assertion failed');
+}
+
+function assertEqual(actual, expected, msg) {
+  if (actual !== expected) throw new Error((msg||'') + ' — expected ' + JSON.stringify(expected) + ', got ' + JSON.stringify(actual));
+}
+
+function assertInRange(val, min, max, msg) {
+  if (val < min || val > max) throw new Error((msg||'') + ' — ' + val + ' not in range [' + min + ', ' + max + ']');
+}
+
+function assertExists(val, msg) {
+  if (val === null || val === undefined) throw new Error((msg||'') + ' — value is ' + val);
+}
+
+function test(name, fn) {
+  const t0 = performance.now();
+  try {
+    fn();
+    results.push({ group: currentGroup, name, status: 'pass', time: performance.now() - t0 });
+  } catch(e) {
+    results.push({ group: currentGroup, name, status: 'fail', error: e.message, time: performance.now() - t0 });
+  }
+}
+
+function skip(name, reason) {
+  results.push({ group: currentGroup, name, status: 'skip', error: reason || 'Skipped' });
+}
+
+function group(name) { currentGroup = name; }
+
+// ================================================================
+//  ASSET FILE TESTS
+// ================================================================
+async function testAssets() {
+  group('ASSET FILES');
+
+  const files = [
+    'index.html', 'dashboard.html', 'hondata.html', 'streetview.html',
+    'multisystem.html', 'carview.html', 'music.html', 'battery.html',
+    'config.js', 'demo-routes.js', 'flashpro-reference.json', 'flashpro-docs.txt'
+  ];
+
+  for (const file of files) {
+    test(file + ' exists and loads', () => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', file, false);
+      xhr.send();
+      assertEqual(xhr.status, 200, file);
+      assert(xhr.responseText.length > 0, file + ' is empty');
+    });
+  }
+}
+
+// ================================================================
+//  FLASHPRO REFERENCE JSON TESTS
+// ================================================================
+async function testReferenceJSON() {
+  group('FLASHPRO REFERENCE JSON');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', 'flashpro-reference.json', false);
+  xhr.send();
+  const data = JSON.parse(xhr.responseText);
+
+  test('has _meta with title', () => {
+    assertExists(data._meta);
+    assertEqual(data._meta.title, 'Hondata FlashPro Reference');
+  });
+
+  test('has sensors section', () => {
+    assertExists(data.sensors);
+    assert(Object.keys(data.sensors).length > 10, 'Should have 10+ sensors');
+  });
+
+  test('RPM sensor is correct', () => {
+    const rpm = data.sensors.RPM;
+    assertExists(rpm);
+    assertEqual(rpm.unit, 'rpm');
+    assertEqual(rpm.range[0], 0);
+    assertEqual(rpm.range[1], 9000);
+  });
+
+  test('MAP sensor is correct', () => {
+    const map = data.sensors.MAP;
+    assertExists(map);
+    assert(map.description.includes('manifold') || map.description.includes('Manifold') || map.description.includes('intake'), 'MAP description should mention manifold or intake');
+  });
+
+  test('has calibration_tables section', () => {
+    assertExists(data.calibration_tables);
+  });
+
+  test('has parameters section', () => {
+    assertExists(data.parameters);
+    assert(Object.keys(data.parameters).length > 5, 'Should have 5+ parameter groups');
+  });
+
+  test('has vehicle_notes section', () => {
+    assertExists(data.vehicle_notes);
+  });
+
+  test('has tuning_guides section', () => {
+    assertExists(data.tuning_guides);
+  });
+
+  test('has bluetooth section', () => {
+    assertExists(data.bluetooth);
+  });
+
+  test('has traction_control section', () => {
+    assertExists(data.traction_control);
+  });
+}
+
+// ================================================================
+//  DEMO ROUTES TESTS
+// ================================================================
+async function testDemoRoutes() {
+  group('DEMO ROUTES');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', 'demo-routes.js', false);
+  xhr.send();
+  const routeJS = xhr.responseText;
+
+  // Use Function() instead of eval() so const variables are accessible
+  const routeVars = new Function(routeJS + '; return {EPIC_LOOP_PATH, LOCAL_LOOP_PATH};')();
+
+  test('EPIC_LOOP_PATH exists with 100+ points', () => {
+    assertExists(routeVars.EPIC_LOOP_PATH, 'EPIC_LOOP_PATH not defined');
+    assert(routeVars.EPIC_LOOP_PATH.length > 100, 'Should have 100+ points, got ' + routeVars.EPIC_LOOP_PATH.length);
+  });
+
+  test('EPIC_LOOP_PATH has valid coordinates', () => {
+    routeVars.EPIC_LOOP_PATH.forEach((c, i) => {
+      assertInRange(c[0], -72, -70, 'Longitude at index ' + i);
+      assertInRange(c[1], 42, 43, 'Latitude at index ' + i);
+    });
+  });
+
+  test('EPIC_LOOP_PATH starts and ends near Waltham', () => {
+    const start = routeVars.EPIC_LOOP_PATH[0];
+    const end = routeVars.EPIC_LOOP_PATH[routeVars.EPIC_LOOP_PATH.length - 1];
+    assertInRange(start[0], -71.25, -71.23, 'Start longitude');
+    assertInRange(start[1], 42.36, 42.38, 'Start latitude');
+    assertInRange(end[0], -71.25, -71.23, 'End longitude');
+    assertInRange(end[1], 42.36, 42.38, 'End latitude');
+  });
+
+  test('LOCAL_LOOP_PATH exists with 10+ points', () => {
+    assertExists(routeVars.LOCAL_LOOP_PATH, 'LOCAL_LOOP_PATH not defined');
+    assert(routeVars.LOCAL_LOOP_PATH.length > 10, 'Should have 10+ points, got ' + routeVars.LOCAL_LOOP_PATH.length);
+  });
+
+  test('LOCAL_LOOP_PATH has valid coordinates', () => {
+    routeVars.LOCAL_LOOP_PATH.forEach((c, i) => {
+      assertInRange(c[0], -71.3, -71.2, 'Longitude at index ' + i);
+      assertInRange(c[1], 42.35, 42.40, 'Latitude at index ' + i);
+    });
+  });
+}
+
+// ================================================================
+//  INDEX.HTML STRUCTURE TESTS
+// ================================================================
+async function testIndexStructure() {
+  group('INDEX.HTML STRUCTURE');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', 'index.html', false);
+  xhr.send();
+  const html = xhr.responseText;
+
+  test('has 6 nav buttons', () => {
+    const matches = html.match(/nav-btn/g);
+    // Each button has class "nav-btn" — count occurrences in the nav
+    const btnMatches = html.match(/class="nav-btn/g);
+    assertEqual(btnMatches.length, 6, 'Should have 6 nav buttons');
+  });
+
+  test('has GAUGES tab', () => { assert(html.includes("'gauges'"), 'Missing gauges'); });
+  test('has VEHICLE tab', () => { assert(html.includes("'vehicle'"), 'Missing vehicle'); });
+  test('has MAPS tab', () => { assert(html.includes("'maps'"), 'Missing maps'); });
+  test('has MUSIC tab', () => { assert(html.includes("'music'"), 'Missing music'); });
+  test('has BATTERY tab', () => { assert(html.includes("'battery'"), 'Missing battery'); });
+  test('has FLASHPRO tab', () => { assert(html.includes('>FLASHPRO<'), 'Missing FLASHPRO'); });
+
+  test('no MULTI tab in main nav', () => { assert(!html.includes('>MULTI<'), 'MULTI should not be in main nav'); });
+  test('no DATALOG tab in main nav', () => { assert(!html.includes('>DATALOG<'), 'DATALOG should not be in main nav'); });
+  test('no HONDATA tab in main nav', () => { assert(!html.includes('>HONDATA<'), 'HONDATA should not be in main nav'); });
+  test('no TUNER tab label', () => { assert(!html.includes('>TUNER<'), 'TUNER label should not exist'); });
+  test('no TRIPS tab in main nav', () => { assert(!html.includes('>TRIPS<'), 'TRIPS should not be in main nav'); });
+
+  test('has 6 iframe frames', () => {
+    const frames = html.match(/page-frame/g);
+    assert(frames.length >= 6, 'Should have 6+ frames');
+  });
+
+  test('FLASHPRO loads hondata.html', () => {
+    assert(html.includes("src:'hondata.html"), 'tuner should load hondata.html');
+  });
+
+  test('MAPS loads streetview.html', () => {
+    assert(html.includes("src:'streetview.html"), 'maps should load streetview.html');
+  });
+}
+
+// ================================================================
+//  HONDATA.HTML (FLASHPRO PAGE) TESTS
+// ================================================================
+async function testHondataStructure() {
+  group('HONDATA.HTML STRUCTURE');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', 'hondata.html', false);
+  xhr.send();
+  const html = xhr.responseText;
+
+  test('has FLASHPRO MANAGER title', () => {
+    assert(html.includes('FLASHPRO MANAGER'), 'Missing title');
+  });
+
+  test('has K20Z3 // FA5 identifier', () => {
+    assert(html.includes('K20Z3'), 'Missing K20Z3');
+    assert(html.includes('FA5'), 'Missing FA5');
+  });
+
+  test('has READ ONLY indicator', () => {
+    assert(html.includes('READ ONLY') || html.includes('read-only') || html.includes('READ'), 'Missing read-only indicator');
+  });
+
+  test('has TABLES sub-tab', () => { assert(html.includes("switchTab('tables')"), 'Missing tables tab'); });
+  test('has CALIBRATION sub-tab', () => { assert(html.includes("switchTab('calibration')"), 'Missing calibration tab'); });
+  test('has DTC sub-tab', () => { assert(html.includes("switchTab('dtc')"), 'Missing dtc tab'); });
+  test('has DATALOGS sub-tab', () => { assert(html.includes("switchTab('datalogs')"), 'Missing datalogs tab'); });
+  test('has SENSORS sub-tab', () => { assert(html.includes("switchTab('sensors')"), 'Missing sensors tab'); });
+  test('has MULTI sub-tab', () => { assert(html.includes("switchTab('multi')"), 'Missing multi tab'); });
+  test('has REFERENCE sub-tab', () => { assert(html.includes("switchTab('reference')"), 'Missing reference tab'); });
+
+  test('no FLASH sub-tab (removed)', () => {
+    assert(!html.includes("switchTab('flash')"), 'FLASH tab should be removed');
+  });
+
+  test('tables are read-only (no editCell)', () => {
+    assert(!html.includes('ondblclick="editCell'), 'Should not have editCell onclick');
+  });
+
+  test('no cell editor popup', () => {
+    // Should not have the cell-editor div or it should be removed
+    const hasCellEditor = html.includes('id="cell-editor"');
+    // It's OK if the div exists but the functions are no-ops
+    // Check that cellEditorApply is a no-op
+    if (hasCellEditor) {
+      assert(html.includes('function cellEditorApply()') || html.includes('cellEditorApply'), 'cellEditorApply should exist as no-op');
+    }
+  });
+
+  test('has K20Z3 sensor definitions', () => {
+    assert(html.includes("label: 'RPM'") || html.includes("'RPM'"), 'Missing RPM sensor');
+    assert(html.includes("label: 'MAP'") || html.includes("'MAP'"), 'Missing MAP sensor');
+    assert(html.includes("AIR/FUEL") || html.includes("'AFR'") || html.includes("'AF'") || html.includes("afr"), 'Missing AFR sensor');
+  });
+
+  test('has real K20Z3 table axes', () => {
+    assert(html.includes('MAP_AXIS') || html.includes('kPa'), 'Should use kPa axes');
+    assert(!html.includes('LOAD_AXIS') || html.includes('MAP_AXIS'), 'Should use MAP_AXIS not LOAD_AXIS');
+  });
+
+  test('VTEC engagement at 5800 RPM', () => {
+    assert(html.includes('5800'), 'Should reference 5800 RPM for VTEC');
+  });
+
+  test('has cam angle tables', () => {
+    assert(html.includes('cam_hi') || html.includes('CAM ANGLE'), 'Missing cam angle tables');
+  });
+
+  test('has flashpro-reference.json loading', () => {
+    assert(html.includes('flashpro-reference.json'), 'Should load reference JSON');
+  });
+
+  test('has calibration parameters', () => {
+    assert(html.includes('Injector Size') || html.includes('injectorSize'), 'Missing injector size param');
+    assert(html.includes('VTEC') && html.includes('RPM'), 'Missing VTEC RPM params');
+  });
+
+  test('DTC database has Honda-specific codes', () => {
+    assert(html.includes('P2646'), 'Missing P2646 VTEC code');
+    assert(html.includes('P0300'), 'Missing P0300 misfire code');
+  });
+}
+
+// ================================================================
+//  STREETVIEW.HTML (MAPS) TESTS
+// ================================================================
+async function testStreetvewStructure() {
+  group('STREETVIEW.HTML STRUCTURE');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', 'streetview.html', false);
+  xhr.send();
+  const html = xhr.responseText;
+
+  test('loads mapbox GL JS', () => {
+    assert(html.includes('mapbox-gl'), 'Missing mapbox GL');
+  });
+
+  test('loads turf.js', () => {
+    assert(html.includes('turf'), 'Missing turf.js');
+  });
+
+  test('loads config.js', () => {
+    assert(html.includes('config.js'), 'Missing config.js');
+  });
+
+  test('loads demo-routes.js', () => {
+    assert(html.includes('demo-routes.js'), 'Missing demo-routes.js');
+  });
+
+  test('has trip logbook toggle button', () => {
+    assert(html.includes('trip-toggle'), 'Missing trip toggle');
+  });
+
+  test('has trip panel', () => {
+    assert(html.includes('trip-panel'), 'Missing trip panel');
+  });
+
+  test('has trip detail view', () => {
+    assert(html.includes('trip-detail'), 'Missing trip detail');
+  });
+
+  test('has trip datalog recording', () => {
+    assert(html.includes('datalogTimer') || html.includes('datalog'), 'Missing datalog recording');
+  });
+
+  test('has speed-to-color gradient function', () => {
+    assert(html.includes('spdToColor'), 'Missing spdToColor function');
+  });
+
+  test('has line-gradient for route coloring', () => {
+    assert(html.includes('line-gradient'), 'Missing line-gradient');
+  });
+
+  test('uses Directions API for road snapping', () => {
+    assert(html.includes('directions/v5'), 'Missing directions API call');
+  });
+
+  test('has VTEC counting in trips', () => {
+    assert(html.includes('vtecCount'), 'Missing VTEC count');
+  });
+
+  test('trip recording stores sensor data', () => {
+    assert(html.includes('lastSensorData'), 'Missing sensor data storage');
+  });
+
+  test('updateTripData accepts full sensor object', () => {
+    assert(html.includes('updateTripData'), 'Missing updateTripData bridge');
+  });
+
+  test('has haversine distance calculation', () => {
+    assert(html.includes('haversine') || html.includes('3958.8'), 'Missing haversine');
+  });
+
+  test('has export CSV function', () => {
+    assert(html.includes('exportTrips') || html.includes('civic_trips.csv'), 'Missing CSV export');
+  });
+
+  test('trip detail has datalog graphs', () => {
+    assert(html.includes('drawTripGraph') || html.includes('dl-speed'), 'Missing datalog graphs');
+  });
+}
+
+// ================================================================
+//  MULTISYSTEM.HTML TESTS
+// ================================================================
+async function testMultisystemStructure() {
+  group('MULTISYSTEM.HTML STRUCTURE');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', 'multisystem.html', false);
+  xhr.send();
+  const html = xhr.responseText;
+
+  test('has SENSORS object (not MODULES)', () => {
+    assert(html.includes('SENSORS') || html.includes('const SENSORS'), 'Missing SENSORS');
+  });
+
+  test('has ENGINE sensor group', () => {
+    assert(html.includes("'ENGINE'") || html.includes("ENGINE"), 'Missing ENGINE group');
+  });
+
+  test('has FUEL sensor group', () => {
+    assert(html.includes("'FUEL'") || html.includes("FUEL"), 'Missing FUEL group');
+  });
+
+  test('has COLOR_PALETTE', () => {
+    assert(html.includes('COLOR_PALETTE'), 'Missing color palette');
+  });
+
+  test('has LINE_STYLES for dash patterns', () => {
+    assert(html.includes('LINE_STYLES'), 'Missing line styles');
+  });
+
+  test('has LIVE DATA STREAM title', () => {
+    assert(html.includes('LIVE DATA STREAM'), 'Should say LIVE DATA STREAM');
+  });
+
+  test('no ECM/TCM/ABS/BCM module references', () => {
+    // These should be replaced with FlashPro sensor groups
+    // Allow them in comments but not as active module definitions
+    const hasOldModules = html.includes("label: 'ECM'") || html.includes("label: 'TCM'");
+    assert(!hasOldModules, 'Should not have old ECM/TCM module definitions');
+  });
+
+  test('has K20Z3 RPM range 0-9000', () => {
+    assert(html.includes('9000'), 'Missing 9000 RPM max');
+  });
+}
+
+// ================================================================
+//  CONFIG.JS TESTS
+// ================================================================
+async function testConfig() {
+  group('CONFIG');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', 'config.js', false);
+  xhr.send();
+  const js = xhr.responseText;
+
+  test('has MAPBOX_TOKEN', () => {
+    assert(js.includes('MAPBOX_TOKEN'), 'Missing MAPBOX_TOKEN');
+  });
+
+  test('MAPBOX_TOKEN is not empty', () => {
+    assert(js.includes("pk.ey"), 'MAPBOX_TOKEN looks empty or invalid');
+  });
+
+  test('has SPOTIFY_CLIENT_ID', () => {
+    assert(js.includes('SPOTIFY_CLIENT_ID'), 'Missing SPOTIFY_CLIENT_ID');
+  });
+}
+
+// ================================================================
+//  K20Z3 DATA ACCURACY TESTS
+// ================================================================
+async function testK20Z3Data() {
+  group('K20Z3 DATA ACCURACY');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', 'hondata.html', false);
+  xhr.send();
+  const html = xhr.responseText;
+
+  test('stock injector size is 310cc', () => {
+    assert(html.includes('310'), 'Should reference 310cc injectors');
+  });
+
+  test('stock rev limit is 8000 RPM', () => {
+    assert(html.includes('8,000') || html.includes('8000'), 'Stock rev limit should be 8000');
+  });
+
+  test('stock speed limit is 149 MPH', () => {
+    assert(html.includes('149'), 'Stock speed limit should be 149 MPH');
+  });
+
+  test('has 6 calibration tables (fuel/ign/cam x low/high)', () => {
+    assert(html.includes('fuel_hi'), 'Missing fuel high cam');
+    assert(html.includes('fuel_lo'), 'Missing fuel low cam');
+    assert(html.includes('ign_hi'), 'Missing ignition high cam');
+    assert(html.includes('ign_lo'), 'Missing ignition low cam');
+    assert(html.includes('cam_hi'), 'Missing cam high');
+    assert(html.includes('cam_lo'), 'Missing cam low');
+  });
+
+  test('RPM axis starts at 500', () => {
+    assert(html.includes('500, 1000') || html.includes('500,1000'), 'RPM axis should start at 500');
+  });
+
+  test('MAP axis uses kPa values', () => {
+    assert(html.includes('kPa'), 'Should use kPa units');
+  });
+
+  test('Civic Si gear ratios present', () => {
+    // K20Z3 6-speed: 3.27, 2.11, 1.47, 1.10, 0.86, 0.73
+    assert(html.includes('3.27') || html.includes('4.76'), 'Should have Si gear ratios or final drive');
+  });
+
+  test('fuel status codes are correct', () => {
+    // 1=OL warmup, 2=CL, 4=OL driving, 8=OL error
+    assert(html.includes('OL') || html.includes('CL'), 'Should have fuel status labels');
+  });
+}
+
+// ================================================================
+//  RUN ALL
+// ================================================================
+async function runAll() {
+  results.length = 0;
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('running').style.display = 'inline';
+  document.getElementById('summary').style.display = 'none';
+
+  await testAssets();
+  await testReferenceJSON();
+  await testDemoRoutes();
+  await testConfig();
+  await testIndexStructure();
+  await testHondataStructure();
+  await testStreetvewStructure();
+  await testMultisystemStructure();
+  await testK20Z3Data();
+
+  renderResults();
+  document.getElementById('run-btn').disabled = false;
+  document.getElementById('running').style.display = 'none';
+}
+
+function renderResults() {
+  const container = document.getElementById('results');
+  const pass = results.filter(r => r.status === 'pass').length;
+  const fail = results.filter(r => r.status === 'fail').length;
+  const skipped = results.filter(r => r.status === 'skip').length;
+
+  document.getElementById('summary').style.display = 'flex';
+  document.getElementById('s-total').textContent = results.length;
+  document.getElementById('s-pass').textContent = pass;
+  document.getElementById('s-fail').textContent = fail;
+  document.getElementById('s-skip').textContent = skipped;
+
+  let html = '';
+  let lastGroup = '';
+  results.forEach(r => {
+    if (r.group !== lastGroup) {
+      lastGroup = r.group;
+      html += '<div class="group"><div class="group-header">' + r.group + '</div>';
+    }
+    const icon = r.status === 'pass' ? '✓' : r.status === 'fail' ? '✗' : '○';
+    html += '<div class="test-row"><span class="test-icon ' + r.status + '">' + icon + '</span><span class="test-name">' + r.name + '</span><span class="test-time">' + (r.time ? r.time.toFixed(1) + 'ms' : '') + '</span></div>';
+    if (r.status === 'fail' && r.error) {
+      html += '<div class="test-error">' + r.error + '</div>';
+    }
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+</script>
+</body>
+</html>

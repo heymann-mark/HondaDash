@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; color:#ccc; }
+
+/* STATUS BAR */
+.status-bar { position:fixed; top:0; left:0; right:0; height:28px; background:#0d0d0d; border-bottom:1px solid #ffffff0d; display:flex; align-items:center; padding:0 12px; gap:16px; z-index:10; }
+.status-label { font-size:10px; color:#ffffff55; letter-spacing:2px; }
+.status-val { font-size:10px; color:#ffffffaa; letter-spacing:1px; }
+.status-spacer { flex:1; }
+.status-tag { font-size:9px; color:#cc2200; letter-spacing:2px; border:1px solid #cc220033; padding:1px 6px; }
+
+/* LAYOUT */
+.main { position:fixed; top:28px; left:0; right:0; bottom:0; display:grid; grid-template-columns:200px 1fr; }
+
+/* LEFT NAV */
+.nav-panel { background:#0d0d0d; border-right:1px solid #ffffff0d; display:flex; flex-direction:column; }
+.nav-item { padding:12px 14px; border-bottom:1px solid #ffffff06; cursor:pointer; transition:all 0.15s; font-size:10px; letter-spacing:2px; color:#ffffff44; }
+.nav-item:hover { color:#cc2200; background:rgba(204,34,0,0.03); }
+.nav-item.active { color:#cc2200; border-left:2px solid #cc2200; background:rgba(204,34,0,0.05); }
+.nav-count { font-size:8px; color:#ffffff22; float:right; font-family:'Orbitron',monospace; }
+
+/* ODO */
+.odo-section { padding:14px; border-bottom:1px solid #ffffff08; }
+.odo-label { font-size:8px; color:#ffffff33; letter-spacing:2px; margin-bottom:4px; }
+.odo-val { font-family:'Orbitron',monospace; font-size:24px; color:#ff8844; }
+.odo-edit { background:#111; border:1px solid #ffffff15; color:#ff8844; font-family:'Orbitron',monospace; font-size:18px; padding:4px 8px; width:100%; text-align:center; display:none; }
+.odo-edit:focus { border-color:#cc2200; outline:none; }
+.odo-update { font-size:8px; color:#ffffff22; cursor:pointer; text-align:center; margin-top:4px; }
+.odo-update:hover { color:#cc2200; }
+
+/* CONTENT AREA */
+.content-area { overflow-y:auto; padding:16px; }
+
+/* CARDS */
+.card { background:#0d0d0d; border:1px solid #ffffff0a; border-radius:4px; margin-bottom:10px; overflow:hidden; }
+.card-header { padding:10px 14px; border-bottom:1px solid #ffffff06; display:flex; align-items:center; justify-content:space-between; }
+.card-title { font-size:10px; color:#ffffffcc; letter-spacing:1px; }
+.card-badge { font-size:8px; padding:2px 8px; border-radius:2px; letter-spacing:1px; }
+.badge-ok { color:#00cc88; border:1px solid #00cc8833; }
+.badge-soon { color:#ffcc00; border:1px solid #ffcc0033; }
+.badge-due { color:#ff4444; border:1px solid #ff444433; animation:duePulse 2s infinite; }
+.badge-mod { color:#4488ff; border:1px solid #4488ff33; }
+@keyframes duePulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+.card-body { padding:10px 14px; }
+.card-row { display:flex; justify-content:space-between; margin-bottom:3px; }
+.card-label { font-size:8px; color:#ffffff33; letter-spacing:1px; }
+.card-val { font-size:9px; color:#ffffffaa; font-family:'Orbitron',monospace; }
+.card-note { font-size:8px; color:#ffffff22; margin-top:4px; line-height:1.4; }
+.card-progress { height:3px; background:#ffffff08; border-radius:1px; margin-top:6px; }
+.card-progress-fill { height:3px; border-radius:1px; transition:width 0.3s; }
+.card-actions { padding:6px 14px; border-top:1px solid #ffffff06; display:flex; gap:6px; justify-content:flex-end; }
+
+/* BUTTONS */
+.btn { background:transparent; border:1px solid #ffffff22; color:#ffffff55; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; padding:4px 10px; cursor:pointer; transition:all 0.15s; }
+.btn:hover { border-color:#cc2200; color:#cc2200; }
+.btn.primary { border-color:#cc2200; color:#cc2200; }
+.btn.danger { border-color:#ff444433; color:#ff4444; }
+
+/* ADD FORM */
+.form-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:20; display:none; align-items:center; justify-content:center; }
+.form-overlay.open { display:flex; }
+.form-panel { background:#111; border:1px solid #ffffff15; border-radius:4px; padding:20px; width:380px; max-height:80vh; overflow-y:auto; }
+.form-title { font-size:12px; color:#cc2200; letter-spacing:3px; margin-bottom:14px; }
+.form-group { margin-bottom:10px; }
+.form-label { font-size:9px; color:#ffffff44; letter-spacing:1px; margin-bottom:3px; }
+.form-input { width:100%; background:#0a0a0a; border:1px solid #ffffff15; color:#ffffffcc; font-family:'Share Tech Mono',monospace; font-size:11px; padding:8px 10px; }
+.form-input:focus { border-color:#cc2200; outline:none; }
+.form-select { width:100%; background:#0a0a0a; border:1px solid #ffffff15; color:#ffffffcc; font-family:'Share Tech Mono',monospace; font-size:11px; padding:8px 10px; appearance:none; }
+.form-select:focus { border-color:#cc2200; outline:none; }
+textarea.form-input { resize:vertical; min-height:60px; }
+.form-actions { display:flex; gap:8px; margin-top:14px; justify-content:flex-end; }
+
+/* EMPTY STATE */
+.empty { text-align:center; padding:40px 20px; color:#ffffff15; }
+.empty-text { font-size:12px; letter-spacing:2px; margin-bottom:8px; }
+.empty-sub { font-size:9px; color:#ffffff0d; }
+
+/* SECTION HEADER */
+.section-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.section-title { font-size:11px; color:#ffffff44; letter-spacing:3px; }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <span class="status-label">MAINTENANCE</span>
+  <div class="status-spacer"></div>
+  <span class="status-val" id="due-count">0 DUE</span>
+  <div class="status-tag">SERVICE</div>
+</div>
+
+<div class="main">
+  <!-- LEFT NAV -->
+  <div class="nav-panel">
+    <!-- Odometer -->
+    <div class="odo-section">
+      <div class="odo-label">ODOMETER</div>
+      <div class="odo-val" id="odo-display" onclick="showOdoEdit()">0</div>
+      <input class="odo-edit" id="odo-input" type="number" onblur="saveOdo()" onkeydown="if(event.key==='Enter')saveOdo()">
+      <div class="odo-update" onclick="showOdoEdit()">TAP TO UPDATE</div>
+    </div>
+
+    <!-- Nav items -->
+    <div class="nav-item active" onclick="switchTab('services')" id="nav-services">
+      SERVICES <span class="nav-count" id="cnt-services">0</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('mods')" id="nav-mods">
+      MOD LIST <span class="nav-count" id="cnt-mods">0</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('fluids')" id="nav-fluids">
+      FLUIDS <span class="nav-count" id="cnt-fluids">0</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('upcoming')" id="nav-upcoming">
+      UPCOMING <span class="nav-count" id="cnt-upcoming">0</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('history')" id="nav-history">
+      FULL LOG <span class="nav-count" id="cnt-history">0</span>
+    </div>
+
+    <!-- Spacer -->
+    <div style="flex:1;"></div>
+
+    <!-- Quick stats -->
+    <div class="odo-section" style="border-top:1px solid #ffffff08;">
+      <div class="odo-label">SINCE LAST OIL</div>
+      <div id="since-oil" style="font-family:Orbitron;font-size:14px;color:#ffffff44;">—</div>
+    </div>
+    <div class="odo-section">
+      <div class="odo-label">NEXT SERVICE</div>
+      <div id="next-service" style="font-size:10px;color:#ffcc00;">—</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content-area" id="content"></div>
+</div>
+
+<!-- ADD FORM OVERLAY -->
+<div class="form-overlay" id="form-overlay">
+  <div class="form-panel" id="form-panel"></div>
+</div>
+
+<script>
+// ============================================================
+//  DATA
+// ============================================================
+const STORE_KEY = 'hondadash-maintenance';
+let data = { odometer:0, services:[], mods:[], fluids:[] };
+let currentTab = 'services';
+
+function load(){
+  try { data = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || seedData(); } catch(e){ data = seedData(); }
+}
+
+function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+
+// ============================================================
+//  SEED DATA — realistic FA5 Civic Si
+// ============================================================
+function seedData(){
+  return {
+    odometer: 127450,
+    services: [
+      { id:1, type:'Oil Change', brand:'Mobil 1', spec:'0W-20 Full Synthetic', mileage:126800, date:'2026-03-01', interval:5000, notes:'5 qts + OEM filter 15400-PLM-A02' },
+      { id:2, type:'Spark Plugs', brand:'NGK', spec:'ILZKR7B-11S Iridium', mileage:120000, date:'2025-09-15', interval:60000, notes:'Gapped to 0.044"' },
+      { id:3, type:'Serpentine Belt', brand:'Gates', spec:'K060535', mileage:115000, date:'2025-06-20', interval:60000, notes:'Checked tensioner — still good' },
+      { id:4, type:'Air Filter', brand:'K&N', spec:'33-2276 Drop-In', mileage:124500, date:'2026-01-10', interval:15000, notes:'Cleaned and re-oiled' },
+      { id:5, type:'Brake Pads (Front)', brand:'Hawk', spec:'HPS 5.0', mileage:118000, date:'2025-04-10', interval:30000, notes:'Rotors still within spec' },
+      { id:6, type:'Brake Fluid', brand:'Motul', spec:'RBF 600', mileage:125000, date:'2026-02-01', interval:20000, notes:'Full flush, DOT4 racing' },
+      { id:7, type:'Transmission Fluid', brand:'Honda', spec:'MTF OEM', mileage:110000, date:'2025-01-15', interval:30000, notes:'3 quarts, slight grind in 3rd fixed' },
+      { id:8, type:'Coolant', brand:'Honda', spec:'Type 2 Blue', mileage:105000, date:'2024-08-20', interval:50000, notes:'Full drain and fill' },
+    ],
+    mods: [
+      { id:1, name:'TEIN FLEX Z Coilovers', brand:'TEIN', part:'VSA00-C1SS3', mileage:95000, date:'2024-01-15', category:'Suspension', notes:'Front 8kg, Rear 6kg. Street comfort settings.' },
+      { id:2, name:'Enkei RPF1 18×9.5 +38', brand:'Enkei', part:'3798956538SP', mileage:95000, date:'2024-01-15', category:'Wheels', notes:'245/40R18 Pilot Sport 4S. Flush fitment.' },
+      { id:3, name:'APEXi WS3 Exhaust', brand:'APEXi', part:'', mileage:88000, date:'2023-06-01', category:'Exhaust', notes:'Header, test pipe, cat-back. Deep tone, no rasp.' },
+      { id:4, name:'Hondata FlashPro', brand:'Hondata', part:'FP-06-Si', mileage:92000, date:'2023-09-01', category:'Electronics', notes:'Base map + bluetooth datalog' },
+      { id:5, name:'Acuity Shifter Kit', brand:'Acuity', part:'1937', mileage:100000, date:'2024-04-01', category:'Drivetrain', notes:'Short throw + bushings. Huge improvement.' },
+      { id:6, name:'OEM Steering Rack', brand:'Honda', part:'53601-SVA-A05', mileage:115000, date:'2025-06-20', category:'Steering', notes:'Replaced leaking rack. New tie rods + alignment.' },
+    ],
+    fluids: [
+      { id:1, name:'Engine Oil', spec:'0W-20 Synthetic', capacity:'4.4 qt', lastChange:126800, interval:5000, brand:'Mobil 1' },
+      { id:2, name:'Transmission', spec:'Honda MTF', capacity:'2.9 qt', lastChange:110000, interval:30000, brand:'Honda OEM' },
+      { id:3, name:'Brake Fluid', spec:'DOT4 Racing', capacity:'1 qt', lastChange:125000, interval:20000, brand:'Motul RBF 600' },
+      { id:4, name:'Coolant', spec:'Honda Type 2', capacity:'7.2 qt', lastChange:105000, interval:50000, brand:'Honda Blue' },
+      { id:5, name:'Power Steering', spec:'Honda PSF', capacity:'1.1 qt', lastChange:115000, interval:50000, brand:'Honda OEM' },
+    ]
+  };
+}
+
+// ============================================================
+//  ODOMETER
+// ============================================================
+function showOdoEdit(){
+  document.getElementById('odo-display').style.display='none';
+  const inp = document.getElementById('odo-input');
+  inp.style.display='block'; inp.value=data.odometer; inp.focus(); inp.select();
+}
+function saveOdo(){
+  const v = parseInt(document.getElementById('odo-input').value);
+  if(v && v>0){ data.odometer=v; save(); }
+  document.getElementById('odo-input').style.display='none';
+  document.getElementById('odo-display').style.display='';
+  renderAll();
+}
+
+// ============================================================
+//  SERVICE STATUS
+// ============================================================
+function serviceStatus(svc){
+  const milesSince = data.odometer - svc.mileage;
+  const pct = milesSince / svc.interval;
+  if(pct >= 1.0) return { label:'DUE NOW', cls:'due', pct:Math.min(1.2,pct), color:'#ff4444' };
+  if(pct >= 0.8) return { label:'DUE SOON', cls:'soon', pct, color:'#ffcc00' };
+  return { label:'OK', cls:'ok', pct, color:'#00cc88' };
+}
+
+function fluidStatus(fluid){
+  const milesSince = data.odometer - fluid.lastChange;
+  const pct = milesSince / fluid.interval;
+  if(pct >= 1.0) return { label:'CHANGE NOW', cls:'due', pct:Math.min(1.2,pct), color:'#ff4444', remaining:0 };
+  if(pct >= 0.8) return { label:'CHANGE SOON', cls:'soon', pct, color:'#ffcc00', remaining:fluid.interval-milesSince };
+  return { label:'OK', cls:'ok', pct, color:'#00cc88', remaining:fluid.interval-milesSince };
+}
+
+// ============================================================
+//  RENDER TABS
+// ============================================================
+function switchTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('nav-'+tab).classList.add('active');
+  renderContent();
+}
+
+function renderAll(){
+  document.getElementById('odo-display').textContent = data.odometer.toLocaleString();
+  updateCounts();
+  updateQuickStats();
+  renderContent();
+}
+
+function updateCounts(){
+  document.getElementById('cnt-services').textContent = data.services.length;
+  document.getElementById('cnt-mods').textContent = data.mods.length;
+  document.getElementById('cnt-fluids').textContent = data.fluids.length;
+
+  const upcoming = data.services.filter(s => serviceStatus(s).cls !== 'ok').length +
+                    data.fluids.filter(f => fluidStatus(f).cls !== 'ok').length;
+  document.getElementById('cnt-upcoming').textContent = upcoming;
+  document.getElementById('cnt-history').textContent = data.services.length + data.mods.length;
+  document.getElementById('due-count').textContent = upcoming + ' DUE';
+}
+
+function updateQuickStats(){
+  const oil = data.services.find(s => s.type.toLowerCase().includes('oil'));
+  if(oil){
+    const since = data.odometer - oil.mileage;
+    document.getElementById('since-oil').textContent = since.toLocaleString() + ' mi';
+    document.getElementById('since-oil').style.color = since > oil.interval ? '#ff4444' : since > oil.interval*0.8 ? '#ffcc00' : '#00cc88';
+  }
+
+  // Next due
+  let soonest = null, soonestMiles = Infinity;
+  data.services.forEach(s => {
+    const remaining = s.interval - (data.odometer - s.mileage);
+    if(remaining < soonestMiles){ soonestMiles=remaining; soonest=s; }
+  });
+  data.fluids.forEach(f => {
+    const remaining = f.interval - (data.odometer - f.lastChange);
+    if(remaining < soonestMiles){ soonestMiles=remaining; soonest=f; }
+  });
+  if(soonest){
+    const name = soonest.type || soonest.name;
+    document.getElementById('next-service').textContent = name + (soonestMiles<=0 ? ' — OVERDUE' : ' in ' + Math.max(0,soonestMiles).toLocaleString() + ' mi');
+    document.getElementById('next-service').style.color = soonestMiles<=0?'#ff4444':soonestMiles<1000?'#ffcc00':'#00cc88';
+  }
+}
+
+function renderContent(){
+  const el = document.getElementById('content');
+  switch(currentTab){
+    case 'services': el.innerHTML = renderServices(); break;
+    case 'mods': el.innerHTML = renderMods(); break;
+    case 'fluids': el.innerHTML = renderFluids(); break;
+    case 'upcoming': el.innerHTML = renderUpcoming(); break;
+    case 'history': el.innerHTML = renderHistory(); break;
+  }
+}
+
+// ============================================================
+//  SERVICES TAB
+// ============================================================
+function renderServices(){
+  let html = `<div class="section-bar"><span class="section-title">SERVICE RECORDS</span><button class="btn primary" onclick="showForm('service')">+ ADD SERVICE</button></div>`;
+  if(data.services.length === 0) return html + '<div class="empty"><div class="empty-text">NO SERVICE RECORDS</div><div class="empty-sub">Tap + ADD SERVICE to log maintenance</div></div>';
+
+  // Sort by mileage descending
+  const sorted = [...data.services].sort((a,b) => b.mileage - a.mileage);
+  sorted.forEach(s => {
+    const st = serviceStatus(s);
+    const milesSince = data.odometer - s.mileage;
+    const milesUntil = s.interval - milesSince;
+    html += `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">${s.type}</span>
+          <span class="card-badge badge-${st.cls}">${st.label}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-row"><span class="card-label">BRAND / SPEC</span><span class="card-val">${s.brand} ${s.spec||''}</span></div>
+          <div class="card-row"><span class="card-label">LAST DONE</span><span class="card-val">${s.mileage.toLocaleString()} mi — ${s.date}</span></div>
+          <div class="card-row"><span class="card-label">INTERVAL</span><span class="card-val">Every ${s.interval.toLocaleString()} mi</span></div>
+          <div class="card-row"><span class="card-label">NEXT DUE</span><span class="card-val" style="color:${st.color}">${milesUntil<=0?'OVERDUE by '+Math.abs(milesUntil).toLocaleString()+' mi':'In '+milesUntil.toLocaleString()+' mi'}</span></div>
+          ${s.notes ? '<div class="card-note">'+s.notes+'</div>' : ''}
+          <div class="card-progress"><div class="card-progress-fill" style="width:${Math.min(100,st.pct*100)}%;background:${st.color}"></div></div>
+        </div>
+        <div class="card-actions">
+          <button class="btn" onclick="markDone(${s.id})">MARK DONE @ ${data.odometer.toLocaleString()}</button>
+          <button class="btn danger" onclick="deleteService(${s.id})">DELETE</button>
+        </div>
+      </div>`;
+  });
+  return html;
+}
+
+// ============================================================
+//  MODS TAB
+// ============================================================
+function renderMods(){
+  let html = `<div class="section-bar"><span class="section-title">MOD LIST</span><button class="btn primary" onclick="showForm('mod')">+ ADD MOD</button></div>`;
+  if(data.mods.length === 0) return html + '<div class="empty"><div class="empty-text">NO MODS LOGGED</div></div>';
+
+  const cats = [...new Set(data.mods.map(m=>m.category))];
+  cats.forEach(cat => {
+    html += `<div style="font-size:9px;color:#4488ff66;letter-spacing:2px;margin:12px 0 6px;border-bottom:1px solid #4488ff11;padding-bottom:4px;">${cat.toUpperCase()}</div>`;
+    data.mods.filter(m=>m.category===cat).forEach(m => {
+      html += `
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">${m.name}</span>
+            <span class="card-badge badge-mod">INSTALLED</span>
+          </div>
+          <div class="card-body">
+            <div class="card-row"><span class="card-label">BRAND</span><span class="card-val">${m.brand}</span></div>
+            ${m.part?'<div class="card-row"><span class="card-label">PART #</span><span class="card-val">'+m.part+'</span></div>':''}
+            <div class="card-row"><span class="card-label">INSTALLED</span><span class="card-val">${m.mileage.toLocaleString()} mi — ${m.date}</span></div>
+            <div class="card-row"><span class="card-label">MILES ON PART</span><span class="card-val">${(data.odometer-m.mileage).toLocaleString()} mi</span></div>
+            ${m.notes ? '<div class="card-note">'+m.notes+'</div>' : ''}
+          </div>
+          <div class="card-actions">
+            <button class="btn danger" onclick="deleteMod(${m.id})">DELETE</button>
+          </div>
+        </div>`;
+    });
+  });
+  return html;
+}
+
+// ============================================================
+//  FLUIDS TAB
+// ============================================================
+function renderFluids(){
+  let html = `<div class="section-bar"><span class="section-title">FLUID STATUS</span></div>`;
+  data.fluids.forEach(f => {
+    const st = fluidStatus(f);
+    const milesSince = data.odometer - f.lastChange;
+    html += `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">${f.name}</span>
+          <span class="card-badge badge-${st.cls}">${st.label}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-row"><span class="card-label">SPEC</span><span class="card-val">${f.brand} — ${f.spec}</span></div>
+          <div class="card-row"><span class="card-label">CAPACITY</span><span class="card-val">${f.capacity}</span></div>
+          <div class="card-row"><span class="card-label">LAST CHANGE</span><span class="card-val">${f.lastChange.toLocaleString()} mi</span></div>
+          <div class="card-row"><span class="card-label">MILES SINCE</span><span class="card-val">${milesSince.toLocaleString()} mi</span></div>
+          <div class="card-row"><span class="card-label">NEXT DUE</span><span class="card-val" style="color:${st.color}">${st.remaining<=0?'OVERDUE':'In '+st.remaining.toLocaleString()+' mi'}</span></div>
+          <div class="card-progress"><div class="card-progress-fill" style="width:${Math.min(100,st.pct*100)}%;background:${st.color}"></div></div>
+        </div>
+        <div class="card-actions">
+          <button class="btn" onclick="markFluidDone(${f.id})">CHANGED @ ${data.odometer.toLocaleString()}</button>
+        </div>
+      </div>`;
+  });
+  return html;
+}
+
+// ============================================================
+//  UPCOMING TAB
+// ============================================================
+function renderUpcoming(){
+  let html = `<div class="section-bar"><span class="section-title">UPCOMING MAINTENANCE</span></div>`;
+  const items = [];
+
+  data.services.forEach(s => {
+    const remaining = s.interval - (data.odometer - s.mileage);
+    const st = serviceStatus(s);
+    items.push({ name:s.type, remaining, status:st, type:'service', id:s.id });
+  });
+  data.fluids.forEach(f => {
+    const remaining = f.interval - (data.odometer - f.lastChange);
+    const st = fluidStatus(f);
+    items.push({ name:f.name, remaining, status:st, type:'fluid', id:f.id });
+  });
+
+  items.sort((a,b) => a.remaining - b.remaining);
+
+  items.forEach(item => {
+    const urgency = item.remaining <= 0 ? 'OVERDUE' : item.remaining < 1000 ? 'SOON' : 'OK';
+    html += `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">${item.name}</span>
+          <span class="card-badge badge-${item.status.cls}">${item.status.label}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-row">
+            <span class="card-label">${item.remaining<=0?'OVERDUE BY':'DUE IN'}</span>
+            <span class="card-val" style="color:${item.status.color}">${Math.abs(item.remaining).toLocaleString()} mi</span>
+          </div>
+          <div class="card-progress"><div class="card-progress-fill" style="width:${Math.min(100,item.status.pct*100)}%;background:${item.status.color}"></div></div>
+        </div>
+      </div>`;
+  });
+
+  if(items.length === 0) html += '<div class="empty"><div class="empty-text">ALL CAUGHT UP</div></div>';
+  return html;
+}
+
+// ============================================================
+//  HISTORY TAB
+// ============================================================
+function renderHistory(){
+  let html = `<div class="section-bar"><span class="section-title">FULL SERVICE LOG</span></div>`;
+  const all = [
+    ...data.services.map(s => ({...s, _type:'service', _date:s.date, _mi:s.mileage})),
+    ...data.mods.map(m => ({...m, _type:'mod', _date:m.date, _mi:m.mileage}))
+  ].sort((a,b) => b._mi - a._mi);
+
+  all.forEach(item => {
+    const icon = item._type==='service' ? 'SERVICE' : 'MOD';
+    const color = item._type==='service' ? '#ff884433' : '#4488ff33';
+    html += `
+      <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #ffffff06;">
+        <div style="font-size:8px;color:${color};letter-spacing:1px;min-width:50px;">${icon}</div>
+        <div style="flex:1;">
+          <div style="font-size:10px;color:#ffffffaa;">${item.type||item.name}</div>
+          <div style="font-size:8px;color:#ffffff33;margin-top:2px;">${item.brand||''} ${item.spec||''}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:9px;color:#ffffff66;font-family:Orbitron;">${item._mi.toLocaleString()}</div>
+          <div style="font-size:8px;color:#ffffff22;">${item._date}</div>
+        </div>
+      </div>`;
+  });
+  return html;
+}
+
+// ============================================================
+//  ACTIONS
+// ============================================================
+function markDone(id){
+  const s = data.services.find(x=>x.id===id);
+  if(s){ s.mileage=data.odometer; s.date=new Date().toISOString().slice(0,10); save(); renderAll(); }
+}
+
+function markFluidDone(id){
+  const f = data.fluids.find(x=>x.id===id);
+  if(f){ f.lastChange=data.odometer; save(); renderAll(); }
+}
+
+function deleteService(id){
+  if(!confirm('Delete this service record?')) return;
+  data.services = data.services.filter(x=>x.id!==id); save(); renderAll();
+}
+
+function deleteMod(id){
+  if(!confirm('Remove this mod?')) return;
+  data.mods = data.mods.filter(x=>x.id!==id); save(); renderAll();
+}
+
+// ============================================================
+//  ADD FORMS
+// ============================================================
+function showForm(type){
+  const panel = document.getElementById('form-panel');
+  document.getElementById('form-overlay').classList.add('open');
+
+  if(type==='service'){
+    panel.innerHTML = `
+      <div class="form-title">ADD SERVICE</div>
+      <div class="form-group"><div class="form-label">TYPE</div><select class="form-select" id="f-type">
+        <option>Oil Change</option><option>Spark Plugs</option><option>Air Filter</option>
+        <option>Brake Pads (Front)</option><option>Brake Pads (Rear)</option><option>Brake Fluid</option>
+        <option>Transmission Fluid</option><option>Coolant</option><option>Serpentine Belt</option>
+        <option>Timing Chain</option><option>Clutch</option><option>Alignment</option>
+        <option>Tire Rotation</option><option>Battery</option><option>Other</option>
+      </select></div>
+      <div class="form-group"><div class="form-label">BRAND</div><input class="form-input" id="f-brand" placeholder="e.g. Mobil 1"></div>
+      <div class="form-group"><div class="form-label">SPEC / PART #</div><input class="form-input" id="f-spec" placeholder="e.g. 0W-20 Synthetic"></div>
+      <div class="form-group"><div class="form-label">MILEAGE</div><input class="form-input" id="f-mileage" type="number" value="${data.odometer}"></div>
+      <div class="form-group"><div class="form-label">DATE</div><input class="form-input" id="f-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="form-group"><div class="form-label">INTERVAL (MILES)</div><input class="form-input" id="f-interval" type="number" value="5000"></div>
+      <div class="form-group"><div class="form-label">NOTES</div><textarea class="form-input" id="f-notes" placeholder="Optional"></textarea></div>
+      <div class="form-actions">
+        <button class="btn" onclick="closeForm()">CANCEL</button>
+        <button class="btn primary" onclick="addService()">SAVE</button>
+      </div>`;
+  } else if(type==='mod'){
+    panel.innerHTML = `
+      <div class="form-title">ADD MOD</div>
+      <div class="form-group"><div class="form-label">NAME</div><input class="form-input" id="f-name" placeholder="e.g. Injen Cold Air Intake"></div>
+      <div class="form-group"><div class="form-label">BRAND</div><input class="form-input" id="f-brand" placeholder="e.g. Injen"></div>
+      <div class="form-group"><div class="form-label">PART NUMBER</div><input class="form-input" id="f-part" placeholder="Optional"></div>
+      <div class="form-group"><div class="form-label">CATEGORY</div><select class="form-select" id="f-category">
+        <option>Engine</option><option>Exhaust</option><option>Intake</option><option>Suspension</option>
+        <option>Wheels</option><option>Brakes</option><option>Drivetrain</option><option>Electronics</option>
+        <option>Steering</option><option>Interior</option><option>Exterior</option><option>Other</option>
+      </select></div>
+      <div class="form-group"><div class="form-label">INSTALL MILEAGE</div><input class="form-input" id="f-mileage" type="number" value="${data.odometer}"></div>
+      <div class="form-group"><div class="form-label">DATE</div><input class="form-input" id="f-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="form-group"><div class="form-label">NOTES</div><textarea class="form-input" id="f-notes" placeholder="Optional"></textarea></div>
+      <div class="form-actions">
+        <button class="btn" onclick="closeForm()">CANCEL</button>
+        <button class="btn primary" onclick="addMod()">SAVE</button>
+      </div>`;
+  }
+}
+
+function closeForm(){ document.getElementById('form-overlay').classList.remove('open'); }
+
+function addService(){
+  data.services.push({
+    id: Date.now(),
+    type: document.getElementById('f-type').value,
+    brand: document.getElementById('f-brand').value,
+    spec: document.getElementById('f-spec').value,
+    mileage: parseInt(document.getElementById('f-mileage').value) || data.odometer,
+    date: document.getElementById('f-date').value,
+    interval: parseInt(document.getElementById('f-interval').value) || 5000,
+    notes: document.getElementById('f-notes').value
+  });
+  save(); closeForm(); renderAll();
+}
+
+function addMod(){
+  data.mods.push({
+    id: Date.now(),
+    name: document.getElementById('f-name').value,
+    brand: document.getElementById('f-brand').value,
+    part: document.getElementById('f-part').value,
+    category: document.getElementById('f-category').value,
+    mileage: parseInt(document.getElementById('f-mileage').value) || data.odometer,
+    date: document.getElementById('f-date').value,
+    notes: document.getElementById('f-notes').value
+  });
+  save(); closeForm(); renderAll();
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+load();
+renderAll();
+</script>
+</body>
+</html>

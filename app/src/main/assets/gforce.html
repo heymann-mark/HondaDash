@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; color:#ccc; }
+
+/* STATUS BAR */
+.status-bar { position:fixed; top:0; left:0; right:0; height:28px; background:#0d0d0d; border-bottom:1px solid #ffffff0d; display:flex; align-items:center; padding:0 12px; gap:16px; z-index:10; }
+.status-dot { width:8px; height:8px; border-radius:50%; background:#333; flex-shrink:0; }
+.status-dot.live { background:#00cc44; box-shadow:0 0 8px #00cc44; }
+.status-label { font-size:10px; color:#ffffff55; letter-spacing:2px; }
+.status-val { font-size:10px; color:#ffffffaa; letter-spacing:1px; }
+.status-spacer { flex:1; }
+.status-tag { font-size:9px; color:#cc2200; letter-spacing:2px; border:1px solid #cc220033; padding:1px 6px; }
+
+/* LAYOUT */
+.main { position:fixed; top:28px; left:0; right:0; bottom:0; display:grid; grid-template-columns:1fr 220px; }
+
+/* G-BALL AREA */
+.gball-area { position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+#gball-canvas { width:100%; height:100%; }
+
+/* RIGHT PANEL */
+.info-panel { background:#0d0d0d; border-left:1px solid #ffffff0d; display:flex; flex-direction:column; overflow-y:auto; }
+.panel-section { padding:10px 14px; border-bottom:1px solid #ffffff08; }
+.panel-title { font-size:9px; color:#ffffff44; letter-spacing:2px; margin-bottom:6px; }
+
+/* G READOUTS */
+.g-readout { text-align:center; padding:10px 14px; border-bottom:1px solid #ffffff08; }
+.g-readout-label { font-size:8px; color:#ffffff33; letter-spacing:2px; margin-bottom:2px; }
+.g-readout-val { font-family:'Orbitron',monospace; font-size:32px; font-weight:700; line-height:1; }
+.g-readout-unit { font-size:9px; color:#ffffff33; letter-spacing:1px; margin-top:2px; }
+.g-readout-peak { font-size:8px; color:#ffffff22; margin-top:4px; }
+.g-readout-peak span { color:#ff884488; font-family:'Orbitron',monospace; }
+
+/* BAR GAUGES */
+.gbar-wrap { padding:8px 14px; border-bottom:1px solid #ffffff08; }
+.gbar-label { font-size:8px; color:#ffffff33; letter-spacing:1px; margin-bottom:3px; display:flex; justify-content:space-between; }
+.gbar-track { height:8px; background:#ffffff06; border-radius:1px; position:relative; overflow:hidden; }
+.gbar-center { position:absolute; left:50%; top:0; bottom:0; width:1px; background:#ffffff15; }
+.gbar-fill { position:absolute; top:0; height:100%; border-radius:1px; transition:left 0.08s, width 0.08s; }
+
+/* HISTORY GRAPH */
+.graph-section { flex:1; min-height:100px; position:relative; }
+#history-canvas { width:100%; height:100%; display:block; }
+
+/* CONTROLS */
+.ctrl-row { display:flex; gap:6px; padding:8px 14px; border-bottom:1px solid #ffffff08; flex-wrap:wrap; }
+.ctrl-btn { background:transparent; border:1px solid #ffffff15; color:#ffffff44; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; padding:3px 8px; cursor:pointer; transition:all 0.15s; }
+.ctrl-btn:hover { border-color:#cc2200; color:#cc2200; }
+.ctrl-btn.active { border-color:#cc2200; color:#cc2200; background:rgba(204,34,0,0.1); }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-dot" id="accel-dot"></div>
+  <span class="status-label">ACCELEROMETER</span>
+  <span class="status-val" id="accel-status">REQUESTING...</span>
+  <div class="status-spacer"></div>
+  <span class="status-val" id="total-g">0.00 G</span>
+  <div class="status-tag">G-FORCE</div>
+</div>
+
+<div class="main">
+  <!-- G-BALL -->
+  <div class="gball-area">
+    <canvas id="gball-canvas"></canvas>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="info-panel">
+    <!-- Lateral G -->
+    <div class="g-readout">
+      <div class="g-readout-label">LATERAL G</div>
+      <div class="g-readout-val" id="val-lat" style="color:#00ccff;">0.00</div>
+      <div class="g-readout-unit">LEFT ← → RIGHT</div>
+      <div class="g-readout-peak">PEAK L: <span id="peak-lat-l">0.00</span> | R: <span id="peak-lat-r">0.00</span></div>
+    </div>
+
+    <!-- Longitudinal G -->
+    <div class="g-readout">
+      <div class="g-readout-label">LONGITUDINAL G</div>
+      <div class="g-readout-val" id="val-lon" style="color:#ff8844;">0.00</div>
+      <div class="g-readout-unit">BRAKE ← → ACCEL</div>
+      <div class="g-readout-peak">PEAK B: <span id="peak-lon-b">0.00</span> | A: <span id="peak-lon-a">0.00</span></div>
+    </div>
+
+    <!-- Combined G -->
+    <div class="g-readout">
+      <div class="g-readout-label">COMBINED G</div>
+      <div class="g-readout-val" id="val-combined" style="color:#cc2200;">0.00</div>
+      <div class="g-readout-peak">PEAK: <span id="peak-combined">0.00</span></div>
+    </div>
+
+    <!-- Bar gauges -->
+    <div class="gbar-wrap">
+      <div class="gbar-label"><span>LEFT</span><span>LATERAL</span><span>RIGHT</span></div>
+      <div class="gbar-track">
+        <div class="gbar-center"></div>
+        <div class="gbar-fill" id="bar-lat" style="background:#00ccff;"></div>
+      </div>
+    </div>
+
+    <div class="gbar-wrap">
+      <div class="gbar-label"><span>BRAKE</span><span>LONGITUDINAL</span><span>ACCEL</span></div>
+      <div class="gbar-track">
+        <div class="gbar-center"></div>
+        <div class="gbar-fill" id="bar-lon" style="background:#ff8844;"></div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="ctrl-row">
+      <button class="ctrl-btn active" id="btn-trail" onclick="toggleTrail()">TRAIL</button>
+      <button class="ctrl-btn" id="btn-peaks" onclick="togglePeakDots()">PEAK DOTS</button>
+      <button class="ctrl-btn" onclick="resetPeaks()">RESET PEAKS</button>
+    </div>
+    <div class="ctrl-row">
+      <button class="ctrl-btn active" data-range="1.5" onclick="setRange(1.5,this)">1.5G</button>
+      <button class="ctrl-btn" data-range="2.0" onclick="setRange(2.0,this)">2.0G</button>
+      <button class="ctrl-btn" data-range="1.0" onclick="setRange(1.0,this)">1.0G</button>
+    </div>
+
+    <!-- History graph -->
+    <div class="panel-section" style="padding:4px 14px;">
+      <div class="panel-title">G-FORCE HISTORY</div>
+    </div>
+    <div class="graph-section">
+      <canvas id="history-canvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  STATE
+// ============================================================
+let latG = 0, lonG = 0; // current G values
+let peakLatL = 0, peakLatR = 0, peakLonB = 0, peakLonA = 0, peakCombined = 0;
+let gRange = 1.5; // max G displayed
+let showTrail = true, showPeakDots = false;
+let accelAvailable = false;
+
+// Trail history for the g-ball
+const TRAIL_MAX = 80;
+let trail = [];
+
+// Graph history
+const GRAPH_MAX = 400;
+let historyLat = [], historyLon = [], historyCombined = [];
+
+// Smoothing
+let rawLatG = 0, rawLonG = 0;
+const SMOOTH = 0.3;
+
+// ============================================================
+//  ACCELEROMETER
+// ============================================================
+function initAccelerometer(){
+  if(typeof DeviceMotionEvent !== 'undefined'){
+    // iOS 13+ requires permission
+    if(typeof DeviceMotionEvent.requestPermission === 'function'){
+      DeviceMotionEvent.requestPermission().then(state => {
+        if(state === 'granted') startListening();
+        else setAccelStatus('DENIED');
+      }).catch(() => setAccelStatus('ERROR'));
+    } else {
+      startListening();
+    }
+  } else {
+    setAccelStatus('NOT AVAILABLE');
+  }
+}
+
+function startListening(){
+  let realDataCount = 0;
+  window.addEventListener('devicemotion', e => {
+    // Use acceleration (without gravity) if available, otherwise fall back
+    const acc = e.acceleration || e.accelerationIncludingGravity;
+    if(!acc) return;
+
+    const x = acc.x || 0;
+    const y = acc.y || 0;
+
+    // Desktop browsers fire devicemotion with all zeros — ignore those
+    if(x === 0 && y === 0 && (acc.z === 0 || acc.z === null)){
+      realDataCount = 0;
+      return;
+    }
+
+    realDataCount++;
+    // Need a few real readings before we trust it
+    if(realDataCount < 5) return;
+
+    accelAvailable = true;
+    setAccelStatus('ACTIVE');
+    document.getElementById('accel-dot').classList.add('live');
+
+    rawLatG = x / 9.81;
+    rawLonG = y / 9.81;
+  }, true);
+}
+
+function setAccelStatus(s){
+  document.getElementById('accel-status').textContent = s;
+}
+
+// Android bridge — can also receive from Kotlin
+function updateGForce(data){
+  if(data.latG !== undefined) rawLatG = data.latG;
+  if(data.lonG !== undefined) rawLonG = data.lonG;
+  accelAvailable = true;
+  setAccelStatus('OBD2');
+  document.getElementById('accel-dot').classList.add('live');
+}
+
+// ============================================================
+//  SIMULATION
+// ============================================================
+let simT = 0;
+
+function simTick(){
+  simT += 0.05;
+
+  // Simulate a canyon run — alternating lateral G with occasional braking/accel
+  const cornerFreq = 0.4;
+  const cornerPhase = Math.sin(simT * cornerFreq);
+  const accelBrake = Math.sin(simT * 0.15) * 0.3;
+  const noise = (Math.random()-0.5)*0.03;
+
+  // Lateral: sweeping left-right like corners
+  rawLatG = cornerPhase * (0.4 + Math.sin(simT*0.08)*0.3) + noise;
+
+  // Longitudinal: occasional hard braking and acceleration
+  rawLonG = accelBrake + Math.sin(simT*0.6)*0.15 + noise;
+
+  // Occasional hard events
+  if(Math.random() < 0.003) rawLatG += (Math.random()-0.5) * 0.8;
+  if(Math.random() < 0.005) rawLonG += (Math.random()-0.5) * 0.6;
+}
+
+// ============================================================
+//  UPDATE
+// ============================================================
+function update(){
+  if(!accelAvailable) simTick();
+
+  // Smooth
+  latG += (rawLatG - latG) * SMOOTH;
+  lonG += (rawLonG - lonG) * SMOOTH;
+
+  const combined = Math.sqrt(latG*latG + lonG*lonG);
+
+  // Update peaks
+  if(latG < -peakLatL) peakLatL = -latG;
+  if(latG > peakLatR) peakLatR = latG;
+  if(lonG < -peakLonB) peakLonB = -lonG;
+  if(lonG > peakLonA) peakLonA = lonG;
+  if(combined > peakCombined) peakCombined = combined;
+
+  // Trail
+  if(showTrail){
+    trail.push({x:latG, y:lonG});
+    if(trail.length > TRAIL_MAX) trail.shift();
+  }
+
+  // History
+  historyLat.push(latG);
+  historyLon.push(lonG);
+  historyCombined.push(combined);
+  if(historyLat.length > GRAPH_MAX){ historyLat.shift(); historyLon.shift(); historyCombined.shift(); }
+
+  // Update readouts
+  document.getElementById('val-lat').textContent = Math.abs(latG).toFixed(2);
+  document.getElementById('val-lat').style.color = Math.abs(latG)>0.8?'#ff4444':'#00ccff';
+  document.getElementById('val-lon').textContent = Math.abs(lonG).toFixed(2);
+  document.getElementById('val-lon').style.color = Math.abs(lonG)>0.8?'#ff4444':'#ff8844';
+  document.getElementById('val-combined').textContent = combined.toFixed(2);
+  document.getElementById('val-combined').style.color = combined>1.0?'#ff4444':'#cc2200';
+  document.getElementById('total-g').textContent = combined.toFixed(2) + ' G';
+
+  document.getElementById('peak-lat-l').textContent = peakLatL.toFixed(2);
+  document.getElementById('peak-lat-r').textContent = peakLatR.toFixed(2);
+  document.getElementById('peak-lon-b').textContent = peakLonB.toFixed(2);
+  document.getElementById('peak-lon-a').textContent = peakLonA.toFixed(2);
+  document.getElementById('peak-combined').textContent = peakCombined.toFixed(2);
+
+  // Bar gauges
+  updateBar('bar-lat', latG);
+  updateBar('bar-lon', lonG);
+}
+
+function updateBar(id, val){
+  const el = document.getElementById(id);
+  const pct = Math.min(1, Math.abs(val)/gRange);
+  const w = pct * 50;
+  if(val >= 0){
+    el.style.left = '50%';
+    el.style.width = w + '%';
+  } else {
+    el.style.left = (50-w) + '%';
+    el.style.width = w + '%';
+  }
+}
+
+// ============================================================
+//  G-BALL CANVAS
+// ============================================================
+const gCanvas = document.getElementById('gball-canvas');
+const gCtx = gCanvas.getContext('2d');
+let gW, gH;
+
+function resizeGBall(){
+  const dpr = window.devicePixelRatio || 1;
+  const wrap = gCanvas.parentElement;
+  gW = wrap.offsetWidth; gH = wrap.offsetHeight;
+  gCanvas.width = gW*dpr; gCanvas.height = gH*dpr;
+  gCtx.scale(dpr,dpr);
+  gCanvas.style.width = gW+'px'; gCanvas.style.height = gH+'px';
+}
+
+function drawGBall(){
+  if(!gW) resizeGBall();
+  gCtx.clearRect(0,0,gW,gH);
+
+  const cx = gW/2, cy = gH/2;
+  const radius = Math.min(gW,gH)*0.42;
+  const scale = radius / gRange;
+
+  // Background rings
+  const rings = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5];
+  rings.forEach(g => {
+    if(g > gRange) return;
+    const r = g * scale;
+    gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI*2);
+    gCtx.strokeStyle = g === 1.0 ? '#ffffff15' : '#ffffff08';
+    gCtx.lineWidth = g === 1.0 ? 1.5 : 0.8;
+    gCtx.stroke();
+
+    // G label
+    gCtx.fillStyle = '#ffffff22';
+    gCtx.font = '9px Share Tech Mono';
+    gCtx.textAlign = 'left';
+    gCtx.fillText(g.toFixed(2)+'G', cx+r+4, cy-2);
+  });
+
+  // Crosshairs
+  gCtx.strokeStyle = '#ffffff0a'; gCtx.lineWidth = 0.8;
+  gCtx.beginPath(); gCtx.moveTo(cx-radius*1.15,cy); gCtx.lineTo(cx+radius*1.15,cy); gCtx.stroke();
+  gCtx.beginPath(); gCtx.moveTo(cx,cy-radius*1.15); gCtx.lineTo(cx,cy+radius*1.15); gCtx.stroke();
+
+  // Axis labels
+  gCtx.fillStyle = '#ffffff22'; gCtx.font = '10px Share Tech Mono'; gCtx.textAlign = 'center';
+  gCtx.fillText('ACCEL', cx, cy-radius*1.12-4);
+  gCtx.fillText('BRAKE', cx, cy+radius*1.12+12);
+  gCtx.textAlign = 'left'; gCtx.fillText('LEFT', cx-radius*1.12-4, cy-4);
+  gCtx.textAlign = 'right'; gCtx.fillText('RIGHT', cx+radius*1.12+4, cy-4);
+
+  // Trail
+  if(showTrail && trail.length > 1){
+    gCtx.beginPath();
+    trail.forEach((p, i) => {
+      const px = cx + p.x * scale;
+      const py = cy - p.y * scale;
+      if(i===0) gCtx.moveTo(px,py); else gCtx.lineTo(px,py);
+    });
+    gCtx.strokeStyle = 'rgba(204,34,0,0.3)';
+    gCtx.lineWidth = 1.5;
+    gCtx.stroke();
+
+    // Trail dots fading
+    trail.forEach((p, i) => {
+      const alpha = (i / trail.length) * 0.4;
+      const px = cx + p.x * scale;
+      const py = cy - p.y * scale;
+      gCtx.beginPath(); gCtx.arc(px, py, 1.5, 0, Math.PI*2);
+      gCtx.fillStyle = `rgba(204,34,0,${alpha})`;
+      gCtx.fill();
+    });
+  }
+
+  // Peak dots
+  if(showPeakDots){
+    const peaks = [
+      {x:-peakLatL, y:0, color:'#00ccff'},
+      {x:peakLatR, y:0, color:'#00ccff'},
+      {x:0, y:-peakLonB, color:'#ff8844'},
+      {x:0, y:peakLonA, color:'#ff8844'},
+    ];
+    peaks.forEach(p => {
+      const px = cx + p.x * scale;
+      const py = cy - p.y * scale;
+      gCtx.beginPath(); gCtx.arc(px, py, 4, 0, Math.PI*2);
+      gCtx.fillStyle = p.color + '66';
+      gCtx.fill();
+      gCtx.strokeStyle = p.color;
+      gCtx.lineWidth = 1;
+      gCtx.stroke();
+    });
+  }
+
+  // Current G dot — large with glow
+  const dotX = cx + latG * scale;
+  const dotY = cy - lonG * scale;
+  const combined = Math.sqrt(latG*latG + lonG*lonG);
+  const intensity = Math.min(1, combined / gRange);
+
+  // Glow
+  const glowR = 20 + intensity*20;
+  const glow = gCtx.createRadialGradient(dotX, dotY, 0, dotX, dotY, glowR);
+  const dotColor = combined > 1.0 ? [255,50,30] : combined > 0.7 ? [255,136,0] : [204,34,0];
+  glow.addColorStop(0, `rgba(${dotColor.join(',')},${0.4+intensity*0.3})`);
+  glow.addColorStop(1, `rgba(${dotColor.join(',')},0)`);
+  gCtx.fillStyle = glow;
+  gCtx.fillRect(dotX-glowR, dotY-glowR, glowR*2, glowR*2);
+
+  // Dot
+  gCtx.beginPath(); gCtx.arc(dotX, dotY, 8+intensity*4, 0, Math.PI*2);
+  gCtx.fillStyle = `rgb(${dotColor.join(',')})`;
+  gCtx.fill();
+  gCtx.strokeStyle = '#ffffff88';
+  gCtx.lineWidth = 2;
+  gCtx.stroke();
+
+  // Inner bright dot
+  gCtx.beginPath(); gCtx.arc(dotX, dotY, 3, 0, Math.PI*2);
+  gCtx.fillStyle = '#ffffff';
+  gCtx.fill();
+
+  // G value at dot
+  gCtx.fillStyle = '#ffffffaa';
+  gCtx.font = 'bold 11px Orbitron';
+  gCtx.textAlign = 'center';
+  gCtx.fillText(combined.toFixed(2)+'G', dotX, dotY - 18);
+}
+
+// ============================================================
+//  HISTORY GRAPH
+// ============================================================
+const hCanvas = document.getElementById('history-canvas');
+const hCtx = hCanvas.getContext('2d');
+let hW, hH;
+
+function resizeHistory(){
+  const dpr = window.devicePixelRatio || 1;
+  const wrap = hCanvas.parentElement;
+  hW = wrap.offsetWidth; hH = wrap.offsetHeight;
+  hCanvas.width = hW*dpr; hCanvas.height = hH*dpr;
+  hCtx.scale(dpr,dpr);
+  hCanvas.style.width = hW+'px'; hCanvas.style.height = hH+'px';
+}
+
+function drawHistory(){
+  if(!hW) resizeHistory();
+  hCtx.clearRect(0,0,hW,hH);
+
+  const pad = {l:30, r:6, t:6, b:14};
+  const gw = hW-pad.l-pad.r, gh = hH-pad.t-pad.b;
+
+  // Grid
+  hCtx.strokeStyle='#ffffff06'; hCtx.lineWidth=0.5;
+  // Zero line
+  const zeroY = pad.t + gh/2;
+  hCtx.strokeStyle='#ffffff10'; hCtx.lineWidth=1;
+  hCtx.beginPath(); hCtx.moveTo(pad.l,zeroY); hCtx.lineTo(pad.l+gw,zeroY); hCtx.stroke();
+
+  // Labels
+  hCtx.fillStyle='#ffffff22'; hCtx.font='8px Share Tech Mono'; hCtx.textAlign='right';
+  hCtx.fillText('+'+gRange.toFixed(1), pad.l-4, pad.t+6);
+  hCtx.fillText('0', pad.l-4, zeroY+3);
+  hCtx.fillText('-'+gRange.toFixed(1), pad.l-4, pad.t+gh);
+
+  // Draw traces
+  const drawTrace = (data, color) => {
+    if(data.length < 2) return;
+    hCtx.beginPath();
+    hCtx.strokeStyle = color;
+    hCtx.lineWidth = 1.2;
+    for(let i=0;i<data.length;i++){
+      const x = pad.l + (i/(GRAPH_MAX-1))*gw;
+      const norm = data[i] / gRange;
+      const y = zeroY - norm * (gh/2);
+      if(i===0) hCtx.moveTo(x,y); else hCtx.lineTo(x,y);
+    }
+    hCtx.stroke();
+  };
+
+  drawTrace(historyLat, '#00ccff88');
+  drawTrace(historyLon, '#ff884488');
+  drawTrace(historyCombined, '#cc220088');
+
+  // Legend
+  hCtx.font='8px Share Tech Mono';
+  const lx = pad.l + 4;
+  hCtx.fillStyle='#00ccff88'; hCtx.textAlign='left'; hCtx.fillText('LAT', lx, pad.t+gh+11);
+  hCtx.fillStyle='#ff884488'; hCtx.fillText('LON', lx+30, pad.t+gh+11);
+  hCtx.fillStyle='#cc220088'; hCtx.fillText('TOT', lx+60, pad.t+gh+11);
+}
+
+// ============================================================
+//  CONTROLS
+// ============================================================
+function toggleTrail(){
+  showTrail = !showTrail;
+  document.getElementById('btn-trail').classList.toggle('active', showTrail);
+  if(!showTrail) trail = [];
+}
+
+function togglePeakDots(){
+  showPeakDots = !showPeakDots;
+  document.getElementById('btn-peaks').classList.toggle('active', showPeakDots);
+}
+
+function resetPeaks(){
+  peakLatL = peakLatR = peakLonB = peakLonA = peakCombined = 0;
+  trail = [];
+}
+
+function setRange(r, btn){
+  gRange = r;
+  document.querySelectorAll('.ctrl-btn[data-range]').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.range)===r));
+}
+
+// ============================================================
+//  MAIN LOOP
+// ============================================================
+function tick(){
+  update();
+}
+
+function render(){
+  drawGBall();
+  drawHistory();
+  requestAnimationFrame(render);
+}
+
+resizeGBall();
+resizeHistory();
+setInterval(tick, 50); // 20Hz
+render();
+initAccelerometer();
+
+// If no real accelerometer after 1 second, show sim status
+setTimeout(() => {
+  if(!accelAvailable) setAccelStatus('SIMULATED');
+}, 1000);
+
+window.addEventListener('resize', () => { resizeGBall(); resizeHistory(); });
+</script>
+</body>
+</html>

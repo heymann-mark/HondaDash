@@ -5,297 +5,1678 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
-* { margin:0; padding:0; box-sizing:border-box; }
-html, body { width:100vw; height:100vh; overflow-y:auto; overflow-x:hidden; font-family:'Share Tech Mono',monospace; background:#0a0000; color:#ffffffcc; }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-user-select:none; user-select:none; }
+html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; background:#0a0000; color:#ffffffcc; }
 
-.header {
-  padding:20px; border-bottom:1px solid #cc110033;
-  display:flex; align-items:center; justify-content:space-between;
-}
-.header-title { font-family:'Orbitron',monospace; font-size:18px; color:#cc2200; letter-spacing:3px; }
-.header-sub { font-size:11px; color:#ffffff33; letter-spacing:2px; }
+/* ===== TOP BAR ===== */
+.top-bar { height:36px; background:#0d0000; border-bottom:1px solid #cc110033; display:flex; align-items:center; padding:0 14px; gap:14px; }
+.top-title { font-family:'Orbitron',monospace; font-size:13px; color:#cc2200; letter-spacing:3px; }
+.top-conn { display:flex; align-items:center; gap:6px; margin-left:auto; }
+.conn-dot { width:8px; height:8px; border-radius:50%; background:#333; }
+.conn-dot.live { background:#00ff41; box-shadow:0 0 8px #00ff41; }
+.conn-label { font-size:10px; color:#ffffff44; letter-spacing:2px; }
 
-/* Map selector */
-.map-selector {
-  display:flex; gap:12px; padding:20px;
-}
-.map-card {
-  flex:1; border:2px solid #cc220033; background:rgba(15,0,0,0.6);
-  padding:20px; cursor:pointer; transition:all 0.2s; position:relative;
-}
-.map-card:hover { border-color:#cc220066; }
-.map-card.active { border-color:#cc2200; background:rgba(204,34,0,0.08); }
-.map-card.active::after {
-  content:'ACTIVE'; position:absolute; top:10px; right:10px;
-  font-size:9px; color:#00ff41; letter-spacing:2px; border:1px solid #00ff4155; padding:2px 8px;
-}
-.map-name { font-family:'Orbitron',monospace; font-size:16px; color:#ffffffdd; letter-spacing:2px; margin-bottom:8px; }
-.map-desc { font-size:12px; color:#ffffff55; line-height:1.8; }
-.map-detail { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #ffffff08; }
-.map-detail-label { font-size:11px; color:#ffffff44; letter-spacing:1px; }
-.map-detail-val { font-size:11px; color:#cc2200aa; letter-spacing:1px; }
+/* ===== SUB NAV ===== */
+.sub-nav { height:32px; background:#0a0000; border-bottom:1px solid #cc110022; display:flex; align-items:center; padding:0 10px; gap:2px; }
+.sub-btn { background:transparent; border:1px solid transparent; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; color:#ffffff33; padding:4px 12px; cursor:pointer; transition:all 0.15s; }
+.sub-btn:hover { color:#ffffff66; border-color:#cc110033; }
+.sub-btn.active { color:#cc2200; border-color:#cc220066; background:rgba(204,34,0,0.06); }
 
-/* Status */
-.flash-status {
-  margin:0 20px; padding:14px 20px; border:1px solid #ffffff11; background:rgba(10,0,0,0.5);
-  display:flex; align-items:center; justify-content:space-between;
-}
-.flash-status-text { font-size:12px; color:#ffffff33; letter-spacing:2px; }
-.flash-btn {
-  background:transparent; border:1px solid #cc220044; color:#cc220066;
-  font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:2px;
-  padding:8px 20px; cursor:pointer; transition:all 0.15s;
-}
-.flash-btn:hover { border-color:#cc2200; color:#cc2200; }
-.flash-btn.disabled { opacity:0.3; pointer-events:none; }
+/* ===== CONTENT AREA ===== */
+.content { position:fixed; top:68px; left:0; right:0; bottom:0; overflow:hidden; }
+.tab-panel { display:none; width:100%; height:100%; overflow-y:auto; overflow-x:hidden; }
+.tab-panel.active { display:block; }
 
-/* Section */
-.section {
-  padding:20px; border-top:1px solid #cc110022;
-}
-.section-title {
-  font-family:'Orbitron',monospace; font-size:13px; color:#cc2200; letter-spacing:3px;
-  margin-bottom:16px;
-}
-.section-sub {
-  font-size:11px; color:#ffffff22; letter-spacing:1px; margin-top:-10px; margin-bottom:16px;
-}
+/* ===== SECTION HELPERS ===== */
+.section { padding:16px; border-bottom:1px solid #cc110015; }
+.section-title { font-family:'Orbitron',monospace; font-size:12px; color:#cc2200; letter-spacing:3px; margin-bottom:12px; }
+.section-sub { font-size:10px; color:#ffffff22; letter-spacing:1px; margin-top:-8px; margin-bottom:12px; }
+.pill { font-size:9px; letter-spacing:2px; padding:2px 8px; border:1px solid; display:inline-block; }
+.pill-green { color:#00ff41; border-color:#00ff4133; }
+.pill-red { color:#ff2200; border-color:#ff220033; }
+.pill-yellow { color:#ffcc00; border-color:#ffcc0033; }
+.pill-blue { color:#4488ff; border-color:#4488ff33; }
+.pill-dim { color:#ffffff33; border-color:#ffffff11; }
 
-/* Profile table */
-.profile-table { width:100%; }
-.profile-row {
-  display:flex; align-items:center; padding:10px 0; border-bottom:1px solid #ffffff08;
-}
-.profile-cat {
-  width:140px; flex-shrink:0; font-size:11px; color:#ffffff44; letter-spacing:1px; text-transform:uppercase;
-}
-.profile-val {
-  flex:1; font-size:13px; color:#ffffffcc; letter-spacing:0.5px;
-}
-.profile-note {
-  font-size:10px; color:#cc220066; margin-left:12px; flex-shrink:0;
-}
+/* ===== BUTTONS ===== */
+.btn { background:transparent; border:1px solid #cc220044; color:#cc220088; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:2px; padding:8px 16px; cursor:pointer; transition:all 0.15s; }
+.btn:hover { border-color:#cc2200; color:#cc2200; }
+.btn.disabled { opacity:0.3; pointer-events:none; }
+.btn-danger { border-color:#ff220044; color:#ff220088; }
+.btn-danger:hover { border-color:#ff2200; color:#ff2200; }
+.btn-success { border-color:#00ff4144; color:#00ff4188; }
+.btn-success:hover { border-color:#00ff41; color:#00ff41; }
 
-/* Map 1 details */
-.changes-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.change-item {
-  border:1px solid #ffffff0a; padding:12px; background:rgba(10,0,0,0.3);
-}
-.change-label { font-size:10px; color:#ffffff33; letter-spacing:2px; margin-bottom:6px; }
-.change-vals { display:flex; align-items:center; gap:8px; }
-.change-from { font-size:13px; color:#ffffff44; }
-.change-arrow { font-size:10px; color:#cc220066; }
-.change-to { font-size:13px; color:#cc2200; }
+/* ================================================================
+   TAB 1: TABLES — Fuel & Ignition Heatmap Editor
+   ================================================================ */
+.table-toolbar { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #cc110015; flex-wrap:wrap; }
+.table-select { background:#0d0000; border:1px solid #cc220044; color:#cc2200; font-family:'Share Tech Mono',monospace; font-size:11px; padding:4px 8px; letter-spacing:1px; }
+.table-select option { background:#0a0000; color:#ffffffcc; }
+.table-info { font-size:10px; color:#ffffff33; letter-spacing:1px; margin-left:auto; }
 
-/* Hondata link */
-.web-link {
-  display:block; text-align:center; padding:16px; margin:20px;
-  border:1px solid #cc220033; color:#cc220088; font-size:12px; letter-spacing:2px;
-  text-decoration:none; transition:all 0.15s;
-}
-.web-link:hover { border-color:#cc2200; color:#cc2200; }
+.heatmap-wrap { padding:8px 16px 16px; overflow-x:auto; }
+.heatmap-container { position:relative; }
+.heatmap-label-y { position:absolute; left:0; width:48px; text-align:right; font-size:9px; color:#ffffff44; letter-spacing:1px; }
+.heatmap-label-x { text-align:center; font-size:9px; color:#ffffff44; letter-spacing:1px; }
+.heatmap-table { border-collapse:collapse; margin-left:52px; }
+.heatmap-table td { width:44px; height:28px; text-align:center; font-size:10px; font-family:'Share Tech Mono',monospace; border:1px solid #ffffff08; cursor:pointer; transition:all 0.1s; position:relative; }
+.heatmap-table td { cursor:default; }
+.heatmap-table td.modified { font-weight:bold; }
+.heatmap-table td.modified::after { content:''; position:absolute; top:2px; right:2px; width:4px; height:4px; background:#ffcc00; border-radius:50%; }
+.heatmap-axis-row td { background:transparent !important; color:#ffffff44; font-size:9px; letter-spacing:1px; border:none !important; cursor:default; }
+.heatmap-axis-col { background:transparent !important; color:#ffffff44; font-size:9px; letter-spacing:1px; border:none !important; width:48px !important; cursor:default; }
+
+/* Cell editor popup */
+.cell-editor { display:none; position:fixed; background:#111; border:1px solid #cc2200; padding:12px; z-index:100; min-width:160px; }
+.cell-editor.show { display:block; }
+.cell-editor-title { font-size:10px; color:#ffffff44; letter-spacing:2px; margin-bottom:8px; }
+.cell-editor input { width:100%; background:#0a0000; border:1px solid #cc220044; color:#cc2200; font-family:'Orbitron',monospace; font-size:16px; padding:6px; text-align:center; outline:none; }
+.cell-editor input:focus { border-color:#cc2200; }
+.cell-editor-btns { display:flex; gap:6px; margin-top:8px; }
+.cell-editor-btns .btn { flex:1; padding:4px 8px; font-size:10px; }
+
+/* ================================================================
+   TAB 2: DTC — Diagnostic Trouble Codes
+   ================================================================ */
+.dtc-status-bar { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid #cc110015; }
+.dtc-count { font-family:'Orbitron',monospace; font-size:22px; color:#cc2200; }
+.dtc-count-label { font-size:10px; color:#ffffff33; letter-spacing:2px; }
+.dtc-actions { display:flex; gap:8px; margin-left:auto; }
+
+.dtc-list { padding:8px 16px; }
+.dtc-card { border:1px solid #ffffff0a; padding:14px; margin-bottom:8px; background:rgba(10,0,0,0.3); display:flex; gap:14px; align-items:flex-start; }
+.dtc-code { font-family:'Orbitron',monospace; font-size:16px; min-width:70px; }
+.dtc-body { flex:1; }
+.dtc-title { font-size:12px; color:#ffffffbb; margin-bottom:4px; }
+.dtc-desc { font-size:10px; color:#ffffff44; line-height:1.6; }
+.dtc-meta { display:flex; gap:10px; margin-top:6px; }
+.dtc-empty { text-align:center; padding:60px 20px; color:#ffffff22; font-size:12px; letter-spacing:2px; }
+
+/* ================================================================
+   TAB 3: DATALOGS — CSV Datalog Viewer
+   ================================================================ */
+.dl-toolbar { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #cc110015; flex-wrap:wrap; }
+.dl-file-btn { position:relative; overflow:hidden; }
+.dl-file-btn input[type=file] { position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+.dl-traces { display:flex; gap:4px; flex-wrap:wrap; }
+.dl-trace-btn { background:transparent; border:1px solid #ffffff15; color:#ffffff44; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; padding:2px 8px; cursor:pointer; transition:all 0.15s; }
+.dl-trace-btn.on { border-color:var(--tc); color:var(--tc); background:rgba(255,255,255,0.03); }
+
+.dl-chart-wrap { position:relative; height:280px; border-bottom:1px solid #cc110015; }
+#dl-canvas { width:100%; height:100%; }
+.dl-cursor-info { position:absolute; top:8px; right:12px; font-size:10px; color:#ffffff55; pointer-events:none; }
+
+.dl-stats { padding:12px 16px; }
+.dl-stats-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:8px; }
+.dl-stat-card { border:1px solid #ffffff08; padding:10px; background:rgba(10,0,0,0.3); }
+.dl-stat-label { font-size:9px; color:#ffffff33; letter-spacing:2px; margin-bottom:4px; }
+.dl-stat-row { display:flex; justify-content:space-between; font-size:10px; }
+.dl-stat-val { color:#ffffffaa; }
+.dl-stat-unit { color:#ffffff33; }
+
+.dl-empty { text-align:center; padding:80px 20px; color:#ffffff22; }
+.dl-empty-icon { font-size:36px; margin-bottom:12px; opacity:0.3; }
+.dl-empty-text { font-size:12px; letter-spacing:2px; }
+
+/* ================================================================
+   TAB 4: FLASH — Calibration Manager
+   ================================================================ */
+.flash-slots { padding:16px; display:flex; flex-direction:column; gap:10px; }
+.flash-slot { border:1px solid #ffffff0a; padding:16px; background:rgba(10,0,0,0.3); display:flex; align-items:center; gap:14px; cursor:pointer; transition:all 0.15s; }
+.flash-slot:hover { border-color:#cc220044; }
+.flash-slot.active-slot { border-color:#cc2200; background:rgba(204,34,0,0.06); }
+.flash-slot-num { font-family:'Orbitron',monospace; font-size:24px; color:#ffffff22; min-width:40px; text-align:center; }
+.flash-slot.active-slot .flash-slot-num { color:#cc2200; }
+.flash-slot-info { flex:1; }
+.flash-slot-name { font-size:13px; color:#ffffffcc; letter-spacing:1px; margin-bottom:4px; }
+.flash-slot-desc { font-size:10px; color:#ffffff33; line-height:1.5; }
+.flash-slot-meta { display:flex; gap:8px; margin-top:6px; }
+.flash-slot-actions { display:flex; flex-direction:column; gap:6px; }
+
+.flash-progress { display:none; margin:0 16px; padding:16px; border:1px solid #cc220033; background:rgba(204,34,0,0.04); }
+.flash-progress.show { display:block; }
+.flash-progress-title { font-size:11px; color:#cc2200; letter-spacing:2px; margin-bottom:10px; }
+.flash-progress-bar { height:6px; background:#ffffff0a; margin-bottom:8px; }
+.flash-progress-fill { height:6px; background:#cc2200; width:0%; transition:width 0.3s; }
+.flash-progress-status { font-size:10px; color:#ffffff44; letter-spacing:1px; }
+
+.flash-compare { padding:16px; display:none; }
+.flash-compare.show { display:block; }
+.flash-compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:#ffffff08; }
+.flash-compare-cell { padding:10px; background:#0a0000; }
+.flash-compare-header { font-size:10px; color:#ffffff33; letter-spacing:2px; text-align:center; padding:8px; background:#0d0000; }
+.flash-compare-param { font-size:10px; color:#ffffff44; }
+.flash-compare-val { font-size:13px; color:#ffffffaa; margin-top:2px; }
+.flash-compare-diff { color:#ffcc00; }
+
+/* ================================================================
+   TAB 5: SENSORS — Real-time Sensor Dashboard
+   ================================================================ */
+.sensor-grid { padding:12px; display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:8px; }
+.sensor-card { border:1px solid #ffffff08; padding:12px; background:rgba(10,0,0,0.3); }
+.sensor-label { font-size:9px; color:#ffffff33; letter-spacing:2px; margin-bottom:4px; display:flex; justify-content:space-between; }
+.sensor-val { font-family:'Orbitron',monospace; font-size:22px; font-weight:700; line-height:1.1; }
+.sensor-bar { height:3px; background:#ffffff0a; margin-top:6px; border-radius:1px; }
+.sensor-fill { height:3px; border-radius:1px; transition:width 0.15s; }
+.sensor-range { display:flex; justify-content:space-between; font-size:8px; color:#ffffff22; margin-top:3px; }
+.sensor-group-title { grid-column:1/-1; font-family:'Orbitron',monospace; font-size:11px; color:#cc2200; letter-spacing:3px; padding:8px 4px 0; border-top:1px solid #cc110022; }
+.sensor-group-title:first-child { border-top:none; }
+
+/* ================================================================
+   TAB 6: REFERENCE — FlashPro Documentation Library
+   ================================================================ */
+.ref-header { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #cc110015; flex-wrap:wrap; }
+.ref-search { flex:1; min-width:200px; background:#0d0000; border:1px solid #cc220044; color:#ffffffcc; font-family:'Share Tech Mono',monospace; font-size:12px; padding:8px 12px; outline:none; letter-spacing:1px; }
+.ref-search:focus { border-color:#cc2200; }
+.ref-search::placeholder { color:#ffffff22; letter-spacing:2px; }
+.ref-cat-bar { display:flex; gap:2px; padding:8px 16px; border-bottom:1px solid #cc110015; flex-wrap:wrap; }
+.ref-cat-btn { background:transparent; border:1px solid transparent; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:2px; color:#ffffff33; padding:4px 10px; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+.ref-cat-btn:hover { color:#ffffff66; border-color:#cc110033; }
+.ref-cat-btn.active { color:#cc2200; border-color:#cc220066; background:rgba(204,34,0,0.06); }
+.ref-cat-count { font-size:8px; color:#ffffff22; margin-left:4px; }
+
+.ref-list { padding:8px 16px; }
+.ref-card { border:1px solid #ffffff08; padding:14px; margin-bottom:8px; background:rgba(10,0,0,0.3); cursor:pointer; transition:all 0.15s; }
+.ref-card:hover { border-color:#cc220044; background:rgba(20,0,0,0.4); }
+.ref-card.expanded { border-color:#cc220066; }
+.ref-card-head { display:flex; align-items:center; gap:10px; }
+.ref-card-name { font-family:'Orbitron',monospace; font-size:14px; color:#cc2200; }
+.ref-card-full { font-size:11px; color:#ffffff88; }
+.ref-card-pills { display:flex; gap:6px; margin-left:auto; flex-wrap:wrap; }
+.ref-card-body { display:none; margin-top:12px; padding-top:12px; border-top:1px solid #cc110022; }
+.ref-card.expanded .ref-card-body { display:block; }
+.ref-card-desc { font-size:11px; color:#ffffff88; line-height:1.7; margin-bottom:10px; }
+.ref-card-detail { display:flex; gap:8px; margin-bottom:6px; align-items:flex-start; }
+.ref-card-detail-label { font-size:9px; color:#ffffff33; letter-spacing:2px; min-width:70px; padding-top:2px; }
+.ref-card-detail-val { font-size:11px; color:#ffffffaa; line-height:1.5; }
+.ref-card-tip { font-size:10px; color:#ffcc00aa; padding:4px 0 4px 12px; border-left:2px solid #ffcc0033; margin:4px 0; }
+.ref-card-items { margin-top:8px; }
+.ref-card-item { font-size:10px; color:#ffffff66; padding:4px 8px; border-left:2px solid #cc220033; margin:4px 0; line-height:1.5; }
+.ref-card-item-name { color:#cc2200; font-size:11px; }
+.ref-empty { text-align:center; padding:60px 20px; color:#ffffff22; font-size:12px; letter-spacing:2px; }
+.ref-results-count { font-size:10px; color:#ffffff22; letter-spacing:1px; padding:4px 16px; }
+
+/* ================================================================
+   TAB: CALIBRATION — Parameter Editor
+   ================================================================ */
+.cal-wrap { padding:8px 16px 60px; }
+.cal-group { border:1px solid #ffffff08; margin-bottom:6px; background:rgba(10,0,0,0.3); }
+.cal-group-header { display:flex; align-items:center; gap:10px; padding:12px 14px; cursor:pointer; transition:all 0.15s; border-bottom:1px solid transparent; }
+.cal-group-header:hover { background:rgba(204,34,0,0.04); }
+.cal-group.open .cal-group-header { border-bottom:1px solid #cc110022; }
+.cal-group-arrow { font-size:10px; color:#cc220088; transition:transform 0.2s; }
+.cal-group.open .cal-group-arrow { transform:rotate(90deg); }
+.cal-group-name { font-family:'Orbitron',monospace; font-size:11px; color:#cc2200; letter-spacing:3px; }
+.cal-group-count { font-size:9px; color:#ffffff22; letter-spacing:1px; margin-left:auto; }
+.cal-group-body { display:none; }
+.cal-group.open .cal-group-body { display:block; }
+.cal-row { display:flex; align-items:center; padding:8px 14px 8px 28px; border-bottom:1px solid #ffffff05; transition:background 0.1s; }
+.cal-row:last-child { border-bottom:none; }
+.cal-row:hover { background:rgba(204,34,0,0.03); }
+.cal-row-name { flex:1; font-size:11px; color:#ffffff88; letter-spacing:0.5px; }
+.cal-row-val { font-family:'Share Tech Mono',monospace; font-size:12px; color:#ffffffcc; padding:3px 8px; border:1px solid transparent; cursor:pointer; transition:all 0.15s; min-width:60px; text-align:right; }
+.cal-row-val:hover { border-color:#cc220044; background:rgba(204,34,0,0.06); }
+.cal-row-val.editing { border-color:#cc2200; background:#0d0000; outline:none; color:#cc2200; -webkit-user-select:text; user-select:text; }
+.cal-row-unit { font-size:9px; color:#ffffff33; letter-spacing:1px; min-width:50px; padding-left:6px; }
+.cal-row-mod { width:6px; height:6px; border-radius:50%; margin-left:8px; flex-shrink:0; }
+.cal-row-mod.changed { background:#ffcc00; box-shadow:0 0 6px #ffcc0044; }
+.cal-toolbar { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #cc110015; }
+.cal-search { flex:1; min-width:140px; background:#0d0000; border:1px solid #cc220044; color:#ffffffcc; font-family:'Share Tech Mono',monospace; font-size:11px; padding:6px 10px; outline:none; letter-spacing:1px; }
+.cal-search:focus { border-color:#cc2200; }
+.cal-search::placeholder { color:#ffffff22; letter-spacing:2px; }
+.cal-mod-count { font-size:10px; color:#ffcc00; letter-spacing:1px; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:#cc220033; }
+::-webkit-scrollbar-thumb:hover { background:#cc220066; }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div>
-    <div class="header-title">FLASHPRO // MAPS</div>
-    <div class="header-sub">K20Z3 // 2007 CIVIC SI FA5</div>
-  </div>
-  <div class="header-sub">FLASHPRO v1.x</div>
-</div>
-
-<!-- Map Selector -->
-<div class="map-selector">
-  <div class="map-card active" id="card-stock" onclick="selectMap('stock')">
-    <div class="map-name">STOCK</div>
-    <div class="map-desc">Factory Honda calibration</div>
-    <div style="margin-top:12px">
-      <div class="map-detail"><span class="map-detail-label">VTEC</span><span class="map-detail-val">5,800 RPM</span></div>
-      <div class="map-detail"><span class="map-detail-label">REV LIMIT</span><span class="map-detail-val">8,200 RPM</span></div>
-      <div class="map-detail"><span class="map-detail-label">FUEL</span><span class="map-detail-val">STOCK TABLES</span></div>
-      <div class="map-detail"><span class="map-detail-label">TIMING</span><span class="map-detail-val">STOCK TABLES</span></div>
-    </div>
-  </div>
-
-  <div class="map-card" id="card-map1" onclick="selectMap('map1')">
-    <div class="map-name">MAP 1  -  SPORT</div>
-    <div class="map-desc">Bolt-ons calibration</div>
-    <div style="margin-top:12px">
-      <div class="map-detail"><span class="map-detail-label">VTEC</span><span class="map-detail-val">4,500 RPM</span></div>
-      <div class="map-detail"><span class="map-detail-label">REV LIMIT</span><span class="map-detail-val">8,400 RPM</span></div>
-      <div class="map-detail"><span class="map-detail-label">FUEL</span><span class="map-detail-val">ADJUSTED</span></div>
-      <div class="map-detail"><span class="map-detail-label">TIMING</span><span class="map-detail-val">+2° ADVANCE</span></div>
-    </div>
+<!-- TOP BAR -->
+<div class="top-bar">
+  <span class="top-title">FLASHPRO MANAGER</span>
+  <span style="font-size:8px;letter-spacing:2px;color:#00ff41;border:1px solid #00ff4144;padding:2px 7px;margin-left:6px;vertical-align:middle;">READ ONLY</span>
+  <span style="font-size:10px;color:#ffffff22;letter-spacing:1px;">K20Z3 // FA5</span>
+  <div class="top-conn">
+    <div class="conn-dot" id="fp-conn-dot"></div>
+    <span class="conn-label" id="fp-conn-label">NOT CONNECTED</span>
   </div>
 </div>
 
-<!-- Flash Status -->
-<div class="flash-status">
-  <div class="flash-status-text">FLASHPRO NOT CONNECTED</div>
-  <button class="flash-btn disabled">FLASH MAP</button>
+<!-- SUB NAV -->
+<div class="sub-nav">
+  <button class="sub-btn active" onclick="switchTab('tables')">TABLES</button>
+  <button class="sub-btn" onclick="switchTab('calibration')">CALIBRATION</button>
+  <button class="sub-btn" onclick="switchTab('dtc')">DTC</button>
+  <button class="sub-btn" onclick="switchTab('datalogs')">DATALOGS</button>
+  <button class="sub-btn" onclick="switchTab('sensors')">SENSORS</button>
+  <button class="sub-btn" onclick="switchTab('multi')">MULTI</button>
+  <button class="sub-btn" onclick="switchTab('reference')">REFERENCE</button>
 </div>
 
-<!-- Map 1 Details -->
-<div class="section" id="map1-details" style="display:none">
-  <div class="section-title">MAP 1 CHANGES</div>
-  <div class="section-sub">Differences from stock calibration</div>
+<!-- CONTENT -->
+<div class="content">
 
-  <div class="changes-grid">
-    <div class="change-item">
-      <div class="change-label">VTEC ENGAGEMENT</div>
-      <div class="change-vals">
-        <span class="change-from">5,800</span>
-        <span class="change-arrow">→</span>
-        <span class="change-to">4,500 RPM</span>
+  <!-- ============================================================
+       TAB: TABLES — Fuel & Ignition Heatmap Editor
+       ============================================================ -->
+  <div class="tab-panel active" id="panel-tables">
+    <div class="table-toolbar">
+      <select class="table-select" id="table-selector" onchange="loadTable(this.value)">
+        <option value="fuel_lo">FUEL — LOW CAM</option>
+        <option value="fuel_hi">FUEL — HIGH CAM (VTEC)</option>
+        <option value="ign_lo">IGNITION — LOW CAM</option>
+        <option value="ign_hi">IGNITION — HIGH CAM (VTEC)</option>
+        <option value="cam_lo">CAM ANGLE — LOW CAM</option>
+        <option value="cam_hi">CAM ANGLE — HIGH CAM (VTEC)</option>
+      </select>
+      <span class="pill pill-blue" id="table-map-label">MAP 1 — STREET</span>
+      <span class="table-info" id="table-info">VIEW MODE</span>
+    </div>
+    <div class="heatmap-wrap" id="heatmap-wrap"></div>
+  </div>
+
+  <!-- ============================================================
+       TAB: CALIBRATION — Parameter Editor
+       ============================================================ -->
+  <div class="tab-panel" id="panel-calibration">
+    <div class="cal-toolbar">
+      <input class="cal-search" type="text" placeholder="SEARCH PARAMETERS..." id="cal-search" oninput="filterCalParams(this.value)">
+      <span style="font-size:9px;color:#ffffff33;letter-spacing:1px;">VIEW ONLY — Use FlashPro Manager to modify parameters</span>
+    </div>
+    <div class="cal-wrap" id="cal-wrap"></div>
+  </div>
+
+  <!-- ============================================================
+       TAB: DTC — Diagnostic Trouble Codes
+       ============================================================ -->
+  <div class="tab-panel" id="panel-dtc">
+    <div class="dtc-status-bar">
+      <div>
+        <div class="dtc-count" id="dtc-count">0</div>
+        <div class="dtc-count-label">ACTIVE CODES</div>
+      </div>
+      <div style="margin-left:20px;">
+        <div class="dtc-count" id="dtc-pending-count" style="font-size:16px;color:#ffcc00;">0</div>
+        <div class="dtc-count-label">PENDING</div>
+      </div>
+      <div class="dtc-actions">
+        <button class="btn" onclick="scanDTC()">SCAN</button>
+        <button class="btn btn-danger" onclick="clearDTC()">CLEAR ALL</button>
       </div>
     </div>
-    <div class="change-item">
-      <div class="change-label">REV LIMITER</div>
-      <div class="change-vals">
-        <span class="change-from">8,200</span>
-        <span class="change-arrow">→</span>
-        <span class="change-to">8,400 RPM</span>
-      </div>
-    </div>
-    <div class="change-item">
-      <div class="change-label">FUEL ENRICHMENT</div>
-      <div class="change-vals">
-        <span class="change-from">STOCK</span>
-        <span class="change-arrow">→</span>
-        <span class="change-to">+3% WOT</span>
-      </div>
-    </div>
-    <div class="change-item">
-      <div class="change-label">IGNITION TIMING</div>
-      <div class="change-vals">
-        <span class="change-from">STOCK</span>
-        <span class="change-arrow">→</span>
-        <span class="change-to">+2° HIGH RPM</span>
-      </div>
-    </div>
-    <div class="change-item">
-      <div class="change-label">SPEED LIMITER</div>
-      <div class="change-vals">
-        <span class="change-from">130 MPH</span>
-        <span class="change-arrow">→</span>
-        <span class="change-to">REMOVED</span>
-      </div>
-    </div>
-    <div class="change-item">
-      <div class="change-label">IDLE SPEED</div>
-      <div class="change-vals">
-        <span class="change-from">750</span>
-        <span class="change-arrow">→</span>
-        <span class="change-to">750 RPM (NO CHANGE)</span>
+    <div class="dtc-list" id="dtc-list">
+      <div class="dtc-empty" id="dtc-empty">
+        TAP SCAN TO READ DIAGNOSTIC TROUBLE CODES
       </div>
     </div>
   </div>
-</div>
 
-<!-- Vehicle Profile -->
-<div class="section">
-  <div class="section-title">VEHICLE PROFILE</div>
-  <div class="section-sub">Your setup  -  what the tuner needs to know</div>
-
-  <div class="profile-table">
-    <div class="profile-row">
-      <div class="profile-cat">ENGINE</div>
-      <div class="profile-val">K20Z3 2.0L DOHC i-VTEC</div>
-      <div class="profile-note">STOCK INTERNALS</div>
+  <!-- ============================================================
+       TAB: DATALOGS — CSV Viewer
+       ============================================================ -->
+  <div class="tab-panel" id="panel-datalogs">
+    <div class="dl-toolbar">
+      <div class="btn dl-file-btn">
+        LOAD CSV
+        <input type="file" accept=".csv" onchange="loadDatalog(this.files[0])">
+      </div>
+      <span class="conn-label" id="dl-filename">NO FILE LOADED</span>
+      <div class="dl-traces" id="dl-traces"></div>
     </div>
-    <div class="profile-row">
-      <div class="profile-cat">MILEAGE</div>
-      <div class="profile-val">~120,000 miles</div>
+    <div class="dl-chart-wrap" id="dl-chart-wrap">
+      <canvas id="dl-canvas"></canvas>
+      <div class="dl-cursor-info" id="dl-cursor-info"></div>
+      <div class="dl-empty" id="dl-empty">
+        <div class="dl-empty-icon">&#9776;</div>
+        <div class="dl-empty-text">LOAD A CSV DATALOG TO ANALYZE</div>
+      </div>
     </div>
-    <div class="profile-row">
-      <div class="profile-cat">ECU</div>
-      <div class="profile-val">Hondata FlashPro</div>
-      <div class="profile-note">INSTALLED</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">INTAKE</div>
-      <div class="profile-val">Stock airbox</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">HEADER</div>
-      <div class="profile-val">Stock exhaust manifold</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">CAT</div>
-      <div class="profile-val">Stock catalytic converter</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">CATBACK</div>
-      <div class="profile-val">APEXi WS3</div>
-      <div class="profile-note">INSTALLED</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">INJECTORS</div>
-      <div class="profile-val">Stock (310cc)</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">FUEL PUMP</div>
-      <div class="profile-val">Stock</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">FUEL TYPE</div>
-      <div class="profile-val">93 octane (premium)</div>
-      <div class="profile-note">CONFIRM</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">FORCED INDUCTION</div>
-      <div class="profile-val">N/A (naturally aspirated)</div>
-      <div class="profile-note">TURBO PLANNED</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">CAMS</div>
-      <div class="profile-val">Stock K20Z3 cams</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">THROTTLE BODY</div>
-      <div class="profile-val">Stock (64mm)</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">TRANSMISSION</div>
-      <div class="profile-val">Stock 6-speed manual</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">CLUTCH</div>
-      <div class="profile-val">Stock</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">ALTITUDE</div>
-      <div class="profile-val">Sea level (Boston area)</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">O2 SENSORS</div>
-      <div class="profile-val">Stock (primary + secondary)</div>
-    </div>
-    <div class="profile-row">
-      <div class="profile-cat">CHECK ENGINE</div>
-      <div class="profile-val">No active codes</div>
-      <div class="profile-note">VERIFY</div>
+    <div class="dl-stats" id="dl-stats" style="display:none;">
+      <div class="section-title">STATISTICS</div>
+      <div class="dl-stats-grid" id="dl-stats-grid"></div>
     </div>
   </div>
+
+  <!-- ============================================================
+       TAB: SENSORS — Real-time Dashboard
+       ============================================================ -->
+  <div class="tab-panel" id="panel-sensors">
+    <div class="sensor-grid" id="sensor-grid"></div>
+  </div>
+
+  <!-- ============================================================
+       TAB: MULTI — Multi-System Stream
+       ============================================================ -->
+  <div class="tab-panel" id="panel-multi">
+    <iframe id="multi-frame" style="width:100%;height:100%;border:none;" src="about:blank"></iframe>
+  </div>
+
+  <!-- ============================================================
+       TAB: REFERENCE — FlashPro Documentation Library
+       ============================================================ -->
+  <div class="tab-panel" id="panel-reference">
+    <div class="ref-header">
+      <input class="ref-search" id="ref-search" type="text" placeholder="SEARCH SENSORS, PARAMETERS, TUNING..." oninput="filterReference()">
+    </div>
+    <div class="ref-cat-bar" id="ref-cat-bar"></div>
+    <div class="ref-results-count" id="ref-results-count"></div>
+    <div class="ref-list" id="ref-list">
+      <div class="ref-empty">LOADING REFERENCE DATA...</div>
+    </div>
+  </div>
+
 </div>
 
-<!-- Links -->
-<a class="web-link" href="https://www.hondata.com/flashpro" target="_top">OPEN HONDATA.COM</a>
-<a class="web-link" href="https://www.hondata.com/forum" target="_top" style="margin-top:0">HONDATA FORUMS</a>
-
-<div style="height:40px"></div>
 
 <script>
-let activeMap = 'stock';
+// ================================================================
+//  GLOBAL STATE
+// ================================================================
+let currentTab = 'tables';
+let connected = false;
 
-function selectMap(map) {
-  activeMap = map;
-  document.getElementById('card-stock').classList.toggle('active', map === 'stock');
-  document.getElementById('card-map1').classList.toggle('active', map === 'map1');
-  document.getElementById('map1-details').style.display = map === 'map1' ? 'block' : 'none';
+// ================================================================
+//  TAB SWITCHING
+// ================================================================
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  document.querySelectorAll('.sub-btn')[['tables','calibration','dtc','datalogs','sensors','multi','reference'].indexOf(tab)].classList.add('active');
+  currentTab = tab;
+  if (tab === 'datalogs') resizeDLCanvas();
+  if (tab === 'sensors') updateSensorCards();
+  if (tab === 'multi') { var mf=document.getElementById('multi-frame'); if(mf.src==='about:blank') mf.src='multisystem.html'; }
+  if (tab === 'calibration' && !calBuilt) buildCalibration();
+  if (tab === 'reference' && refItems.length === 0) loadReference();
 }
+
+// ================================================================
+//  CONNECTION (called from Kotlin bridge)
+// ================================================================
+function updateConnectionStatus(state) {
+  const dot = document.getElementById('fp-conn-dot');
+  const label = document.getElementById('fp-conn-label');
+  if (state === 'CONNECTED') { dot.classList.add('live'); label.textContent = 'CONNECTED'; connected = true; }
+  else { dot.classList.remove('live'); label.textContent = state; connected = false; }
+}
+
+// ================================================================
+//  TAB: CALIBRATION — Parameter Editor
+// ================================================================
+let calBuilt = false;
+const calData = {
+  'FUEL': [
+    { name:'Injector Size', value:'310', stock:'310', unit:'cc/min' },
+    { name:'Fuel Pressure', value:'3.0', stock:'3.0', unit:'bar (43.5 psi)' },
+    { name:'Overall Fuel Trim', value:'0', stock:'0', unit:'%' },
+    { name:'Fuel Table Type', value:'MAP (Speed/Density)', stock:'MAP (Speed/Density)', unit:'' },
+    { name:'Overrun Fuel Cut Delay', value:'table', stock:'table', unit:'per gear' }
+  ],
+  'IGNITION': [
+    { name:'Cold Start Cat Retard', value:'Enabled', stock:'Enabled', unit:'' },
+    { name:'IAT Retard Application', value:'Knock Ignition Limit', stock:'Knock Ignition Limit', unit:'' },
+    { name:'Cranking Ignition', value:'10', stock:'10', unit:'\u00B0 (indexed by ECT)' },
+    { name:'Gear Ignition Compensation', value:'0', stock:'0', unit:'\u00B0 all gears' }
+  ],
+  'VTEC': [
+    { name:'VTEC RPM Window Lower', value:'5800', stock:'5800', unit:'RPM' },
+    { name:'VTEC RPM Window Upper', value:'5800', stock:'5800', unit:'RPM' },
+    { name:'VTEC Minimum Coolant Temp', value:'140', stock:'140', unit:'\u00B0F' },
+    { name:'VTEC Engage Min Speed', value:'0', stock:'0', unit:'MPH' },
+    { name:'VTEC Disengage Min Speed', value:'0', stock:'0', unit:'MPH' },
+    { name:'VTEC Oil Pressure Switch', value:'Enabled', stock:'Enabled', unit:'' }
+  ],
+  'VTC (CAM)': [
+    { name:'Zero VTC Upon Decel Fuel Cut', value:'Disabled', stock:'Disabled', unit:'' },
+    { name:'VTC Decel Fuel Cut Angle', value:'25', stock:'25', unit:'\u00B0' },
+    { name:'Use VTC Tables Upon Decel', value:'Enabled', stock:'Enabled', unit:'' }
+  ],
+  'IDLE': [
+    { name:'Idle Speed (warm)', value:'750', stock:'750', unit:'RPM' },
+    { name:'After Start Idle Duration', value:'30', stock:'30', unit:'sec' },
+    { name:'Idle Torque Reserve', value:'10', stock:'10', unit:'%' }
+  ],
+  'REV LIMIT': [
+    { name:'Overall Rev Limit Activation', value:'8000', stock:'8000', unit:'RPM' },
+    { name:'Overall Rev Limit Recovery', value:'7700', stock:'7700', unit:'RPM' },
+    { name:'Overrev RPM', value:'8200', stock:'8200', unit:'RPM' },
+    { name:'Launch Rev Limit', value:'4000', stock:'4000', unit:'RPM' },
+    { name:'Speed Limiter', value:'149', stock:'149', unit:'MPH' },
+    { name:'Boost Cut', value:'Disabled (NA)', stock:'Disabled (NA)', unit:'' },
+    { name:'Full Throttle Shift', value:'Disabled', stock:'Disabled', unit:'' }
+  ],
+  'KNOCK': [
+    { name:'Knock Sensor', value:'Enabled', stock:'Enabled', unit:'' },
+    { name:'Knock CEL Flash', value:'Enabled', stock:'Enabled', unit:'' },
+    { name:'Knock Sensitivity', value:'Reduced', stock:'Reduced', unit:'(tuning mode)' }
+  ],
+  'CLOSED LOOP': [
+    { name:'Primary O2 Sensor', value:'Enabled', stock:'Enabled', unit:'' },
+    { name:'Secondary O2 Sensor', value:'Enabled', stock:'Enabled', unit:'' },
+    { name:'WOT Determination Type', value:'MAP', stock:'MAP', unit:'' },
+    { name:'Target Lambda (cruise)', value:'1.00', stock:'1.00', unit:'' },
+    { name:'Short Term Trim Max', value:'+10', stock:'+10', unit:'%' },
+    { name:'Short Term Trim Min', value:'-10', stock:'-10', unit:'%' },
+    { name:'Long Term Trim Max', value:'+5', stock:'+5', unit:'%' },
+    { name:'Long Term Trim Min', value:'-5', stock:'-5', unit:'%' }
+  ],
+  'THROTTLE': [
+    { name:'Overrun Throttle Closure (Rev Hang)', value:'Stock', stock:'Stock', unit:'' },
+    { name:'Tip-In Fuel', value:'Stock', stock:'Stock', unit:'' }
+  ],
+  'MISC': [
+    { name:'Immobilizer', value:'Enabled', stock:'Enabled', unit:'(cannot disable)' },
+    { name:'VSA', value:'Enabled', stock:'Enabled', unit:'' },
+    { name:'EPS Idle Up', value:'Enabled', stock:'Enabled', unit:'' },
+    { name:'Cruise Control', value:'Enabled', stock:'Enabled', unit:'' },
+    { name:'Radiator Fan On', value:'203', stock:'203', unit:'\u00B0F' },
+    { name:'Radiator Fan Off', value:'199', stock:'199', unit:'\u00B0F' },
+    { name:'Radiator Fan Sensor', value:'Radiator', stock:'Radiator', unit:'' }
+  ],
+  'SENSORS': [
+    { name:'MAP Sensor', value:'Stock (1.78 bar max)', stock:'Stock (1.78 bar max)', unit:'' },
+    { name:'Speed Adjustment ECU', value:'0', stock:'0', unit:'%' },
+    { name:'Speed Adjustment Dash', value:'0', stock:'0', unit:'%' }
+  ]
+};
+
+function buildCalibration() {
+  calBuilt = true;
+  const wrap = document.getElementById('cal-wrap');
+  let html = '';
+  for (const group in calData) {
+    const params = calData[group];
+    html += '<div class="cal-group open" data-calgroup="' + group + '">';
+    html += '<div class="cal-group-header" onclick="toggleCalGroup(this)">';
+    html += '<span class="cal-group-arrow">\u25B6</span>';
+    html += '<span class="cal-group-name">' + group + '</span>';
+    html += '<span class="cal-group-count">' + params.length + ' params</span>';
+    html += '</div>';
+    html += '<div class="cal-group-body">';
+    params.forEach(function(p, i) {
+      const isModified = p.value !== p.stock;
+      html += '<div class="cal-row" data-calgroup="' + group + '" data-calidx="' + i + '">';
+      html += '<span class="cal-row-name">' + p.name + '</span>';
+      html += '<span class="cal-row-val">' + p.value + '</span>';
+      html += '<span class="cal-row-unit">' + p.unit + '</span>';
+      html += '<span class="cal-row-mod' + (isModified ? ' changed' : '') + '"></span>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+  wrap.innerHTML = html;
+  updateCalModCount();
+}
+
+function toggleCalGroup(headerEl) {
+  headerEl.parentElement.classList.toggle('open');
+}
+
+// Calibration editing disabled — read-only mode
+function editCalParam() {}
+
+
+function updateCalModCount() {
+  // Read-only mode — no modification tracking needed
+}
+
+function filterCalParams(query) {
+  query = query.toLowerCase();
+  document.querySelectorAll('.cal-group').forEach(function(grp) {
+    var groupName = grp.dataset.calgroup.toLowerCase();
+    var rows = grp.querySelectorAll('.cal-row');
+    var anyVisible = false;
+    rows.forEach(function(row) {
+      var name = row.querySelector('.cal-row-name').textContent.toLowerCase();
+      var match = !query || name.indexOf(query) >= 0 || groupName.indexOf(query) >= 0;
+      row.style.display = match ? '' : 'none';
+      if (match) anyVisible = true;
+    });
+    grp.style.display = anyVisible ? '' : 'none';
+    if (anyVisible && query) grp.classList.add('open');
+  });
+}
+
+// Calibration reset/apply disabled — read-only mode
+function resetCalParams() {}
+function applyCalParams() {}
+
+// ================================================================
+//  TAB 1: CALIBRATION TABLE EDITOR
+// ================================================================
+const RPM_AXIS  = [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000];
+const MAP_AXIS = [20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
+
+// K20Z3-realistic calibration tables (310cc injectors stock)
+function generateFuelTable(cam) {
+  const t = [];
+  for (let l = 0; l < MAP_AXIS.length; l++) {
+    const row = [];
+    for (let r = 0; r < RPM_AXIS.length; r++) {
+      const kpa = MAP_AXIS[l], rpm = RPM_AXIS[r];
+      let ms;
+      // Base injector duration scales with load (kPa) and RPM
+      const loadFrac = kpa / 100;
+      const rpmFrac = rpm / 8000;
+      if (cam === 'hi') {
+        // High cam (VTEC) — more airflow, needs more fuel
+        ms = 1.2 + loadFrac * 5.5 + rpmFrac * 3.5;
+        if (kpa >= 100) ms += 1.8 + rpmFrac * 1.2; // WOT enrichment
+        if (rpm >= 6000 && kpa >= 90) ms += 0.8;
+        if (rpm >= 7000) ms += 0.5;
+      } else {
+        // Low cam — less aggressive
+        ms = 1.0 + loadFrac * 4.8 + rpmFrac * 2.5;
+        if (kpa >= 100) ms += 1.2 + rpmFrac * 0.8;
+        if (rpm >= 5000 && kpa >= 90) ms += 0.5;
+      }
+      // Idle: short pulse
+      if (rpm <= 1000 && kpa <= 40) ms = Math.min(ms, 2.2);
+      row.push(Math.round(ms * 100) / 100);
+    }
+    t.push(row);
+  }
+  return t;
+}
+
+function generateIgnTable(cam) {
+  const t = [];
+  for (let l = 0; l < MAP_AXIS.length; l++) {
+    const row = [];
+    for (let r = 0; r < RPM_AXIS.length; r++) {
+      const kpa = MAP_AXIS[l], rpm = RPM_AXIS[r];
+      let deg;
+      const loadFrac = kpa / 100;
+      const rpmFrac = rpm / 8000;
+      if (cam === 'hi') {
+        // High cam: more aggressive timing, pull at high load/RPM
+        deg = 10 + rpmFrac * 30 - loadFrac * 12;
+        if (kpa >= 100) deg -= 6;  // WOT retard for safety
+        if (rpm >= 7000) deg -= 4; // High RPM retard
+        if (rpm <= 1500) deg = Math.min(deg, 15);
+      } else {
+        // Low cam: more conservative
+        deg = 8 + rpmFrac * 26 - loadFrac * 10;
+        if (kpa >= 100) deg -= 5;
+        if (rpm <= 1500) deg = Math.min(deg, 12);
+      }
+      row.push(Math.round(Math.max(-5, Math.min(45, deg)) * 10) / 10);
+    }
+    t.push(row);
+  }
+  return t;
+}
+
+function generateCamTable(cam) {
+  const t = [];
+  for (let l = 0; l < MAP_AXIS.length; l++) {
+    const row = [];
+    for (let r = 0; r < RPM_AXIS.length; r++) {
+      const kpa = MAP_AXIS[l], rpm = RPM_AXIS[r];
+      let deg;
+      const loadFrac = kpa / 100;
+      if (cam === 'hi') {
+        // High cam angle: aggressive advance mid-range, retard at top
+        if (rpm <= 1000) deg = 2 + loadFrac * 3;
+        else if (rpm <= 3000) deg = 5 + (rpm - 1000) / 2000 * 20 + loadFrac * 8;
+        else if (rpm <= 5500) deg = 25 + (rpm - 3000) / 2500 * 20 + loadFrac * 5;
+        else if (rpm <= 7000) deg = 40 + (rpm - 5500) / 1500 * 10;
+        else deg = 50 - (rpm - 7000) / 1000 * 25; // Retard above 7000
+      } else {
+        // Low cam angle: moderate advance
+        if (rpm <= 1000) deg = 0 + loadFrac * 2;
+        else if (rpm <= 3000) deg = 2 + (rpm - 1000) / 2000 * 13 + loadFrac * 5;
+        else if (rpm <= 5500) deg = 15 + (rpm - 3000) / 2500 * 15 + loadFrac * 3;
+        else deg = 30 - (rpm - 5500) / 2500 * 10;
+      }
+      row.push(Math.round(Math.max(0, Math.min(50, deg)) * 10) / 10);
+    }
+    t.push(row);
+  }
+  return t;
+}
+
+const TABLES = {
+  fuel_lo: { data: generateFuelTable('lo'), orig: null, unit: 'ms', label: 'FUEL — LOW CAM' },
+  fuel_hi: { data: generateFuelTable('hi'), orig: null, unit: 'ms', label: 'FUEL — HIGH CAM (VTEC)' },
+  ign_lo:  { data: generateIgnTable('lo'),  orig: null, unit: '°',  label: 'IGNITION — LOW CAM' },
+  ign_hi:  { data: generateIgnTable('hi'),  orig: null, unit: '°',  label: 'IGNITION — HIGH CAM (VTEC)' },
+  cam_lo:  { data: generateCamTable('lo'),  orig: null, unit: '°',  label: 'CAM ANGLE — LOW CAM' },
+  cam_hi:  { data: generateCamTable('hi'),  orig: null, unit: '°',  label: 'CAM ANGLE — HIGH CAM (VTEC)' },
+};
+// Save originals for reset/diff
+Object.keys(TABLES).forEach(k => { TABLES[k].orig = TABLES[k].data.map(r => [...r]); });
+
+let activeTable = 'fuel_lo';
+let selectedCell = null;
+
+function loadTable(key) {
+  activeTable = key;
+  selectedCell = null;
+  document.getElementById('table-info').textContent = TABLES[key].label + ' (' + TABLES[key].unit + ')';
+  renderHeatmap();
+}
+
+function renderHeatmap() {
+  const wrap = document.getElementById('heatmap-wrap');
+  const t = TABLES[activeTable];
+  const data = t.data;
+  const isFuel = activeTable.startsWith('fuel');
+  const isCam = activeTable.startsWith('cam');
+  const colorFn = isFuel ? heatColor : (isCam ? camColor : ignColor);
+
+  // Find min/max for color scaling
+  let allVals = data.flat();
+  const mn = Math.min(...allVals), mx = Math.max(...allVals);
+
+  let html = '<table class="heatmap-table">';
+
+  // X axis header (RPM)
+  html += '<tr class="heatmap-axis-row"><td class="heatmap-axis-col">RPM \\ kPa</td>';
+  RPM_AXIS.forEach(rpm => { html += '<td>' + rpm + '</td>'; });
+  html += '</tr>';
+
+  // Data rows
+  for (let l = 0; l < MAP_AXIS.length; l++) {
+    html += '<tr><td class="heatmap-axis-col">' + MAP_AXIS[l] + ' kPa</td>';
+    for (let r = 0; r < RPM_AXIS.length; r++) {
+      const v = data[l][r];
+      const orig = t.orig[l][r];
+      const norm = (v - mn) / (mx - mn || 1);
+      const color = colorFn(norm);
+      const modified = (Math.abs(v - orig) > 0.01) ? ' modified' : '';
+      const sel = (selectedCell && selectedCell[0] === l && selectedCell[1] === r) ? ' selected' : '';
+      html += '<td style="background:' + color + ';color:#000">' + v.toFixed(isFuel ? 2 : 1) + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  wrap.innerHTML = html;
+}
+
+function camColor(n) {
+  // Blue (no advance) -> Cyan -> Green -> Yellow (max advance)
+  if (n < 0.25) return 'rgba(40,80,200,' + (0.3 + n * 2) + ')';
+  if (n < 0.5)  return 'rgba(40,180,200,' + (0.3 + n * 1.2) + ')';
+  if (n < 0.75) return 'rgba(40,180,80,' + (0.3 + n * 0.8) + ')';
+  return 'rgba(220,180,20,' + (0.3 + n * 0.7) + ')';
+}
+
+function heatColor(n) {
+  // Blue (lean/low) -> Green -> Yellow -> Red (rich/high)
+  if (n < 0.25) return 'rgba(40,80,200,' + (0.3 + n * 2) + ')';
+  if (n < 0.5)  return 'rgba(40,180,80,' + (0.3 + n * 1.2) + ')';
+  if (n < 0.75) return 'rgba(220,180,20,' + (0.3 + n * 0.8) + ')';
+  return 'rgba(220,50,20,' + (0.3 + n * 0.7) + ')';
+}
+
+function ignColor(n) {
+  // Red (retarded) -> Yellow -> Green -> Cyan (advanced)
+  if (n < 0.25) return 'rgba(200,40,40,' + (0.3 + n * 2) + ')';
+  if (n < 0.5)  return 'rgba(200,160,20,' + (0.3 + n * 1.2) + ')';
+  if (n < 0.75) return 'rgba(40,180,80,' + (0.3 + n * 0.8) + ')';
+  return 'rgba(40,180,200,' + (0.3 + n * 0.7) + ')';
+}
+
+function selectCell(l, r) {
+  selectedCell = [l, r];
+  const t = TABLES[activeTable];
+  const v = t.data[l][r];
+  const orig = t.orig[l][r];
+  const diff = v - orig;
+  let info = MAP_AXIS[l] + ' kPa / ' + RPM_AXIS[r] + ' RPM = ' + v.toFixed(2) + ' ' + t.unit;
+  if (Math.abs(diff) > 0.01) info += ' (' + (diff > 0 ? '+' : '') + diff.toFixed(2) + ')';
+  document.getElementById('table-info').textContent = info;
+  renderHeatmap();
+}
+
+// Cell editing disabled — read-only mode
+function editCell() {}
+function cellEditorApply() {}
+function cellEditorClose() {}
+
+// Table editing disabled — read-only mode
+function resetTable() {}
+function applyTable() {}
+
+// Initialize table
+loadTable('fuel_lo');
+
+// ================================================================
+//  TAB 2: DTC READER / CLEARER
+// ================================================================
+const DTC_DATABASE = [
+  { code:'P0131', title:'O2 Sensor Circuit Low Voltage (Bank 1 Sensor 1)', severity:'warning', system:'FUEL', desc:'Primary O2 sensor voltage below threshold. Check wiring, sensor, or exhaust leak.' },
+  { code:'P0134', title:'O2 Sensor No Activity Detected (Bank 1 Sensor 1)', severity:'warning', system:'FUEL', desc:'No switching activity from primary O2. Sensor may be failing or disconnected.' },
+  { code:'P0300', title:'Random/Multiple Cylinder Misfire Detected', severity:'critical', system:'IGN', desc:'ECU detected misfires across multiple cylinders. Check plugs, coils, injectors, compression.' },
+  { code:'P0301', title:'Cylinder 1 Misfire Detected', severity:'critical', system:'IGN', desc:'Persistent misfire in cylinder 1. Swap coil/plug to isolate. Check injector.' },
+  { code:'P0128', title:'Coolant Thermostat Below Regulating Temperature', severity:'info', system:'COOLING', desc:'ECT not reaching operating temp. Thermostat may be stuck open.' },
+  { code:'P0420', title:'Catalyst System Efficiency Below Threshold', severity:'warning', system:'EMISSIONS', desc:'Rear O2 mimics front O2 pattern. Cat converter may be failing. Common with bolt-on exhaust.' },
+  { code:'P0507', title:'Idle Air Control System RPM Higher Than Expected', severity:'info', system:'IDLE', desc:'Idle RPM too high. Check for vacuum leaks, IACV, or throttle body cleaning needed.' },
+  { code:'P2646', title:'VTEC Oil Pressure Switch Circuit Low (Rocker Arm)', severity:'critical', system:'VTEC', desc:'VTEC solenoid not engaging. Check oil level/pressure, solenoid wiring, screen filter.' },
+  { code:'P0172', title:'System Too Rich (Bank 1)', severity:'warning', system:'FUEL', desc:'Long-term fuel trims indicate rich condition. Check injectors, FPR, or MAP sensor.' },
+  { code:'P0113', title:'Intake Air Temperature Sensor 1 Circuit High', severity:'info', system:'INTAKE', desc:'IAT reading abnormally high. Check sensor connector and wiring.' },
+  { code:'P0341', title:'Camshaft Position Sensor Circuit Range/Performance', severity:'warning', system:'TIMING', desc:'CMP signal irregular. Check sensor gap, reluctor wheel, wiring.' },
+  { code:'P0456', title:'Evaporative Emission System Small Leak Detected', severity:'info', system:'EVAP', desc:'Small EVAP leak. Check gas cap seal, purge valve, EVAP canister hoses.' },
+  { code:'P2647', title:'VTEC System Stuck On', severity:'critical', system:'VTEC', desc:'VTEC system stuck in engaged position. Check VTEC solenoid, oil pressure, and spool valve assembly.' },
+  { code:'P2648', title:'VTEC Solenoid Malfunction', severity:'warning', system:'VTEC', desc:'VTEC solenoid not functioning correctly. Inspect solenoid connector, wiring, and solenoid operation.' },
+  { code:'P0339', title:'Crankshaft Position Sensor Intermittent', severity:'critical', system:'IGN', desc:'CKP signal intermittent or dropping out. Check sensor connector, wiring harness, and sensor air gap. Can cause random stalling.' },
+  { code:'P0344', title:'Camshaft Position Sensor Intermittent', severity:'warning', system:'TIMING', desc:'CMP sensor signal intermittent. Inspect sensor connector, wiring, and mounting. May cause rough idle or misfire.' },
+];
+
+let activeDTCs = [];
+let pendingDTCs = [];
+
+function scanDTC() {
+  // Simulate scanning — pick random codes
+  const numActive = Math.floor(Math.random() * 4) + 1;
+  const numPending = Math.floor(Math.random() * 2);
+  const shuffled = [...DTC_DATABASE].sort(() => Math.random() - 0.5);
+  activeDTCs = shuffled.slice(0, numActive);
+  pendingDTCs = shuffled.slice(numActive, numActive + numPending);
+  renderDTCs();
+}
+
+function clearDTC() {
+  activeDTCs = [];
+  pendingDTCs = [];
+  if (typeof Android !== 'undefined' && Android.clearDTCs) Android.clearDTCs();
+  renderDTCs();
+  document.getElementById('dtc-empty').innerHTML = 'ALL CODES CLEARED<br><span style="color:#00ff41;font-size:10px;">NO ACTIVE TROUBLE CODES</span>';
+}
+
+function renderDTCs() {
+  document.getElementById('dtc-count').textContent = activeDTCs.length;
+  document.getElementById('dtc-pending-count').textContent = pendingDTCs.length;
+
+  const list = document.getElementById('dtc-list');
+  const empty = document.getElementById('dtc-empty');
+
+  if (activeDTCs.length === 0 && pendingDTCs.length === 0) {
+    empty.style.display = 'block';
+    list.innerHTML = '';
+    list.appendChild(empty);
+    return;
+  }
+
+  empty.style.display = 'none';
+  let html = '';
+
+  const severityColor = { critical:'#ff2200', warning:'#ffcc00', info:'#4488ff' };
+  const severityPill = { critical:'pill-red', warning:'pill-yellow', info:'pill-blue' };
+
+  activeDTCs.forEach(dtc => {
+    html += '<div class="dtc-card"><div class="dtc-code" style="color:' + severityColor[dtc.severity] + '">' + dtc.code + '</div><div class="dtc-body"><div class="dtc-title">' + dtc.title + '</div><div class="dtc-desc">' + dtc.desc + '</div><div class="dtc-meta"><span class="pill ' + severityPill[dtc.severity] + '">' + dtc.severity.toUpperCase() + '</span><span class="pill pill-dim">' + dtc.system + '</span><span class="pill pill-red">ACTIVE</span></div></div></div>';
+  });
+
+  pendingDTCs.forEach(dtc => {
+    html += '<div class="dtc-card" style="opacity:0.6;"><div class="dtc-code" style="color:#ffcc00">' + dtc.code + '</div><div class="dtc-body"><div class="dtc-title">' + dtc.title + '</div><div class="dtc-desc">' + dtc.desc + '</div><div class="dtc-meta"><span class="pill pill-yellow">PENDING</span><span class="pill pill-dim">' + dtc.system + '</span></div></div></div>';
+  });
+
+  list.innerHTML = html;
+}
+
+// ================================================================
+//  TAB 3: DATALOG VIEWER
+// ================================================================
+let dlData = null; // { headers:[], rows:[[]], params:{} }
+let dlTraces = {};
+const DL_COLORS = ['#00cc88','#cc2200','#ff8844','#ffff44','#4488ff','#aa88ff','#44ffcc','#ffaa00','#88ff44','#ff44aa','#44aaff'];
+
+function loadDatalog(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return;
+
+    const headers = lines[0].split(',').map(h => h.trim());
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const vals = lines[i].split(',').map(v => parseFloat(v.trim()));
+      if (vals.length === headers.length) rows.push(vals);
+    }
+
+    dlData = { headers, rows };
+
+    // Build trace toggles
+    dlTraces = {};
+    const container = document.getElementById('dl-traces');
+    container.innerHTML = '';
+    headers.forEach((h, i) => {
+      if (h.toLowerCase().includes('time')) return; // skip time column
+      const color = DL_COLORS[Object.keys(dlTraces).length % DL_COLORS.length];
+      dlTraces[i] = { name: h, color, visible: Object.keys(dlTraces).length < 4, colIdx: i };
+      const btn = document.createElement('button');
+      btn.className = 'dl-trace-btn' + (dlTraces[i].visible ? ' on' : '');
+      btn.style.cssText = '--tc:' + color;
+      btn.textContent = h.toUpperCase();
+      btn.onclick = function() { dlTraces[i].visible = !dlTraces[i].visible; btn.classList.toggle('on'); renderDLChart(); };
+      container.appendChild(btn);
+    });
+
+    document.getElementById('dl-filename').textContent = file.name + ' (' + rows.length + ' samples)';
+    document.getElementById('dl-empty').style.display = 'none';
+    document.getElementById('dl-stats').style.display = 'block';
+    resizeDLCanvas();
+    renderDLChart();
+    renderDLStats();
+  };
+  reader.readAsText(file);
+}
+
+const dlCanvas = document.getElementById('dl-canvas');
+const dlCtx = dlCanvas.getContext('2d');
+let dlW, dlH;
+
+function resizeDLCanvas() {
+  const wrap = document.getElementById('dl-chart-wrap');
+  const dpr = window.devicePixelRatio || 1;
+  dlW = wrap.offsetWidth;
+  dlH = wrap.offsetHeight;
+  dlCanvas.width = dlW * dpr;
+  dlCanvas.height = dlH * dpr;
+  dlCtx.scale(dpr, dpr);
+  dlCanvas.style.width = dlW + 'px';
+  dlCanvas.style.height = dlH + 'px';
+  if (dlData) renderDLChart();
+}
+
+function renderDLChart() {
+  if (!dlData) return;
+  dlCtx.clearRect(0, 0, dlW, dlH);
+
+  const pad = { l: 50, r: 12, t: 12, b: 24 };
+  const gw = dlW - pad.l - pad.r, gh = dlH - pad.t - pad.b;
+  const rows = dlData.rows;
+  const n = rows.length;
+  if (n < 2) return;
+
+  // Grid
+  dlCtx.strokeStyle = '#ffffff08'; dlCtx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.t + (i / 5) * gh;
+    dlCtx.beginPath(); dlCtx.moveTo(pad.l, y); dlCtx.lineTo(pad.l + gw, y); dlCtx.stroke();
+  }
+
+  // Draw each visible trace (normalized to its own min/max)
+  Object.values(dlTraces).forEach(tr => {
+    if (!tr.visible) return;
+    const col = tr.colIdx;
+    let mn = Infinity, mx = -Infinity;
+    rows.forEach(r => { mn = Math.min(mn, r[col]); mx = Math.max(mx, r[col]); });
+    if (mx === mn) mx = mn + 1;
+
+    dlCtx.beginPath();
+    dlCtx.strokeStyle = tr.color;
+    dlCtx.lineWidth = 1.5;
+    dlCtx.shadowColor = tr.color;
+    dlCtx.shadowBlur = 3;
+
+    for (let i = 0; i < n; i++) {
+      const x = pad.l + (i / (n - 1)) * gw;
+      const norm = (rows[i][col] - mn) / (mx - mn);
+      const y = pad.t + (1 - norm) * gh;
+      if (i === 0) dlCtx.moveTo(x, y); else dlCtx.lineTo(x, y);
+    }
+    dlCtx.stroke();
+    dlCtx.shadowBlur = 0;
+
+    // Label at end
+    const lastNorm = (rows[n - 1][col] - mn) / (mx - mn);
+    const lastY = pad.t + (1 - lastNorm) * gh;
+    dlCtx.fillStyle = tr.color;
+    dlCtx.font = 'bold 9px Share Tech Mono';
+    dlCtx.textAlign = 'right';
+    dlCtx.fillText(tr.name + ' ' + rows[n - 1][col].toFixed(1), pad.l + gw - 2, Math.max(pad.t + 10, Math.min(pad.t + gh - 2, lastY - 4)));
+  });
+
+  // Time axis
+  dlCtx.fillStyle = '#ffffff22'; dlCtx.font = '9px Share Tech Mono'; dlCtx.textAlign = 'center';
+  const timeCol = dlData.headers.findIndex(h => h.toLowerCase().includes('time'));
+  if (timeCol >= 0) {
+    for (let i = 0; i <= 5; i++) {
+      const idx = Math.floor((i / 5) * (n - 1));
+      const t = rows[idx][timeCol];
+      const label = t > 1000 ? (t / 1000).toFixed(1) + 's' : t + 'ms';
+      dlCtx.fillText(label, pad.l + (i / 5) * gw, pad.t + gh + 16);
+    }
+  }
+}
+
+function renderDLStats() {
+  if (!dlData) return;
+  const grid = document.getElementById('dl-stats-grid');
+  let html = '';
+  Object.values(dlTraces).forEach(tr => {
+    const col = tr.colIdx;
+    const vals = dlData.rows.map(r => r[col]);
+    const mn = Math.min(...vals), mx = Math.max(...vals);
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    html += '<div class="dl-stat-card"><div class="dl-stat-label" style="color:' + tr.color + '">' + tr.name.toUpperCase() + '</div>' +
+      '<div class="dl-stat-row"><span class="dl-stat-unit">MIN</span><span class="dl-stat-val">' + mn.toFixed(2) + '</span></div>' +
+      '<div class="dl-stat-row"><span class="dl-stat-unit">MAX</span><span class="dl-stat-val">' + mx.toFixed(2) + '</span></div>' +
+      '<div class="dl-stat-row"><span class="dl-stat-unit">AVG</span><span class="dl-stat-val">' + avg.toFixed(2) + '</span></div></div>';
+  });
+  grid.innerHTML = html;
+}
+
+window.addEventListener('resize', () => { if (currentTab === 'datalogs') resizeDLCanvas(); });
+
+// ================================================================
+//  TAB 4: FLASH / CALIBRATION MANAGER
+// ================================================================
+// Flash functionality removed — read-only mode
+
+function renderFlashSlots() {}
+function flashSlot() {}
+function compareSlot() {}
+function uploadSlot() {}
+
+// ================================================================
+//  TAB 5: SENSOR DASHBOARD
+// ================================================================
+const SENSOR_DEFS = [
+  // Engine
+  { group: 'ENGINE', id: 'rpm',     label: 'RPM',              unit: 'rpm', min: 0,    max: 9000, color: '#cc2200', val: 850 },
+  { group: 'ENGINE', id: 'map_s',   label: 'MAP',              unit: 'kPa', min: 0,    max: 255,  color: '#4488ff', val: 35 },
+  { group: 'ENGINE', id: 'tpedal',  label: 'THROTTLE PEDAL',   unit: '%',   min: 0,    max: 100,  color: '#ffcc00', val: 0 },
+  { group: 'ENGINE', id: 'tplate',  label: 'THROTTLE PLATE',   unit: '%',   min: 0,    max: 100,  color: '#ffaa00', val: 0 },
+  { group: 'ENGINE', id: 'vss',     label: 'VEHICLE SPEED',    unit: 'mph', min: 0,    max: 180,  color: '#ff8844', val: 0 },
+  { group: 'ENGINE', id: 'gear',    label: 'GEAR',             unit: 'gear',min: 0,    max: 6,    color: '#aa88ff', val: 0 },
+  // Fuel
+  { group: 'FUEL', id: 'inj',       label: 'INJ DURATION',     unit: 'ms',  min: 0,    max: 30,   color: '#00cc88', val: 2.1 },
+  { group: 'FUEL', id: 'duty',      label: 'INJ DUTY CYCLE',   unit: '%',   min: 0,    max: 100,  color: '#ffff44', val: 8 },
+  { group: 'FUEL', id: 'afr',       label: 'AIR/FUEL RATIO',   unit: ':1',  min: 10,   max: 20,   color: '#00cc88', val: 14.7 },
+  { group: 'FUEL', id: 'afm',       label: 'AIR FLOW METER',   unit: 'V',   min: 0,    max: 5,    color: '#44ffcc', val: 1.1 },
+  { group: 'FUEL', id: 'strim',     label: 'S.TRIM',           unit: '%',   min: -25,  max: 25,   color: '#88ff44', val: 0 },
+  { group: 'FUEL', id: 'ltrim',     label: 'L.TRIM',           unit: '%',   min: -15,  max: 15,   color: '#44aa88', val: 0 },
+  { group: 'FUEL', id: 'fstat',     label: 'FUEL STATUS',      unit: 'code',min: 0,    max: 8,    color: '#ffcc00', val: 2 },
+  // Ignition / Knock
+  { group: 'IGNITION / KNOCK', id: 'ign',    label: 'IGN TIMING',     unit: '°BTDC', min: -10, max: 50,  color: '#ff8844', val: 15 },
+  { group: 'IGNITION / KNOCK', id: 'kcount', label: 'KNOCK COUNT',    unit: 'count', min: 0,   max: 50,  color: '#aa88ff', val: 0 },
+  { group: 'IGNITION / KNOCK', id: 'klevel', label: 'KNOCK LEVEL',    unit: '%',     min: 0,   max: 100, color: '#ff4444', val: 0 },
+  { group: 'IGNITION / KNOCK', id: 'kretard',label: 'KNOCK RETARD',   unit: '°',     min: 0,   max: 15,  color: '#ff2200', val: 0 },
+  { group: 'IGNITION / KNOCK', id: 'kctrl',  label: 'KNOCK CONTROL',  unit: '%',     min: 0,   max: 100, color: '#ff6644', val: 0 },
+  // VTEC / VTC
+  { group: 'VTEC / VTC', id: 'vts',    label: 'VTEC SPOOL',      unit: '',     min: 0,   max: 1,   color: '#4488ff', val: 0 },
+  { group: 'VTEC / VTC', id: 'cam',    label: 'CAM POSITION',    unit: '°',    min: 0,   max: 50,  color: '#44aaff', val: 0 },
+  { group: 'VTEC / VTC', id: 'camcmd', label: 'CAM COMMAND',     unit: '°',    min: 0,   max: 50,  color: '#4488cc', val: 0 },
+  // Temperatures
+  { group: 'TEMPERATURES', id: 'ect',  label: 'COOLANT TEMP',    unit: '°F',   min: -40, max: 300, color: '#ffaa00', val: 180 },
+  { group: 'TEMPERATURES', id: 'iat',  label: 'INTAKE AIR TEMP', unit: '°F',   min: -40, max: 300, color: '#44ffcc', val: 85 },
+  // Electrical / Other
+  { group: 'ELECTRICAL / OTHER', id: 'bat',  label: 'BATTERY',       unit: 'V',   min: 10,  max: 16,  color: '#ffcc00', val: 14.2 },
+  { group: 'ELECTRICAL / OTHER', id: 'pa',   label: 'ATMOS PRESSURE',unit: 'kPa', min: 70,  max: 110, color: '#4488ff', val: 101.3 },
+  { group: 'ELECTRICAL / OTHER', id: 'eco',  label: 'FUEL ECONOMY',  unit: 'mpg', min: 0,   max: 60,  color: '#00ff41', val: 0 },
+];
+
+function buildSensorGrid() {
+  const grid = document.getElementById('sensor-grid');
+  let html = '';
+  let lastGroup = '';
+  SENSOR_DEFS.forEach(s => {
+    if (s.group !== lastGroup) {
+      html += '<div class="sensor-group-title">' + s.group + '</div>';
+      lastGroup = s.group;
+    }
+    const norm = ((s.val - s.min) / (s.max - s.min)) * 100;
+    const dispVal = s.id === 'vts' ? (s.val ? 'ENGAGED' : 'OFF') :
+                    s.id === 'fstat' ? (['','OL-WARM','CL','','OL-DRIVE','','','','OL-ERR'][Math.round(s.val)] || s.val) :
+                    s.id === 'gear' ? (s.val === 0 ? 'N' : Math.round(s.val)) :
+                    (Number.isInteger(s.val) ? s.val : s.val.toFixed(1));
+    html += '<div class="sensor-card" id="sensor-' + s.id + '">' +
+      '<div class="sensor-label"><span>' + s.label + '</span><span>' + s.unit + '</span></div>' +
+      '<div class="sensor-val" id="sval-' + s.id + '" style="color:' + s.color + '">' + dispVal + '</div>' +
+      '<div class="sensor-bar"><div class="sensor-fill" id="sfill-' + s.id + '" style="background:' + s.color + ';width:' + Math.max(0, Math.min(100, norm)) + '%"></div></div>' +
+      '<div class="sensor-range"><span>' + s.min + '</span><span>' + s.max + '</span></div>' +
+      '</div>';
+  });
+  grid.innerHTML = html;
+}
+
+function updateSensorCards() {
+  SENSOR_DEFS.forEach(s => {
+    const el = document.getElementById('sval-' + s.id);
+    const fill = document.getElementById('sfill-' + s.id);
+    if (!el || !fill) return;
+    const dispVal = s.id === 'vts' ? (s.val ? 'ENGAGED' : 'OFF') :
+                    s.id === 'fstat' ? (['','OL-WARM','CL','','OL-DRIVE','','','','OL-ERR'][Math.round(s.val)] || s.val) :
+                    s.id === 'gear' ? (s.val === 0 ? 'N' : Math.round(s.val)) :
+                    (Number.isInteger(s.val) && s.max > 10 ? Math.round(s.val) : s.val.toFixed(1));
+    el.textContent = dispVal;
+    const norm = ((s.val - s.min) / (s.max - s.min)) * 100;
+    fill.style.width = Math.max(0, Math.min(100, norm)) + '%';
+  });
+}
+
+buildSensorGrid();
+
+// ================================================================
+//  SENSOR SIMULATION
+// ================================================================
+let simT = 0;
+let simCamActual = 0; // Tracks actual cam position (lags command)
+const jit = (v, a) => v + (Math.random() - 0.5) * a;
+
+function simSensors() {
+  simT++;
+  const phase = simT % 600;
+  let tRPM, tTPS;
+  // Drive cycle: idle -> cruise -> pull -> WOT -> coast -> cruise -> pull -> decel -> idle
+  if (phase < 60)       { tRPM = 750;  tTPS = 0; }    // Idle warmup
+  else if (phase < 150) { tRPM = 3200; tTPS = 30; }   // Cruise 3rd gear
+  else if (phase < 200) { tRPM = 5200; tTPS = 65; }   // Accelerating
+  else if (phase < 280) { tRPM = 7200; tTPS = 100; }  // WOT pull through VTEC
+  else if (phase < 320) { tRPM = 6800; tTPS = 85; }   // Holding high RPM
+  else if (phase < 380) { tRPM = 2800; tTPS = 8; }    // Decel / coast
+  else if (phase < 430) { tRPM = 4500; tTPS = 50; }   // Mid-range cruise
+  else if (phase < 500) { tRPM = 6500; tTPS = 80; }   // Spirited driving
+  else if (phase < 540) { tRPM = 2000; tTPS = 5; }    // Slowing down
+  else                  { tRPM = 750;  tTPS = 0; }     // Back to idle
+
+  const sd = (id) => SENSOR_DEFS.find(s => s.id === id);
+
+  // RPM with realistic slew rate
+  const rpm = sd('rpm'); rpm.val += (tRPM - rpm.val) * 0.08 + jit(0, 30); rpm.val = Math.max(650, Math.min(8500, rpm.val));
+  const curRPM = rpm.val;
+
+  // Throttle pedal and plate (plate lags pedal slightly due to drive-by-wire)
+  const tpedal = sd('tpedal'); tpedal.val += (tTPS - tpedal.val) * 0.15; tpedal.val = Math.max(0, Math.min(100, tpedal.val));
+  const tplate = sd('tplate'); tplate.val += (tpedal.val * 0.95 - tplate.val) * 0.10; tplate.val = Math.max(0, Math.min(100, tplate.val));
+
+  // MAP: idle ~35 kPa, cruise ~50-70 kPa, WOT 100+ kPa
+  const tMAP = tTPS <= 2 ? 35 : (35 + tplate.val * 0.85 + (curRPM > 5000 ? 10 : 0));
+  sd('map_s').val += (Math.min(255, tMAP) - sd('map_s').val) * 0.12 + jit(0, 1.5);
+  sd('map_s').val = Math.max(20, Math.min(255, sd('map_s').val));
+  const curMAP = sd('map_s').val;
+
+  // Vehicle speed (approximate from RPM/gear)
+  let tGear = 0;
+  if (curRPM < 800 && tTPS < 2) tGear = 0;
+  else if (curRPM < 2500) tGear = 2;
+  else if (curRPM < 4000) tGear = 3;
+  else if (curRPM < 6000) tGear = 4;
+  else tGear = tTPS > 60 ? 3 : 5;
+  sd('gear').val = tGear;
+
+  const gearRatio = [0, 3.27, 2.11, 1.47, 1.10, 0.86, 0.73][tGear] || 0;
+  const finalDrive = 4.76;
+  const tireCirc = 0.00124; // miles per revolution (205/55R16)
+  const tVSS = tGear > 0 ? (curRPM / (gearRatio * finalDrive)) * tireCirc * 60 : 0;
+  sd('vss').val += (tVSS - sd('vss').val) * 0.08; sd('vss').val = Math.max(0, Math.min(180, sd('vss').val));
+
+  // === VTEC / VTC ===
+  const vtecEngaged = curRPM >= 5800;
+  sd('vts').val = vtecEngaged ? 1 : 0;
+
+  // Cam command based on RPM/load
+  let tCamCmd;
+  if (curRPM <= 1000) tCamCmd = jit(2, 1);
+  else if (curRPM <= 3000) tCamCmd = 5 + (curRPM - 1000) / 2000 * 15 + (curMAP / 100) * 5;
+  else if (curRPM <= 5500) tCamCmd = 20 + (curRPM - 3000) / 2500 * 15 + (curMAP > 80 ? 5 : 0);
+  else if (vtecEngaged && curRPM <= 7000) tCamCmd = 35 + (curRPM - 5500) / 1500 * 15;
+  else if (vtecEngaged) tCamCmd = 50 - (curRPM - 7000) / 1000 * 25;
+  else tCamCmd = 25;
+  tCamCmd = Math.max(0, Math.min(50, tCamCmd));
+  sd('camcmd').val += (tCamCmd - sd('camcmd').val) * 0.15;
+
+  // Cam actual lags command by 0.1-0.5s (rate of ~3-10 ticks at 100ms)
+  simCamActual += (sd('camcmd').val - simCamActual) * 0.06 + jit(0, 0.3);
+  simCamActual = Math.max(0, Math.min(50, simCamActual));
+  // Lock cam at 0 for first 10 seconds (100 ticks)
+  if (simT < 100) simCamActual = jit(0, 0.5);
+  sd('cam').val = Math.max(0, simCamActual);
+
+  // === IGNITION ===
+  let tIgn;
+  if (curRPM <= 1500) tIgn = 12 + jit(0, 0.3);
+  else if (curRPM <= 3500) tIgn = 12 + (curRPM - 1500) / 2000 * 20 - (curMAP > 90 ? 4 : 0);
+  else if (curRPM <= 6000) tIgn = 32 - (curMAP > 90 ? 6 : 0);
+  else if (curRPM <= 7500) tIgn = 28 - (curMAP > 90 ? 5 : 0);
+  else tIgn = 24;
+  sd('ign').val += (tIgn - sd('ign').val) * 0.12 + jit(0, 0.3);
+
+  // === FUEL ===
+  const isWOT = tplate.val > 80;
+  const isCL = !isWOT && curRPM > 800 && sd('ect').val > 160;
+
+  // Fuel Status: 1=OL warmup, 2=CL, 4=OL driving, 8=OL error
+  if (sd('ect').val < 160) sd('fstat').val = 1;
+  else if (isWOT) sd('fstat').val = 4;
+  else sd('fstat').val = 2;
+
+  // AFR: 14.7 closed loop, 12.0-12.5 WOT
+  let tAFR = isWOT ? jit(12.2, 0.3) : (isCL ? 14.7 : jit(14.2, 0.3));
+  sd('afr').val += (tAFR - sd('afr').val) * 0.15 + jit(0, 0.05);
+  sd('afr').val = Math.max(10, Math.min(20, sd('afr').val));
+
+  // Injector duration (ms) — scales with RPM and load
+  const loadFrac = curMAP / 100;
+  let tInj = 1.5 + loadFrac * 4.0 + (curRPM / 8000) * 3.0;
+  if (isWOT) tInj += 2.5;
+  if (vtecEngaged) tInj += 1.0;
+  if (curRPM < 900 && tTPS < 2) tInj = 2.1;
+  sd('inj').val += (tInj - sd('inj').val) * 0.12 + jit(0, 0.1);
+  sd('inj').val = Math.max(0, Math.min(30, sd('inj').val));
+
+  // Injector duty cycle
+  sd('duty').val = Math.min(100, (sd('inj').val / (120000 / curRPM / 2)) * 100);
+  if (isNaN(sd('duty').val) || curRPM < 100) sd('duty').val = 0;
+
+  // Air flow meter voltage (scales with airflow)
+  sd('afm').val = Math.max(0.5, Math.min(4.8, 0.8 + loadFrac * 2.0 + (curRPM / 8000) * 1.5 + jit(0, 0.05)));
+
+  // Short term fuel trim: -10% to +10% at part throttle, near 0 at WOT
+  if (isWOT) { sd('strim').val += (0 - sd('strim').val) * 0.2; }
+  else { sd('strim').val = Math.max(-10, Math.min(10, sd('strim').val * 0.95 + jit(0, 0.6))); }
+
+  // Long term fuel trim: -5% to +5%
+  sd('ltrim').val = Math.max(-5, Math.min(5, sd('ltrim').val * 0.998 + jit(0, 0.05)));
+
+  // === TEMPERATURES ===
+  const ect = sd('ect');
+  if (ect.val < 195) ect.val += 0.08; else ect.val = jit(195, 1);
+  if (curRPM > 6000 && tTPS > 70) ect.val = Math.min(225, ect.val + 0.12);
+
+  const iat = sd('iat');
+  if (tTPS > 60) iat.val = Math.min(160, iat.val + 0.12); else iat.val = Math.max(82, iat.val - 0.06);
+  iat.val = jit(iat.val, 0.2);
+
+  // === ELECTRICAL / OTHER ===
+  sd('bat').val = jit(14.2, 0.08);
+  sd('pa').val = jit(101.3, 0.2);
+
+  // Fuel economy approximation (mpg)
+  if (sd('vss').val > 2 && sd('inj').val > 0.5) {
+    // Rough: lower inj duration at speed = better mpg
+    const instantMPG = (sd('vss').val / (sd('inj').val * curRPM / 1000)) * 8;
+    sd('eco').val += (Math.min(60, Math.max(0, instantMPG)) - sd('eco').val) * 0.05;
+  } else {
+    sd('eco').val += (0 - sd('eco').val) * 0.1;
+  }
+
+  // === KNOCK ===
+  if (curRPM > 5500 && tTPS > 70 && Math.random() < 0.006) {
+    sd('kcount').val++;
+  }
+  // Knock level: random spikes when knock occurs
+  sd('klevel').val = (sd('kcount').val > 0 && Math.random() < 0.05) ? jit(30, 20) : Math.max(0, sd('klevel').val * 0.9);
+  sd('kretard').val = sd('kcount').val > 0 ? Math.min(sd('kcount').val * 1.2, 15) : Math.max(0, sd('kretard').val * 0.95);
+  sd('kctrl').val = sd('kretard').val > 0 ? Math.min(100, sd('kretard').val * 8) : Math.max(0, sd('kctrl').val * 0.9);
+
+  if (currentTab === 'sensors') updateSensorCards();
+}
+
+// Called from Kotlin bridge — update sensors from real FlashPro data
+function updateFromFlashPro(data) {
+  connected = true;
+  document.getElementById('fp-conn-dot').classList.add('live');
+  document.getElementById('fp-conn-label').textContent = 'CONNECTED';
+
+  const sd = (id) => SENSOR_DEFS.find(s => s.id === id);
+  if (data.rpm !== undefined) sd('rpm').val = data.rpm;
+  if (data.afr !== undefined) sd('afr').val = data.afr;
+  if (data.ign !== undefined) sd('ign').val = data.ign;
+  if (data.inj !== undefined) sd('inj').val = data.inj;
+  if (data.map !== undefined) sd('map_s').val = data.map;
+  if (data.iat !== undefined) sd('iat').val = data.iat;
+  if (data.ect !== undefined) sd('ect').val = data.ect;
+  if (data.stft !== undefined) sd('strim').val = data.stft;
+  if (data.ltft !== undefined) sd('ltrim').val = data.ltft;
+  if (data.tps !== undefined) sd('tpedal').val = data.tps;
+  if (data.vss !== undefined) sd('vss').val = data.vss;
+  if (data.vtec !== undefined) sd('vts').val = data.vtec;
+  if (data.cam !== undefined) sd('cam').val = data.cam;
+  if (data.camcmd !== undefined) sd('camcmd').val = data.camcmd;
+  if (data.bat !== undefined) sd('bat').val = data.bat;
+  if (data.duty !== undefined) sd('duty').val = data.duty;
+  if (data.gear !== undefined) sd('gear').val = data.gear;
+  if (data.kcount !== undefined) sd('kcount').val = data.kcount;
+  if (data.kretard !== undefined) sd('kretard').val = data.kretard;
+
+  if (currentTab === 'sensors') updateSensorCards();
+}
+
+// Main tick
+setInterval(() => { if (!connected) simSensors(); }, 100);
+
+
+// ================================================================
+//  TAB 6: REFERENCE — FlashPro Documentation Library
+// ================================================================
+let refData = null;
+let refCategory = 'all';
+let refItems = []; // flattened searchable items
+
+function loadReference() {
+  fetch('flashpro-reference.json')
+    .then(r => r.json())
+    .then(data => {
+      refData = data;
+      refItems = flattenRefData(data);
+      buildRefCategories();
+      renderRefItems();
+    })
+    .catch(() => {
+      document.getElementById('ref-list').innerHTML = '<div class="ref-empty">FAILED TO LOAD REFERENCE DATA</div>';
+    });
+}
+
+function flattenRefData(data) {
+  const items = [];
+
+  // Sensors
+  if (data.sensors) {
+    Object.entries(data.sensors).forEach(([key, s]) => {
+      if (key === '_description') return;
+      items.push({
+        category: 'sensors',
+        catLabel: 'SENSORS',
+        id: key,
+        name: s.name || key,
+        fullName: s.full_name || '',
+        description: s.description || '',
+        unit: s.unit || '',
+        range: s.range || null,
+        subcat: s.category || '',
+        tips: s.tips || [],
+        type: 'sensor'
+      });
+    });
+  }
+
+  // Calibration Tables
+  if (data.calibration_tables) {
+    Object.entries(data.calibration_tables).forEach(([groupKey, group]) => {
+      if (groupKey === '_description' || typeof group !== 'object') return;
+      if (Array.isArray(group)) {
+        group.forEach(t => {
+          items.push({
+            category: 'tables',
+            catLabel: 'TABLES',
+            id: t.name || groupKey,
+            name: t.name || groupKey,
+            fullName: t.full_name || '',
+            description: t.description || '',
+            unit: t.unit || '',
+            subcat: groupKey,
+            tips: t.tips || [],
+            axes: t.axes || null,
+            type: 'table'
+          });
+        });
+      } else if (group.tables) {
+        group.tables.forEach(t => {
+          items.push({
+            category: 'tables',
+            catLabel: 'TABLES',
+            id: t.name || groupKey,
+            name: t.name || groupKey,
+            fullName: t.full_name || '',
+            description: t.description || '',
+            unit: t.unit || '',
+            subcat: groupKey,
+            tips: t.tips || [],
+            axes: t.axes || null,
+            type: 'table'
+          });
+        });
+      }
+    });
+  }
+
+  // Parameters
+  if (data.parameters) {
+    Object.entries(data.parameters).forEach(([groupKey, group]) => {
+      if (groupKey === '_description' || typeof group !== 'object') return;
+      const paramList = group.parameters || group.items || group;
+      if (Array.isArray(paramList)) {
+        paramList.forEach(p => {
+          items.push({
+            category: 'parameters',
+            catLabel: 'PARAMETERS',
+            id: p.name || groupKey,
+            name: p.name || groupKey,
+            fullName: p.full_name || '',
+            description: p.description || '',
+            unit: p.unit || '',
+            options: p.options || null,
+            subcat: groupKey,
+            tips: p.tips || p.warnings || [],
+            type: 'parameter'
+          });
+        });
+      } else if (typeof paramList === 'object' && !Array.isArray(paramList)) {
+        // It's a nested object with description/items
+        const desc = group.description || '';
+        const subItems = group.parameters || group.items || [];
+        if (Array.isArray(subItems) && subItems.length > 0) {
+          subItems.forEach(p => {
+            items.push({
+              category: 'parameters',
+              catLabel: 'PARAMETERS',
+              id: p.name || groupKey,
+              name: p.name || groupKey,
+              fullName: p.full_name || '',
+              description: p.description || desc,
+              unit: p.unit || '',
+              subcat: groupKey,
+              tips: p.tips || p.warnings || [],
+              type: 'parameter'
+            });
+          });
+        } else {
+          // Just add the group itself as a single entry
+          items.push({
+            category: 'parameters',
+            catLabel: 'PARAMETERS',
+            id: groupKey,
+            name: groupKey.replace(/_/g, ' ').toUpperCase(),
+            fullName: '',
+            description: desc,
+            unit: '',
+            subcat: groupKey,
+            tips: group.tips || [],
+            children: group,
+            type: 'param_group'
+          });
+        }
+      }
+    });
+  }
+
+  // Tuning Guides
+  if (data.tuning_guides) {
+    Object.entries(data.tuning_guides).forEach(([key, guide]) => {
+      if (key === '_description') return;
+      items.push({
+        category: 'tuning',
+        catLabel: 'TUNING GUIDES',
+        id: key,
+        name: guide.title || key.replace(/_/g, ' ').toUpperCase(),
+        fullName: '',
+        description: guide.description || '',
+        steps: guide.steps || guide.procedure || [],
+        tips: guide.tips || guide.warnings || [],
+        type: 'guide'
+      });
+    });
+  }
+
+  // Vehicle Notes
+  if (data.vehicle_notes) {
+    Object.entries(data.vehicle_notes).forEach(([key, note]) => {
+      if (key === '_description') return;
+      items.push({
+        category: 'vehicles',
+        catLabel: 'VEHICLES',
+        id: key,
+        name: note.name || note.title || key.replace(/_/g, ' ').toUpperCase(),
+        fullName: note.years || '',
+        description: note.description || note.notes || '',
+        tips: note.tips || [],
+        features: note.features || note.ecus || null,
+        type: 'vehicle'
+      });
+    });
+  }
+
+  // Bluetooth
+  if (data.bluetooth) {
+    Object.entries(data.bluetooth).forEach(([key, val]) => {
+      if (key === '_description' || typeof val !== 'object') return;
+      const desc = typeof val === 'string' ? val : (val.description || JSON.stringify(val));
+      items.push({
+        category: 'bluetooth',
+        catLabel: 'BLUETOOTH',
+        id: key,
+        name: key.replace(/_/g, ' ').toUpperCase(),
+        fullName: '',
+        description: typeof val === 'object' ? (val.description || '') : String(val),
+        tips: val.tips || [],
+        children: typeof val === 'object' ? val : null,
+        type: 'feature'
+      });
+    });
+  }
+
+  // Datalogging
+  if (data.datalogging) {
+    Object.entries(data.datalogging).forEach(([key, val]) => {
+      if (key === '_description' || typeof val !== 'object') return;
+      items.push({
+        category: 'datalogging',
+        catLabel: 'DATALOGGING',
+        id: key,
+        name: key.replace(/_/g, ' ').toUpperCase(),
+        fullName: '',
+        description: typeof val === 'object' ? (val.description || '') : String(val),
+        tips: val.tips || [],
+        children: typeof val === 'object' ? val : null,
+        type: 'feature'
+      });
+    });
+  }
+
+  // Error Codes
+  if (data.error_codes) {
+    Object.entries(data.error_codes).forEach(([key, val]) => {
+      if (key === '_description' || typeof val !== 'object') return;
+      items.push({
+        category: 'error_codes',
+        catLabel: 'ERROR CODES',
+        id: key,
+        name: key.replace(/_/g, ' ').toUpperCase(),
+        fullName: '',
+        description: typeof val === 'object' ? (val.description || '') : String(val),
+        tips: val.tips || [],
+        children: typeof val === 'object' ? val : null,
+        type: 'feature'
+      });
+    });
+  }
+
+  // Traction Control
+  if (data.traction_control) {
+    Object.entries(data.traction_control).forEach(([key, val]) => {
+      if (key === '_description' || typeof val !== 'object') return;
+      items.push({
+        category: 'traction',
+        catLabel: 'TRACTION CTRL',
+        id: key,
+        name: key.replace(/_/g, ' ').toUpperCase(),
+        fullName: '',
+        description: typeof val === 'object' ? (val.description || '') : String(val),
+        tips: val.tips || [],
+        children: typeof val === 'object' ? val : null,
+        type: 'feature'
+      });
+    });
+  }
+
+  // Features
+  if (data.features) {
+    Object.entries(data.features).forEach(([key, val]) => {
+      if (key === '_description' || typeof val !== 'object') return;
+      items.push({
+        category: 'features',
+        catLabel: 'FEATURES',
+        id: key,
+        name: key.replace(/_/g, ' ').toUpperCase(),
+        fullName: '',
+        description: typeof val === 'object' ? (val.description || '') : String(val),
+        tips: val.tips || [],
+        children: typeof val === 'object' ? val : null,
+        type: 'feature'
+      });
+    });
+  }
+
+  return items;
+}
+
+function buildRefCategories() {
+  const bar = document.getElementById('ref-cat-bar');
+  const cats = {};
+  refItems.forEach(item => {
+    if (!cats[item.category]) cats[item.category] = { label: item.catLabel, count: 0 };
+    cats[item.category].count++;
+  });
+
+  let html = '<button class="ref-cat-btn active" onclick="setRefCategory(\'all\',this)">ALL<span class="ref-cat-count">' + refItems.length + '</span></button>';
+  Object.entries(cats).forEach(([key, c]) => {
+    html += '<button class="ref-cat-btn" onclick="setRefCategory(\'' + key + '\',this)">' + c.label + '<span class="ref-cat-count">' + c.count + '</span></button>';
+  });
+  bar.innerHTML = html;
+}
+
+function setRefCategory(cat, btn) {
+  refCategory = cat;
+  document.querySelectorAll('.ref-cat-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderRefItems();
+}
+
+function filterReference() {
+  renderRefItems();
+}
+
+function renderRefItems() {
+  const query = (document.getElementById('ref-search').value || '').toLowerCase().trim();
+  const list = document.getElementById('ref-list');
+  const countEl = document.getElementById('ref-results-count');
+
+  let filtered = refItems;
+
+  // Category filter
+  if (refCategory !== 'all') {
+    filtered = filtered.filter(item => item.category === refCategory);
+  }
+
+  // Search filter
+  if (query) {
+    filtered = filtered.filter(item => {
+      const searchText = [item.name, item.fullName, item.description, item.subcat || '', ...(item.tips || [])].join(' ').toLowerCase();
+      return query.split(/\s+/).every(word => searchText.includes(word));
+    });
+  }
+
+  countEl.textContent = filtered.length + ' RESULT' + (filtered.length !== 1 ? 'S' : '');
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="ref-empty">NO RESULTS FOUND</div>';
+    return;
+  }
+
+  // Limit to 50 for performance
+  const display = filtered.slice(0, 50);
+  let html = '';
+
+  display.forEach((item, idx) => {
+    html += '<div class="ref-card" id="ref-card-' + idx + '" onclick="toggleRefCard(' + idx + ')">';
+    html += '<div class="ref-card-head">';
+    html += '<span class="ref-card-name">' + esc(item.name) + '</span>';
+    if (item.fullName) html += '<span class="ref-card-full">' + esc(item.fullName) + '</span>';
+    html += '<div class="ref-card-pills">';
+    html += '<span class="pill pill-dim">' + esc(item.catLabel) + '</span>';
+    if (item.unit) html += '<span class="pill pill-blue">' + esc(item.unit) + '</span>';
+    if (item.subcat) html += '<span class="pill pill-dim">' + esc(item.subcat) + '</span>';
+    html += '</div></div>';
+
+    // Expandable body
+    html += '<div class="ref-card-body">';
+    if (item.description) {
+      html += '<div class="ref-card-desc">' + esc(item.description) + '</div>';
+    }
+
+    if (item.range) {
+      html += '<div class="ref-card-detail"><span class="ref-card-detail-label">RANGE</span><span class="ref-card-detail-val">' + item.range[0] + ' — ' + item.range[1] + (item.unit ? ' ' + esc(item.unit) : '') + '</span></div>';
+    }
+
+    if (item.axes) {
+      html += '<div class="ref-card-detail"><span class="ref-card-detail-label">X AXIS</span><span class="ref-card-detail-val">' + esc(item.axes.x || '') + '</span></div>';
+      html += '<div class="ref-card-detail"><span class="ref-card-detail-label">Y AXIS</span><span class="ref-card-detail-val">' + esc(item.axes.y || '') + '</span></div>';
+    }
+
+    if (item.options && Array.isArray(item.options)) {
+      html += '<div class="ref-card-detail"><span class="ref-card-detail-label">OPTIONS</span><span class="ref-card-detail-val">' + item.options.map(o => esc(String(o))).join(', ') + '</span></div>';
+    }
+
+    // Steps (for tuning guides)
+    if (item.steps && Array.isArray(item.steps) && item.steps.length > 0) {
+      html += '<div class="ref-card-items">';
+      item.steps.forEach((step, si) => {
+        html += '<div class="ref-card-item"><span style="color:#cc2200;">' + (si + 1) + '.</span> ' + esc(String(step)) + '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Features (for vehicle notes)
+    if (item.features && typeof item.features === 'object') {
+      html += '<div class="ref-card-items">';
+      if (Array.isArray(item.features)) {
+        item.features.forEach(f => {
+          html += '<div class="ref-card-item">' + esc(String(f)) + '</div>';
+        });
+      } else {
+        Object.entries(item.features).forEach(([k, v]) => {
+          html += '<div class="ref-card-item"><span class="ref-card-item-name">' + esc(k) + ':</span> ' + esc(String(v)) + '</div>';
+        });
+      }
+      html += '</div>';
+    }
+
+    // Children (nested object data)
+    if (item.children && typeof item.children === 'object' && !Array.isArray(item.children)) {
+      html += '<div class="ref-card-items">';
+      Object.entries(item.children).forEach(([k, v]) => {
+        if (k === 'description' || k === 'tips' || k === 'warnings') return;
+        const val = typeof v === 'object' ? JSON.stringify(v) : String(v);
+        if (val.length < 200) {
+          html += '<div class="ref-card-item"><span class="ref-card-item-name">' + esc(k.replace(/_/g, ' ')) + ':</span> ' + esc(val) + '</div>';
+        }
+      });
+      html += '</div>';
+    }
+
+    // Tips
+    if (item.tips && item.tips.length > 0) {
+      item.tips.forEach(tip => {
+        html += '<div class="ref-card-tip">' + esc(String(tip)) + '</div>';
+      });
+    }
+
+    html += '</div></div>';
+  });
+
+  if (filtered.length > 50) {
+    html += '<div class="ref-empty" style="padding:20px;">SHOWING 50 OF ' + filtered.length + ' RESULTS — REFINE YOUR SEARCH</div>';
+  }
+
+  list.innerHTML = html;
+}
+
+function toggleRefCard(idx) {
+  const card = document.getElementById('ref-card-' + idx);
+  if (card) card.classList.toggle('expanded');
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Load reference data on startup
+loadReference();
 </script>
 </body>
 </html>

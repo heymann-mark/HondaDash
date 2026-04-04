@@ -7,6 +7,7 @@
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.17.0/mapbox-gl.js"></script>
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <script src="config.js"></script>
+<script src="demo-routes.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap');
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -71,6 +72,118 @@ html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Nunito',sa
 .ctrl-btn.active { background:#33b5e5; color:white; }
 
 .mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib { display:none !important; }
+
+/* ===== TRIP LOGBOOK ===== */
+.trip-toggle {
+  position:fixed; bottom:24px; right:80px; z-index:20;
+  width:48px; height:48px; background:white;
+  border-radius:50%; box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.trip-toggle:hover { background:#f0f0f0; }
+.trip-toggle.active { background:#33b5e5; }
+.trip-toggle svg { width:20px; height:20px; fill:#666; }
+.trip-toggle.active svg { fill:white; }
+
+.trip-panel {
+  position:fixed; inset:0; z-index:25;
+  background:white;
+  transform:translateX(100%); transition:transform 0.3s ease;
+  overflow:hidden; display:flex; flex-direction:column;
+}
+.trip-panel.open { transform:translateX(0); }
+
+.tp-header { display:flex; align-items:center; gap:12px; padding:16px; flex-shrink:0; border-bottom:1px solid #eee; }
+.tp-back {
+  width:36px; height:36px; background:#f0f0f0; border-radius:50%; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.tp-back:hover { background:#e0e0e0; }
+.tp-back svg { width:18px; height:18px; fill:#333; }
+.tp-title { font-family:'Nunito',sans-serif; font-size:17px; font-weight:800; color:#333; flex:1; }
+.tp-status { font-family:'Nunito',sans-serif; font-size:10px; font-weight:700; color:#999; padding:3px 10px; background:#f0f0f0; border-radius:10px; }
+.tp-status.recording { color:white; background:#4caf50; animation:tpblink 1.2s ease-in-out infinite; }
+@keyframes tpblink{0%,100%{opacity:1;}50%{opacity:0.6;}}
+
+.tp-current { padding:0 16px 12px; border-bottom:1px solid #eee; display:none; flex-shrink:0; }
+.tp-current.show { display:block; }
+.tp-cur-stats { display:flex; gap:16px; flex-wrap:wrap; }
+.tp-cur-val { font-family:'Nunito',sans-serif; font-size:20px; font-weight:800; color:#33b5e5; line-height:1; }
+.tp-cur-unit { font-size:9px; color:#999; font-weight:700; margin-top:2px; }
+
+.tp-list { flex:1; overflow-y:auto; padding:8px 16px; }
+
+.tp-card {
+  background:#f8f8f8; border-radius:12px;
+  margin-bottom:10px; cursor:pointer; transition:background 0.15s;
+  overflow:hidden;
+}
+.tp-card:hover { background:#f0f0f0; }
+.tp-card-map { width:100%; height:140px; position:relative; background:#e8e8e8; }
+.tp-card-map-el { width:100%; height:100%; }
+.tp-card-body { padding:12px 14px; }
+.tp-card-top { display:flex; justify-content:space-between; align-items:baseline; }
+.tp-card-dist { font-family:'Nunito',sans-serif; font-size:18px; font-weight:800; color:#333; }
+.tp-card-dist span { font-size:11px; color:#999; font-weight:600; }
+.tp-card-date { font-size:11px; color:#999; font-weight:600; }
+.tp-card-stats { display:flex; gap:10px; margin-top:6px; flex-wrap:wrap; }
+.tp-card-stat { font-size:11px; color:#999; font-weight:600; }
+.tp-card-stat b { color:#555; font-weight:700; }
+
+.tp-empty { text-align:center; padding:40px 20px; color:#bbb; font-size:13px; font-weight:600; }
+
+.tp-actions { display:flex; gap:8px; padding:10px 16px; border-top:1px solid #eee; flex-shrink:0; }
+.tp-btn {
+  flex:1; background:#f0f0f0; border:none; border-radius:10px;
+  font-family:'Nunito',sans-serif; font-size:11px; font-weight:700;
+  color:#666; padding:10px; cursor:pointer; transition:all 0.15s; text-align:center;
+}
+.tp-btn:hover { background:#33b5e5; color:white; }
+
+/* Trip Detail View */
+.trip-detail {
+  position:fixed; inset:0; z-index:30;
+  background:white; transform:translateX(100%); transition:transform 0.3s ease;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.trip-detail.open { transform:translateX(0); }
+
+.td-map { flex:1; min-height:0; position:relative; }
+.td-map-el { width:100%; height:100%; }
+
+.td-back {
+  position:absolute; top:16px; left:16px; z-index:5;
+  width:40px; height:40px; background:white; border-radius:50%;
+  box-shadow:0 2px 8px rgba(0,0,0,0.2); border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.td-back svg { width:20px; height:20px; fill:#333; }
+.td-back:hover { background:#f0f0f0; }
+
+.td-card {
+  background:white; border-radius:20px 20px 0 0;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.15);
+  padding:20px; margin-top:-16px; position:relative; z-index:2;
+  overflow-y:auto; max-height:40vh;
+}
+.td-date { font-family:'Nunito',sans-serif; font-size:12px; font-weight:700; color:#999; margin-bottom:4px; }
+.td-dist { font-family:'Nunito',sans-serif; font-size:32px; font-weight:800; color:#333; line-height:1; }
+.td-dist span { font-size:14px; color:#999; font-weight:600; }
+.td-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:16px; }
+.td-stat { background:#f8f8f8; border-radius:12px; padding:12px; text-align:center; }
+.td-stat-val { font-family:'Nunito',sans-serif; font-size:22px; font-weight:800; color:#33b5e5; line-height:1; }
+.td-stat-lbl { font-size:10px; color:#999; font-weight:700; margin-top:4px; }
+.td-section { margin-top:16px; }
+.td-sec-title { font-family:'Nunito',sans-serif; font-size:11px; font-weight:800; color:#ccc; letter-spacing:1px; margin-bottom:8px; }
+
+.td-graph { background:#f8f8f8; border-radius:12px; padding:12px; margin-bottom:8px; }
+.td-graph-title { font-family:'Nunito',sans-serif; font-size:10px; font-weight:800; color:#999; letter-spacing:1px; margin-bottom:6px; display:flex; justify-content:space-between; }
+.td-graph-title span { color:#33b5e5; }
+.td-graph canvas { width:100%; height:80px; display:block; border-radius:6px; }
+.td-fuel { display:flex; gap:12px; margin-top:12px; }
+.td-fuel-stat { flex:1; background:#f8f8f8; border-radius:12px; padding:12px; text-align:center; }
+.td-fuel-val { font-family:'Nunito',sans-serif; font-size:20px; font-weight:800; color:#4caf50; }
+.td-fuel-lbl { font-size:10px; color:#999; font-weight:700; margin-top:2px; }
 </style>
 </head>
 <body>
@@ -99,6 +212,49 @@ html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Nunito',sa
   <button class="ctrl-btn active" id="btn-drive" onclick="toggleDrive()">DRIVE</button>
   <button class="ctrl-btn" onclick="resetRoute()">RESET</button>
   <button class="ctrl-btn" id="btn-brake" onpointerdown="setBrake(true)" onpointerup="setBrake(false)">BRAKE</button>
+</div>
+
+<!-- Trip Logbook Toggle -->
+<button class="trip-toggle" id="trip-toggle" onclick="toggleTripPanel()">
+  <svg viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
+</button>
+
+<!-- Trip Logbook Panel -->
+<div class="trip-panel" id="trip-panel">
+  <div class="tp-header">
+    <button class="tp-back" onclick="toggleTripPanel()">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </button>
+    <div class="tp-title">Trips</div>
+    <div class="tp-status" id="tp-status">STANDBY</div>
+  </div>
+  <div class="tp-current" id="tp-current">
+    <div class="tp-cur-stats">
+      <div><div class="tp-cur-val" id="tp-dist">0.0</div><div class="tp-cur-unit">MI</div></div>
+      <div><div class="tp-cur-val" id="tp-dur">0:00</div><div class="tp-cur-unit">TIME</div></div>
+      <div><div class="tp-cur-val" id="tp-spd">0</div><div class="tp-cur-unit">TOP MPH</div></div>
+      <div><div class="tp-cur-val" id="tp-rpm">0</div><div class="tp-cur-unit">MAX RPM</div></div>
+      <div><div class="tp-cur-val" id="tp-vtec">0</div><div class="tp-cur-unit">VTEC</div></div>
+    </div>
+  </div>
+  <div class="tp-list" id="tp-list">
+    <div class="tp-empty" id="tp-empty">No trips recorded yet.<br><span style="font-size:11px;color:#ccc;">Drive to start logging.</span></div>
+  </div>
+  <div class="tp-actions">
+    <div class="tp-btn" onclick="exportTrips()">Export CSV</div>
+    <div class="tp-btn" onclick="clearAllTrips()">Clear All</div>
+  </div>
+</div>
+
+<!-- Trip Detail View -->
+<div class="trip-detail" id="trip-detail">
+  <div class="td-map">
+    <button class="td-back" onclick="closeTripDetail()">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </button>
+    <div class="td-map-el" id="td-map"></div>
+  </div>
+  <div class="td-card" id="td-card"></div>
 </div>
 
 <button class="recenter-btn" onclick="recenterCam()">
@@ -509,6 +665,603 @@ function updatePosition(lng, lat, bearing, speed) {
   if (speed !== undefined) { currentSpeed = speed; }
   updateNavUI();
 }
+
+// ================================================================
+//  TRIP LOGBOOK
+// ================================================================
+const TRIP_KEY = 'hondadash_trips_v2';
+function loadTrips(){ try{ return JSON.parse(localStorage.getItem(TRIP_KEY)||'[]'); }catch(e){ return []; } }
+function saveTrips(t){ localStorage.setItem(TRIP_KEY, JSON.stringify(t)); }
+
+let tripPanelOpen = false;
+function toggleTripPanel(){
+  tripPanelOpen = !tripPanelOpen;
+  document.getElementById('trip-panel').classList.toggle('open', tripPanelOpen);
+  document.getElementById('trip-toggle').classList.toggle('active', tripPanelOpen);
+  if(tripPanelOpen) renderTripList();
+}
+
+const TST = {IDLE:'idle', RECORDING:'recording', PAUSED:'paused'};
+let tripState = TST.IDLE, curTrip = null, tripPauseTimer = null, tripAutoEnd = null, tripPathTimer = null;
+
+function newTrip(){
+  return { id:Date.now(), startTime:Date.now(), endTime:null, distance:0, duration:0,
+    topSpeed:0, avgSpeed:0, maxRPM:0, maxCoolant:0, vtecCount:0, vtecWasOn:false,
+    path:[], speedSamples:[], lastLat:null, lastLng:null, merged:false, mergedFrom:[],
+    datalog:[], fuelUsed:0, mpg:0, maxMAP:0, maxIAT:0, minAFR:20, maxIgnRetard:0, knockEvents:0 };
+}
+let datalogTimer = null;
+// Last sensor snapshot received from bridge
+let lastSensorData = {t:0,spd:0,rpm:0,map:0,afr:14.7,ign:0,iat:0,ect:0,tps:0,gear:0,vtec:0,knock:0,inj:0,duty:0,strim:0,ltrim:0};
+
+function startTrip(){
+  if(tripState===TST.RECORDING) return;
+  curTrip=newTrip(); tripState=TST.RECORDING; updateTripBadge();
+  document.getElementById('tp-current').classList.add('show');
+  tripPathTimer=setInterval(()=>{ if(curTrip&&tripState===TST.RECORDING&&curTrip.lastLat&&curTrip.lastLng) curTrip.path.push([curTrip.lastLng,curTrip.lastLat]); },5000);
+  // Datalog: capture sensor snapshot every 2 seconds
+  datalogTimer=setInterval(()=>{
+    if(!curTrip||tripState!==TST.RECORDING) return;
+    const elapsed=Math.round((Date.now()-curTrip.startTime)/1000);
+    curTrip.datalog.push({
+      t:elapsed,
+      spd:Math.round(lastSensorData.spd),
+      rpm:Math.round(lastSensorData.rpm),
+      map:Math.round(lastSensorData.map),
+      afr:Math.round(lastSensorData.afr*10)/10,
+      ign:Math.round(lastSensorData.ign*10)/10,
+      iat:Math.round(lastSensorData.iat),
+      ect:Math.round(lastSensorData.ect),
+      tps:Math.round(lastSensorData.tps),
+      gear:lastSensorData.gear,
+      vtec:lastSensorData.vtec?1:0,
+      knock:Math.round(lastSensorData.knock),
+      lat:curTrip.lastLat,
+      lng:curTrip.lastLng
+    });
+    // Keep datalog manageable — max ~1800 entries (1 hour at 2s intervals)
+    if(curTrip.datalog.length>1800) curTrip.datalog.shift();
+  },2000);
+}
+function pauseTrip(){ if(tripState!==TST.RECORDING)return; tripState=TST.PAUSED; updateTripBadge(); tripAutoEnd=setTimeout(()=>{if(tripState===TST.PAUSED)endTrip();},15*60*1000); }
+function resumeTrip(){ if(tripState!==TST.PAUSED)return; clearTimeout(tripAutoEnd); tripState=TST.RECORDING; updateTripBadge(); }
+function endTrip(){
+  if(!curTrip||tripState===TST.IDLE)return;
+  clearTimeout(tripPauseTimer);clearTimeout(tripAutoEnd);clearInterval(tripPathTimer);clearInterval(datalogTimer);
+  if(curTrip.lastLat&&curTrip.lastLng) curTrip.path.push([curTrip.lastLng,curTrip.lastLat]);
+  curTrip.endTime=Date.now(); curTrip.duration=Math.round((curTrip.endTime-curTrip.startTime)/1000);
+  if(curTrip.speedSamples.length>0) curTrip.avgSpeed=Math.round(curTrip.speedSamples.reduce((a,b)=>a+b,0)/curTrip.speedSamples.length);
+  // Calculate MPG estimate from datalog (distance / estimated fuel)
+  if(curTrip.distance>0.05 && curTrip.datalog.length>0){
+    // Rough fuel estimate: sum injector duty * RPM over time
+    let fuelEst=0;
+    curTrip.datalog.forEach(d=>{ fuelEst += (d.rpm||0) * ((d.tps||0)/100) * 0.000002; }); // rough gallons
+    curTrip.fuelUsed = Math.max(0.01, Math.round(fuelEst*100)/100);
+    curTrip.mpg = curTrip.fuelUsed>0 ? Math.round(curTrip.distance/curTrip.fuelUsed*10)/10 : 0;
+  }
+  if(curTrip.distance>0.05){const t=loadTrips();t.unshift(curTrip);saveTrips(t);}
+  curTrip=null;tripState=TST.IDLE;updateTripBadge();
+  document.getElementById('tp-current').classList.remove('show');
+  if(tripPanelOpen)renderTripList();
+}
+
+let tripStopCheck=null;
+// Extended bridge: accepts full sensor data object
+// Called as updateTripData(spd,rpm,clt,lat,lng) for backward compat
+// or updateTripData({spd,rpm,ect,lat,lng,map,afr,ign,iat,tps,gear,vtec,knock,inj,duty,strim,ltrim})
+window.updateTripData=function(a,b,c,d,e){
+  let speed,rpmVal,cltVal,latF,lngF;
+  if(typeof a==='object'){
+    const s=a;
+    speed=parseFloat(s.spd)||0; rpmVal=parseFloat(s.rpm)||0; cltVal=parseFloat(s.ect)||0;
+    latF=parseFloat(s.lat)||null; lngF=parseFloat(s.lng)||null;
+    lastSensorData.spd=speed; lastSensorData.rpm=rpmVal; lastSensorData.ect=cltVal;
+    lastSensorData.map=parseFloat(s.map)||0; lastSensorData.afr=parseFloat(s.afr)||14.7;
+    lastSensorData.ign=parseFloat(s.ign)||0; lastSensorData.iat=parseFloat(s.iat)||0;
+    lastSensorData.tps=parseFloat(s.tps)||0; lastSensorData.gear=parseInt(s.gear)||0;
+    lastSensorData.vtec=s.vtec?1:0; lastSensorData.knock=parseFloat(s.knock)||0;
+    lastSensorData.inj=parseFloat(s.inj)||0; lastSensorData.duty=parseFloat(s.duty)||0;
+    lastSensorData.strim=parseFloat(s.strim)||0; lastSensorData.ltrim=parseFloat(s.ltrim)||0;
+  } else {
+    speed=parseFloat(a)||0; rpmVal=parseFloat(b)||0; cltVal=parseFloat(c)||0;
+    latF=parseFloat(d)||null; lngF=parseFloat(e)||null;
+    lastSensorData.spd=speed; lastSensorData.rpm=rpmVal; lastSensorData.ect=cltVal;
+  }
+  if(speed>5&&tripState===TST.IDLE){if(!tripStopCheck)tripStopCheck=setTimeout(()=>{if(lastSensorData.spd>5)startTrip();tripStopCheck=null;},10000);}
+  else if(speed<=3&&tripState===TST.IDLE){clearTimeout(tripStopCheck);tripStopCheck=null;}
+  if(tripState===TST.RECORDING){
+    if(rpmVal>curTrip.maxRPM)curTrip.maxRPM=Math.round(rpmVal);
+    if(cltVal>curTrip.maxCoolant)curTrip.maxCoolant=Math.round(cltVal);
+    if(speed>curTrip.topSpeed)curTrip.topSpeed=Math.round(speed);
+    if(speed>0)curTrip.speedSamples.push(speed);
+    if(lastSensorData.map>curTrip.maxMAP)curTrip.maxMAP=Math.round(lastSensorData.map);
+    if(lastSensorData.iat>curTrip.maxIAT)curTrip.maxIAT=Math.round(lastSensorData.iat);
+    if(lastSensorData.afr<curTrip.minAFR&&lastSensorData.afr>8)curTrip.minAFR=Math.round(lastSensorData.afr*10)/10;
+    if(lastSensorData.knock>0)curTrip.knockEvents++;
+    const vtecOn=rpmVal>=5800;if(vtecOn&&!curTrip.vtecWasOn)curTrip.vtecCount++;curTrip.vtecWasOn=vtecOn;
+    if(latF&&lngF&&curTrip.lastLat&&curTrip.lastLng){const R=3958.8,dLat=(latF-curTrip.lastLat)*Math.PI/180,dLon=(lngF-curTrip.lastLng)*Math.PI/180;const a2=Math.sin(dLat/2)**2+Math.cos(curTrip.lastLat*Math.PI/180)*Math.cos(latF*Math.PI/180)*Math.sin(dLon/2)**2;curTrip.distance+=R*2*Math.atan2(Math.sqrt(a2),Math.sqrt(1-a2));}
+    if(latF)curTrip.lastLat=latF;if(lngF)curTrip.lastLng=lngF;
+    if(speed<3){if(!tripPauseTimer)tripPauseTimer=setTimeout(()=>{pauseTrip();tripPauseTimer=null;},2*60*1000);}else{clearTimeout(tripPauseTimer);tripPauseTimer=null;}
+    updateTripCurrentUI();
+  }else if(tripState===TST.PAUSED&&speed>5){resumeTrip();}
+};
+
+function updateTripBadge(){
+  const el=document.getElementById('tp-status');el.className='tp-status';
+  if(tripState===TST.RECORDING){el.classList.add('recording');el.textContent='REC';}
+  else if(tripState===TST.PAUSED)el.textContent='PAUSED';
+  else el.textContent='STANDBY';
+}
+function updateTripCurrentUI(){
+  if(!curTrip)return;const dur=Math.round((Date.now()-curTrip.startTime)/1000),m=Math.floor(dur/60),s=dur%60;
+  document.getElementById('tp-dist').textContent=curTrip.distance.toFixed(1);
+  document.getElementById('tp-dur').textContent=m+':'+(s<10?'0':'')+s;
+  document.getElementById('tp-spd').textContent=curTrip.topSpeed||0;
+  document.getElementById('tp-rpm').textContent=curTrip.maxRPM||0;
+  document.getElementById('tp-vtec').textContent=curTrip.vtecCount||0;
+}
+setInterval(()=>{if(tripState!==TST.IDLE)updateTripCurrentUI();},1000);
+
+let thumbMaps=[];
+function renderTripList(){
+  const trips=loadTrips(),list=document.getElementById('tp-list'),empty=document.getElementById('tp-empty');
+  // Clean up old thumbnail maps
+  thumbMaps.forEach(m=>{try{m.remove();}catch(e){}});
+  thumbMaps=[];
+  list.querySelectorAll('.tp-card').forEach(c=>c.remove());
+  if(!trips.length){empty.style.display='block';return;}
+  empty.style.display='none';
+  trips.forEach((trip,idx)=>{
+    const d=new Date(trip.startTime),dateStr=d.toLocaleDateString('en-US',{month:'short',day:'numeric'}),timeStr=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    const dur=trip.duration||0,durStr=dur>=3600?Math.floor(dur/3600)+'h '+Math.floor((dur%3600)/60)+'m':Math.floor(dur/60)+':'+String(dur%60).padStart(2,'0');
+    const card=document.createElement('div');card.className='tp-card';
+    const mapId='tp-thumb-'+trip.id;
+    const hasPath=trip.path&&trip.path.length>=2;
+    card.innerHTML=
+      '<div class="tp-card-map" id="'+mapId+'">'+(hasPath?'':'<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#bbb;font-size:12px;font-weight:600;">No GPS data</div>')+'</div>'+
+      '<div class="tp-card-body"><div class="tp-card-top"><div class="tp-card-dist">'+trip.distance.toFixed(1)+'<span> MI</span></div><div class="tp-card-date">'+dateStr+' '+timeStr+'</div></div><div class="tp-card-stats"><div class="tp-card-stat">'+durStr+'</div><div class="tp-card-stat">Top <b>'+trip.topSpeed+'mph</b></div><div class="tp-card-stat">RPM <b>'+trip.maxRPM+'</b></div>'+(trip.vtecCount?'<div class="tp-card-stat">VTEC <b>'+trip.vtecCount+'x</b></div>':'')+'</div></div>';
+    card.onclick = function(){ openTripDetail(trip); };
+    list.appendChild(card);
+
+    // Render thumbnail map
+    if(hasPath){
+      setTimeout(()=>{
+        const el=document.getElementById(mapId);
+        if(!el) return;
+        try{
+          const tm=new mapboxgl.Map({
+            container:mapId,
+            style:'mapbox://styles/mapbox/dark-v11',
+            interactive:false,
+            attributionControl:false,
+          });
+          thumbMaps.push(tm);
+          tm.on('load',()=>{
+            tm.addSource('r-'+trip.id,{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:trip.path}}});
+            // Glow
+            tm.addLayer({id:'g-'+trip.id,type:'line',source:'r-'+trip.id,layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#33b5e5','line-width':6,'line-opacity':0.25,'line-blur':4}});
+            // Route line
+            tm.addLayer({id:'l-'+trip.id,type:'line',source:'r-'+trip.id,layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#33b5e5','line-width':3,'line-opacity':0.9}});
+            // Start dot
+            const startEl=document.createElement('div');
+            startEl.style.cssText='width:10px;height:10px;border-radius:50%;background:#4caf50;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);';
+            new mapboxgl.Marker({element:startEl}).setLngLat(trip.path[0]).addTo(tm);
+            // End dot
+            const endEl=document.createElement('div');
+            endEl.style.cssText='width:10px;height:10px;border-radius:50%;background:#f44336;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);';
+            new mapboxgl.Marker({element:endEl}).setLngLat(trip.path[trip.path.length-1]).addTo(tm);
+            // Fit
+            const bounds=trip.path.reduce((b,c)=>b.extend(c),new mapboxgl.LngLatBounds(trip.path[0],trip.path[0]));
+            tm.fitBounds(bounds,{padding:20,animate:false});
+          });
+        }catch(e){ console.log('Thumb error:',e); }
+      },100+idx*80);
+    }
+  });
+}
+function exportTrips(){
+  const trips=loadTrips();if(!trips.length)return;
+  const csv=['Date,Time,Miles,Duration,Top MPH,Avg MPH,Max RPM,VTEC Count,Max Coolant F'];
+  trips.forEach(t=>{const d=new Date(t.startTime),dur=t.duration||0;csv.push([d.toLocaleDateString(),d.toLocaleTimeString(),t.distance.toFixed(2),Math.floor(dur/60)+':'+(dur%60<10?'0':'')+(dur%60),t.topSpeed,t.avgSpeed,t.maxRPM,t.vtecCount,t.maxCoolant].join(','));});
+  const blob=new Blob([csv.join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='civic_trips.csv';a.click();
+}
+function clearAllTrips(){if(!confirm('Delete all trip history?'))return;saveTrips([]);renderTripList();}
+
+function spdToColor(spd){
+  // White (stopped) → bright red (fast) — impossible to miss
+  if(spd<5) return '#ffffff';
+  if(spd<15) return '#ffcccc';
+  if(spd<25) return '#ff9999';
+  if(spd<35) return '#ff6666';
+  if(spd<45) return '#ff4444';
+  if(spd<55) return '#ff2222';
+  if(spd<65) return '#ee0000';
+  if(spd<80) return '#cc0000';
+  return '#990000';
+}
+
+let detailMap = null;
+function openTripDetail(trip){
+  const d=new Date(trip.startTime);
+  const dateStr=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const timeStr=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  const dur=trip.duration||0;
+  const durStr=dur>=3600?Math.floor(dur/3600)+'h '+Math.floor((dur%3600)/60)+'m':Math.floor(dur/60)+':'+String(dur%60).padStart(2,'0');
+  const endStr=trip.endTime?new Date(trip.endTime).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'--';
+
+  const hasDatalog = trip.datalog && trip.datalog.length > 2;
+  const mpgStr = trip.mpg ? trip.mpg.toFixed(1) : '--';
+  const fuelStr = trip.fuelUsed ? trip.fuelUsed.toFixed(2) : '--';
+
+  let html =
+    '<div class="td-date">'+dateStr+' &middot; '+timeStr+' — '+endStr+'</div>'+
+    '<div class="td-dist">'+trip.distance.toFixed(1)+'<span> miles</span></div>'+
+    '<div class="td-grid">'+
+      '<div class="td-stat"><div class="td-stat-val">'+durStr+'</div><div class="td-stat-lbl">DURATION</div></div>'+
+      '<div class="td-stat"><div class="td-stat-val">'+trip.topSpeed+'</div><div class="td-stat-lbl">TOP MPH</div></div>'+
+      '<div class="td-stat"><div class="td-stat-val">'+trip.avgSpeed+'</div><div class="td-stat-lbl">AVG MPH</div></div>'+
+    '</div>';
+
+  // Fuel economy section
+  html += '<div class="td-fuel">'+
+    '<div class="td-fuel-stat"><div class="td-fuel-val">'+mpgStr+'</div><div class="td-fuel-lbl">AVG MPG</div></div>'+
+    '<div class="td-fuel-stat"><div class="td-fuel-val">'+fuelStr+'</div><div class="td-fuel-lbl">GAL USED</div></div>'+
+  '</div>';
+
+  // Performance stats
+  html += '<div class="td-section"><div class="td-sec-title">PERFORMANCE</div><div class="td-grid">'+
+    '<div class="td-stat"><div class="td-stat-val">'+trip.maxRPM+'</div><div class="td-stat-lbl">MAX RPM</div></div>'+
+    '<div class="td-stat"><div class="td-stat-val">'+trip.vtecCount+'</div><div class="td-stat-lbl">VTEC HITS</div></div>'+
+    '<div class="td-stat"><div class="td-stat-val">'+(trip.maxCoolant||'--')+'</div><div class="td-stat-lbl">MAX ECT °F</div></div>'+
+  '</div><div class="td-grid" style="margin-top:8px;">'+
+    '<div class="td-stat"><div class="td-stat-val">'+(trip.maxMAP||'--')+'</div><div class="td-stat-lbl">MAX MAP kPa</div></div>'+
+    '<div class="td-stat"><div class="td-stat-val">'+(trip.minAFR<20?trip.minAFR:'--')+'</div><div class="td-stat-lbl">MIN AFR</div></div>'+
+    '<div class="td-stat"><div class="td-stat-val">'+(trip.knockEvents||'0')+'</div><div class="td-stat-lbl">KNOCK EVENTS</div></div>'+
+  '</div></div>';
+
+  // Datalog graphs
+  if(hasDatalog){
+    html += '<div class="td-section"><div class="td-sec-title">DATALOG</div>';
+    html += '<div class="td-graph"><div class="td-graph-title">SPEED (MPH) <span>'+trip.topSpeed+' max</span></div><canvas id="dl-speed" height="80"></canvas></div>';
+    html += '<div class="td-graph"><div class="td-graph-title">RPM <span>'+trip.maxRPM+' max</span></div><canvas id="dl-rpm" height="80"></canvas></div>';
+    html += '<div class="td-graph"><div class="td-graph-title">AFR <span>'+(trip.minAFR<20?trip.minAFR:'--')+' min</span></div><canvas id="dl-afr" height="80"></canvas></div>';
+    html += '<div class="td-graph"><div class="td-graph-title">COOLANT °F <span>'+(trip.maxCoolant||'--')+' max</span></div><canvas id="dl-ect" height="80"></canvas></div>';
+    html += '<div class="td-graph"><div class="td-graph-title">MAP (kPa) <span>'+(trip.maxMAP||'--')+' max</span></div><canvas id="dl-map" height="80"></canvas></div>';
+    html += '<div class="td-graph"><div class="td-graph-title">IGNITION (°BTDC)</div><canvas id="dl-ign" height="80"></canvas></div>';
+    html += '</div>';
+  }
+
+  document.getElementById('td-card').innerHTML = html;
+
+  // Render datalog graphs after DOM update
+  if(hasDatalog){
+    setTimeout(()=>{
+      drawTripGraph('dl-speed', trip.datalog, 'spd', '#33b5e5', 0, Math.max(trip.topSpeed*1.1,80));
+      drawTripGraph('dl-rpm', trip.datalog, 'rpm', '#ff6b35', 0, Math.max(trip.maxRPM*1.1,8500));
+      drawTripGraph('dl-afr', trip.datalog, 'afr', '#4caf50', 10, 18);
+      drawTripGraph('dl-ect', trip.datalog, 'ect', '#ff9800', 100, Math.max(trip.maxCoolant*1.05,230));
+      drawTripGraph('dl-map', trip.datalog, 'map', '#9c27b0', 0, Math.max((trip.maxMAP||100)*1.1,120));
+      drawTripGraph('dl-ign', trip.datalog, 'ign', '#00bcd4', -10, 50);
+    },50);
+  }
+
+  document.getElementById('trip-detail').classList.add('open');
+
+  // Build map after panel animates open
+  setTimeout(()=>{
+    if(detailMap){try{detailMap.remove();}catch(e){} detailMap=null;}
+    document.getElementById('td-map').innerHTML='';
+
+    detailMap = new mapboxgl.Map({
+      container:'td-map',
+      style:'mapbox://styles/mapbox/dark-v11',
+      attributionControl:false,
+      pitch:0,
+      antialias:true
+    });
+
+    detailMap.on('load',()=>{
+      if(trip.path && trip.path.length>=2){
+        // Snap GPS points to real roads via Mapbox Map Matching API
+        // Sample up to 25 points (API limit for directions), evenly spaced
+        var pts = trip.path;
+        var sampled = [];
+        var maxPts = Math.min(25, pts.length);
+        for(var i=0; i<maxPts; i++){
+          var idx = Math.round(i * (pts.length-1) / (maxPts-1));
+          sampled.push(pts[idx][0]+','+pts[idx][1]);
+        }
+        var dirUrl = 'https://api.mapbox.com/directions/v5/mapbox/driving/'+sampled.join(';')+'?geometries=geojson&overview=full&access_token='+mapboxgl.accessToken;
+
+        fetch(dirUrl).then(function(r){return r.json();}).then(function(data){
+          var routeCoords;
+          if(data.routes && data.routes[0] && data.routes[0].geometry){
+            routeCoords = data.routes[0].geometry.coordinates;
+          } else {
+            console.log('Directions API failed, using raw path. Response:', data);
+            routeCoords = trip.path;
+          }
+
+          // Build gradient from datalog speeds
+          var hasLog = trip.datalog && trip.datalog.length > 2;
+          var gradExpr;
+          if(hasLog){
+            var dlLen = trip.datalog.length;
+            var rawSpeeds = [];
+            for(var s=0; s<=20; s++){
+              var di = Math.min(dlLen-1, Math.round((s/20) * (dlLen-1)));
+              rawSpeeds.push(trip.datalog[di].spd||0);
+            }
+            // Smooth 3 passes
+            for(var pass=0; pass<3; pass++){
+              var sm = [rawSpeeds[0]];
+              for(var i=1; i<rawSpeeds.length-1; i++) sm.push((rawSpeeds[i-1]+rawSpeeds[i]+rawSpeeds[i+1])/3);
+              sm.push(rawSpeeds[rawSpeeds.length-1]);
+              rawSpeeds = sm;
+            }
+            var stops = [];
+            for(var s=0; s<=20; s++) stops.push(s/20, spdToColor(rawSpeeds[s]));
+            gradExpr = ['interpolate',['linear'],['line-progress']].concat(stops);
+          } else {
+            gradExpr = ['interpolate',['linear'],['line-progress'],0,'#ff8833',1,'#ffcc22'];
+          }
+
+          detailMap.addSource('trip-route',{
+            type:'geojson',
+            lineMetrics: true,
+            data:{type:'Feature', geometry:{type:'LineString', coordinates:routeCoords}}
+          });
+
+          // White glow border — scales with zoom to match road width
+          detailMap.addLayer({id:'trip-border',type:'line',source:'trip-route',
+            layout:{'line-join':'round','line-cap':'round'},
+            paint:{
+              'line-color':'#ffffff',
+              'line-width':['interpolate',['exponential',1.5],['zoom'], 10,6, 13,14, 15,28, 17,50, 19,90],
+              'line-opacity':0.25
+            }
+          });
+
+          // Main gradient line — matches road width at every zoom
+          detailMap.addLayer({id:'trip-line',type:'line',source:'trip-route',
+            layout:{'line-join':'round','line-cap':'round'},
+            paint:{
+              'line-gradient': gradExpr,
+              'line-width':['interpolate',['exponential',1.5],['zoom'], 10,4, 13,10, 15,22, 17,40, 19,75],
+              'line-opacity': 0.9
+            }
+          });
+
+          // Fit to the snapped route
+          var bounds = routeCoords.reduce(function(b,c){return b.extend(c);}, new mapboxgl.LngLatBounds(routeCoords[0],routeCoords[0]));
+          detailMap.fitBounds(bounds,{padding:50,pitch:45});
+
+        }).catch(function(err){
+          console.log('Route fetch error:', err);
+          // Fallback: raw path
+          detailMap.addSource('trip-route',{
+            type:'geojson', lineMetrics:true,
+            data:{type:'Feature', geometry:{type:'LineString', coordinates:trip.path}}
+          });
+          detailMap.addLayer({id:'trip-line',type:'line',source:'trip-route',
+            layout:{'line-join':'round','line-cap':'round'},
+            paint:{'line-color':'#ff8833','line-width':7,'line-opacity':1}
+          });
+          var bounds = trip.path.reduce(function(b,c){return b.extend(c);}, new mapboxgl.LngLatBounds(trip.path[0],trip.path[0]));
+          detailMap.fitBounds(bounds,{padding:50});
+        });
+
+        // Start marker (green)
+        const startEl=document.createElement('div');
+        startEl.style.cssText='width:16px;height:16px;border-radius:50%;background:#4caf50;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);';
+        new mapboxgl.Marker({element:startEl}).setLngLat(trip.path[0]).addTo(detailMap);
+
+        // End marker (red)
+        const endEl=document.createElement('div');
+        endEl.style.cssText='width:16px;height:16px;border-radius:50%;background:#f44336;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);';
+        new mapboxgl.Marker({element:endEl}).setLngLat(trip.path[trip.path.length-1]).addTo(detailMap);
+
+        // Initial fit while route loads
+        const bounds=trip.path.reduce((b,c)=>b.extend(c),new mapboxgl.LngLatBounds(trip.path[0],trip.path[0]));
+        detailMap.fitBounds(bounds,{padding:60,pitch:45});
+      } else {
+        detailMap.setCenter([-71.24,42.37]);
+        detailMap.setZoom(13);
+      }
+    });
+  },350);
+}
+
+function closeTripDetail(){
+  document.getElementById('trip-detail').classList.remove('open');
+  if(detailMap){try{detailMap.remove();}catch(e){} detailMap=null;}
+}
+
+function drawTripGraph(canvasId, datalog, key, color, minVal, maxVal){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas) return;
+  const dpr=window.devicePixelRatio||1;
+  const w=canvas.offsetWidth, h=canvas.offsetHeight;
+  canvas.width=w*dpr; canvas.height=h*dpr;
+  canvas.style.width=w+'px'; canvas.style.height=h+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+
+  const n=datalog.length;
+  if(n<2) return;
+  const pad={l:0,r:0,t:4,b:4};
+  const gw=w-pad.l-pad.r, gh=h-pad.t-pad.b;
+  const range=maxVal-minVal||1;
+
+  // Fill gradient
+  ctx.beginPath();
+  for(let i=0;i<n;i++){
+    const x=pad.l+(i/(n-1))*gw;
+    const v=datalog[i][key]||0;
+    const norm=Math.max(0,Math.min(1,(v-minVal)/range));
+    const y=pad.t+(1-norm)*gh;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.lineTo(pad.l+gw,pad.t+gh);
+  ctx.lineTo(pad.l,pad.t+gh);
+  ctx.closePath();
+  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+gh);
+  grad.addColorStop(0,color+'44');
+  grad.addColorStop(1,color+'05');
+  ctx.fillStyle=grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle=color;
+  ctx.lineWidth=1.5;
+  for(let i=0;i<n;i++){
+    const x=pad.l+(i/(n-1))*gw;
+    const v=datalog[i][key]||0;
+    const norm=Math.max(0,Math.min(1,(v-minVal)/range));
+    const y=pad.t+(1-norm)*gh;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // VTEC markers (yellow dots where VTEC engaged)
+  if(key==='rpm'){
+    ctx.fillStyle='#ffeb3b';
+    for(let i=0;i<n;i++){
+      if(datalog[i].vtec){
+        const x=pad.l+(i/(n-1))*gw;
+        const v=datalog[i][key]||0;
+        const norm=Math.max(0,Math.min(1,(v-minVal)/range));
+        const y=pad.t+(1-norm)*gh;
+        ctx.beginPath(); ctx.arc(x,y,2.5,0,Math.PI*2); ctx.fill();
+      }
+    }
+  }
+  // Knock markers (red dots)
+  if(key==='ign'){
+    ctx.fillStyle='#f44336';
+    for(let i=0;i<n;i++){
+      if(datalog[i].knock>0){
+        const x=pad.l+(i/(n-1))*gw;
+        const v=datalog[i][key]||0;
+        const norm=Math.max(0,Math.min(1,(v-minVal)/range));
+        const y=pad.t+(1-norm)*gh;
+        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+      }
+    }
+  }
+}
+
+// Routes loaded from demo-routes.js: ROUTE128_PATH, LOCAL_PATH, HIGHWAY_PATH
+
+// Generate datalog that matches path length and driving style
+function genDatalog(path, style){
+  const dl=[];
+  const n=path.length;
+  let curSpd=0, curRPM=850, curECT=170;
+
+  for(let i=0;i<n;i++){
+    const pct=i/n; // progress 0-1
+    let targetSpd, targetRPM;
+
+    if(style==='epic'){
+      // Epic 90mi loop: local → 128 ramp → highway ripping → back roads → highway home
+      if(pct<0.02){ targetSpd=0; targetRPM=850; }                          // start cold
+      else if(pct<0.05){ targetSpd=25; targetRPM=2200; }                   // neighborhood
+      else if(pct<0.08){ targetSpd=35; targetRPM=2800; }                   // main road
+      else if(pct<0.10){ targetSpd=50; targetRPM=4200; }                   // on-ramp, accelerating hard
+      else if(pct<0.12){ targetSpd=70; targetRPM=6200; }                   // merging, VTEC
+      else if(pct<0.20){ targetSpd=75; targetRPM=3400; }                   // 128 south cruising
+      else if(pct<0.22){ targetSpd=85; targetRPM=7200; }                   // pull in 4th, redline
+      else if(pct<0.25){ targetSpd=92; targetRPM=7800; }                   // 6th gear screaming
+      else if(pct<0.30){ targetSpd=78; targetRPM=3600; }                   // back off
+      else if(pct<0.35){ targetSpd=72; targetRPM=3300; }                   // cruising 128
+      else if(pct<0.38){ targetSpd=88; targetRPM=7400; }                   // another pull
+      else if(pct<0.42){ targetSpd=70; targetRPM=3200; }                   // settle
+      else if(pct<0.48){ targetSpd=65; targetRPM=3000; }                   // 93 south
+      else if(pct<0.52){ targetSpd=40; targetRPM=2600; }                   // exit ramp
+      else if(pct<0.55){ targetSpd=15; targetRPM=1400; }                   // stop light
+      else if(pct<0.58){ targetSpd=35; targetRPM=2400; }                   // back roads
+      else if(pct<0.62){ targetSpd=45; targetRPM=3000; }                   // country road
+      else if(pct<0.65){ targetSpd=25; targetRPM=1800; }                   // town center
+      else if(pct<0.68){ targetSpd=50; targetRPM=4500; }                   // getting back on highway
+      else if(pct<0.72){ targetSpd=70; targetRPM=6000; }                   // route 3 north
+      else if(pct<0.78){ targetSpd=75; targetRPM=3400; }                   // cruising
+      else if(pct<0.82){ targetSpd=80; targetRPM=7000; }                   // pull
+      else if(pct<0.88){ targetSpd=72; targetRPM=3300; }                   // 128 north
+      else if(pct<0.92){ targetSpd=55; targetRPM=2800; }                   // exit
+      else if(pct<0.96){ targetSpd=30; targetRPM=2000; }                   // local streets
+      else { targetSpd=Math.max(0, 15-(pct-0.96)*400); targetRPM=850; }    // park
+    } else if(style==='commute'){
+      if(pct<0.05){ targetSpd=0; targetRPM=850; }
+      else if(pct<0.15){ targetSpd=28; targetRPM=2000; }
+      else if(pct<0.25){ targetSpd=8; targetRPM=1100; }                    // stop sign
+      else if(pct<0.30){ targetSpd=35; targetRPM=2400; }
+      else if(pct<0.40){ targetSpd=0; targetRPM=850; }                     // red light
+      else if(pct<0.55){ targetSpd=38; targetRPM=2600; }
+      else if(pct<0.60){ targetSpd=12; targetRPM=1200; }                   // school zone
+      else if(pct<0.75){ targetSpd=32; targetRPM=2200; }
+      else if(pct<0.85){ targetSpd=20; targetRPM=1600; }
+      else if(pct<0.95){ targetSpd=10; targetRPM=1200; }
+      else { targetSpd=0; targetRPM=850; }
+    } else { // highway (kept for backward compat)
+      if(pct<0.10){ targetSpd=25+pct*300; targetRPM=2200+pct*5000; }
+      else if(pct<0.20){ targetSpd=60; targetRPM=3800; }
+      else if(pct<0.80){ targetSpd=70+(Math.random()-0.3)*6; targetRPM=3200; }
+      else if(pct<0.92){ targetSpd=40; targetRPM=2400; }
+      else { targetSpd=Math.max(0,20-(pct-0.92)*250); targetRPM=850; }
+    }
+
+    // Smooth towards target
+    curSpd += (targetSpd-curSpd)*0.3 + (Math.random()-0.5)*2;
+    curSpd = Math.max(0, Math.round(curSpd));
+    curRPM += (targetRPM-curRPM)*0.25 + (Math.random()-0.5)*80;
+    curRPM = Math.max(700, Math.round(curRPM));
+
+    // Warmup ECT
+    if(curECT<192) curECT+=0.3;
+    if(curRPM>6000) curECT=Math.min(210,curECT+0.2);
+    curECT += (Math.random()-0.5)*0.5;
+
+    const tps = curSpd<=2?0: Math.min(100, Math.round(curSpd*0.8 + (curRPM>5000?20:0)));
+    const vtec = curRPM>=5800?1:0;
+    const map = Math.round(35 + tps*0.65 + (Math.random()-0.5)*3);
+    const afr = Math.round((tps>80?12.2:tps>50?13.2:14.7+(Math.random()-0.5)*0.3)*10)/10;
+    const ign = Math.round((curRPM>7000?24:curRPM>5000?30:curRPM>2500?34:15)-(tps>80?4:0)+(Math.random()-0.5));
+    const iat = Math.round(78 + tps*0.15 + (Math.random()-0.5)*2);
+    const gear = curSpd<3?0:curSpd<15?1:curSpd<28?2:curSpd<42?3:curSpd<58?4:curSpd<75?5:6;
+    const knock = (curRPM>6500&&tps>70&&Math.random()<0.015)?Math.round(1+Math.random()*2):0;
+
+    dl.push({t:i*4, spd:curSpd, rpm:curRPM, map, afr, ign, iat, ect:Math.round(curECT), tps, gear, vtec, knock,
+      lat:path[i][1], lng:path[i][0]});
+  }
+  return dl;
+}
+
+(function(){
+  if(loadTrips().length>0) return;
+
+  const dl1 = genDatalog(EPIC_LOOP_PATH, 'epic');
+  const dl2 = genDatalog(LOCAL_LOOP_PATH, 'commute');
+
+  const maxOf=(dl,k)=>Math.max(...dl.map(d=>d[k]||0));
+  const minOf=(dl,k)=>{const v=dl.filter(d=>d[k]>0).map(d=>d[k]);return v.length?Math.min(...v):0;};
+  const vtecHits=(dl)=>{let c=0,was=false;dl.forEach(d=>{if(d.vtec&&!was)c++;was=!!d.vtec;});return c;};
+
+  saveTrips([
+    {id:1, startTime:Date.now()-86400000, endTime:Date.now()-86400000+dl1.length*4000,
+      distance:91, duration:dl1.length*4, topSpeed:maxOf(dl1,'spd'), avgSpeed:Math.round(dl1.reduce((s,d)=>s+d.spd,0)/dl1.length),
+      maxRPM:maxOf(dl1,'rpm'), maxCoolant:maxOf(dl1,'ect'), vtecCount:vtecHits(dl1), vtecWasOn:false,
+      path:EPIC_LOOP_PATH, merged:false, mergedFrom:[], speedSamples:[], lastLat:null, lastLng:null,
+      datalog:dl1, fuelUsed:4.2, mpg:21.7, maxMAP:maxOf(dl1,'map'), maxIAT:maxOf(dl1,'iat'), minAFR:minOf(dl1,'afr'), maxIgnRetard:0, knockEvents:dl1.filter(d=>d.knock>0).length},
+
+    {id:2, startTime:Date.now()-259200000, endTime:Date.now()-259200000+dl2.length*4000,
+      distance:9.1, duration:dl2.length*4, topSpeed:maxOf(dl2,'spd'), avgSpeed:Math.round(dl2.reduce((s,d)=>s+d.spd,0)/dl2.length),
+      maxRPM:maxOf(dl2,'rpm'), maxCoolant:maxOf(dl2,'ect'), vtecCount:0, vtecWasOn:false,
+      path:LOCAL_LOOP_PATH, merged:false, mergedFrom:[], speedSamples:[], lastLat:null, lastLng:null,
+      datalog:dl2, fuelUsed:0.35, mpg:26.0, maxMAP:maxOf(dl2,'map'), maxIAT:maxOf(dl2,'iat'), minAFR:minOf(dl2,'afr'), maxIgnRetard:0, knockEvents:0},
+  ]);
+})();
 </script>
 </body>
 </html>

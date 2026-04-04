@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech Mono',monospace; color:#ccc; }
+
+.status-bar { position:fixed; top:0; left:0; right:0; height:28px; background:#0d0d0d; border-bottom:1px solid #ffffff0d; display:flex; align-items:center; padding:0 12px; gap:16px; z-index:10; }
+.status-dot { width:8px; height:8px; border-radius:50%; background:#333; flex-shrink:0; }
+.status-dot.live { background:#00cc44; box-shadow:0 0 8px #00cc44; }
+.status-label { font-size:10px; color:#ffffff55; letter-spacing:2px; }
+.status-val { font-size:10px; color:#ffffffaa; letter-spacing:1px; }
+.status-spacer { flex:1; }
+.status-tag { font-size:9px; color:#cc2200; letter-spacing:2px; border:1px solid #cc220033; padding:1px 6px; }
+
+.main { position:fixed; top:28px; left:0; right:0; bottom:0; display:flex; }
+
+/* TIMER CARDS */
+.timer-col { flex:1; display:flex; flex-direction:column; border-right:1px solid #ffffff06; }
+.timer-col:last-child { border-right:none; }
+
+.timer-header { padding:12px 16px; border-bottom:1px solid #ffffff08; text-align:center; }
+.timer-name { font-size:11px; color:#ffffff55; letter-spacing:3px; }
+.timer-desc { font-size:8px; color:#ffffff22; margin-top:2px; }
+
+.timer-body { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; }
+
+/* BIG TIME */
+.big-time { font-family:'Orbitron',monospace; font-size:64px; font-weight:900; line-height:1; margin-bottom:8px; }
+.big-unit { font-size:11px; color:#ffffff33; letter-spacing:3px; margin-bottom:16px; }
+
+/* SPEED DISPLAY */
+.speed-now { font-family:'Orbitron',monospace; font-size:28px; font-weight:700; margin-bottom:4px; }
+.speed-label { font-size:8px; color:#ffffff33; letter-spacing:2px; margin-bottom:16px; }
+
+/* PROGRESS BAR */
+.progress-wrap { width:80%; max-width:300px; margin-bottom:20px; }
+.progress-label { display:flex; justify-content:space-between; font-size:8px; color:#ffffff22; margin-bottom:4px; }
+.progress-track { height:6px; background:#ffffff08; border-radius:3px; overflow:hidden; }
+.progress-fill { height:100%; border-radius:3px; transition:width 0.1s; }
+
+/* STATUS */
+.timer-status { font-size:11px; letter-spacing:2px; margin-bottom:16px; min-height:16px; }
+
+/* BUTTONS */
+.timer-actions { display:flex; gap:8px; }
+.t-btn { background:transparent; border:1px solid #ffffff22; color:#ffffff55; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:2px; padding:8px 20px; cursor:pointer; transition:all 0.15s; }
+.t-btn:hover { border-color:#cc2200; color:#cc2200; }
+.t-btn.primary { border-color:#cc2200; color:#cc2200; background:rgba(204,34,0,0.08); }
+.t-btn.armed { border-color:#00cc44; color:#00cc44; background:rgba(0,204,68,0.08); animation:armPulse 1.5s infinite; }
+@keyframes armPulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+/* SPLITS */
+.splits { width:80%; max-width:300px; margin-top:12px; }
+.split-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #ffffff06; }
+.split-name { font-size:9px; color:#ffffff44; letter-spacing:1px; }
+.split-val { font-size:10px; font-family:'Orbitron',monospace; }
+
+/* BEST */
+.best-section { padding:10px 16px; border-top:1px solid #ffffff08; text-align:center; }
+.best-label { font-size:8px; color:#ffffff22; letter-spacing:2px; margin-bottom:4px; }
+.best-val { font-family:'Orbitron',monospace; font-size:18px; color:#cc8844; }
+
+/* HISTORY */
+.history-section { padding:8px 16px; border-top:1px solid #ffffff06; max-height:120px; overflow-y:auto; }
+.hist-row { font-size:9px; color:#ffffff33; padding:2px 0; display:flex; justify-content:space-between; }
+.hist-row span { font-family:'Orbitron',monospace; color:#ffffff55; }
+</style>
+</head>
+<body>
+
+<div class="status-bar">
+  <div class="status-dot" id="conn-dot"></div>
+  <span class="status-label">OBD2</span>
+  <span class="status-val" id="conn-status">SIMULATED</span>
+  <div class="status-spacer"></div>
+  <span class="status-val" id="speed-hud">0 MPH</span>
+  <div class="status-tag">TIMERS</div>
+</div>
+
+<div class="main">
+
+  <!-- 0-60 -->
+  <div class="timer-col">
+    <div class="timer-header">
+      <div class="timer-name">0 — 60 MPH</div>
+      <div class="timer-desc">Acceleration from standstill</div>
+    </div>
+    <div class="timer-body">
+      <div class="big-time" id="t060-time" style="color:#cc2200;">0.000</div>
+      <div class="big-unit">SECONDS</div>
+      <div class="speed-now" id="t060-speed" style="color:#cc220066;">0</div>
+      <div class="speed-label">CURRENT MPH</div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>0</span><span>30</span><span>60 MPH</span></div>
+        <div class="progress-track"><div class="progress-fill" id="t060-bar" style="background:#cc2200;width:0%"></div></div>
+      </div>
+      <div class="timer-status" id="t060-status" style="color:#ffffff33;">TAP ARM TO START</div>
+      <div class="timer-actions">
+        <button class="t-btn primary" id="t060-btn" onclick="arm060()">ARM</button>
+        <button class="t-btn" onclick="reset060()">RESET</button>
+      </div>
+      <div class="splits" id="t060-splits"></div>
+    </div>
+    <div class="best-section">
+      <div class="best-label">BEST TIME</div>
+      <div class="best-val" id="t060-best">—</div>
+    </div>
+    <div class="history-section" id="t060-history"></div>
+  </div>
+
+  <!-- 0-100 -->
+  <div class="timer-col">
+    <div class="timer-header">
+      <div class="timer-name">0 — 100 MPH</div>
+      <div class="timer-desc">Full-pull acceleration</div>
+    </div>
+    <div class="timer-body">
+      <div class="big-time" id="t0100-time" style="color:#ff6644;">0.000</div>
+      <div class="big-unit">SECONDS</div>
+      <div class="speed-now" id="t0100-speed" style="color:#ff664466;">0</div>
+      <div class="speed-label">CURRENT MPH</div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>0</span><span>50</span><span>100 MPH</span></div>
+        <div class="progress-track"><div class="progress-fill" id="t0100-bar" style="background:#ff6644;width:0%"></div></div>
+      </div>
+      <div class="timer-status" id="t0100-status" style="color:#ffffff33;">TAP ARM TO START</div>
+      <div class="timer-actions">
+        <button class="t-btn primary" id="t0100-btn" onclick="arm0100()">ARM</button>
+        <button class="t-btn" onclick="reset0100()">RESET</button>
+      </div>
+      <div class="splits" id="t0100-splits"></div>
+    </div>
+    <div class="best-section">
+      <div class="best-label">BEST TIME</div>
+      <div class="best-val" id="t0100-best">—</div>
+    </div>
+    <div class="history-section" id="t0100-history"></div>
+  </div>
+
+  <!-- 60-0 BRAKING -->
+  <div class="timer-col">
+    <div class="timer-header">
+      <div class="timer-name">60 — 0 MPH</div>
+      <div class="timer-desc">Emergency braking distance</div>
+    </div>
+    <div class="timer-body">
+      <div class="big-time" id="t600-time" style="color:#4488ff;">0.000</div>
+      <div class="big-unit">SECONDS</div>
+      <div class="speed-now" id="t600-speed" style="color:#4488ff66;">0</div>
+      <div class="speed-label">CURRENT MPH</div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>60</span><span>30</span><span>0 MPH</span></div>
+        <div class="progress-track"><div class="progress-fill" id="t600-bar" style="background:#4488ff;width:0%"></div></div>
+      </div>
+      <div class="timer-status" id="t600-status" style="color:#ffffff33;">TAP ARM TO START</div>
+      <div class="timer-actions">
+        <button class="t-btn primary" id="t600-btn" onclick="arm600()">ARM</button>
+        <button class="t-btn" onclick="reset600()">RESET</button>
+      </div>
+      <div class="splits" id="t600-splits">
+        <div class="split-row"><span class="split-name">DISTANCE</span><span class="split-val" id="t600-dist" style="color:#4488ff;">— ft</span></div>
+        <div class="split-row"><span class="split-name">AVG DECEL</span><span class="split-val" id="t600-decel" style="color:#4488ff;">— G</span></div>
+      </div>
+    </div>
+    <div class="best-section">
+      <div class="best-label">BEST TIME</div>
+      <div class="best-val" id="t600-best">—</div>
+    </div>
+    <div class="history-section" id="t600-history"></div>
+  </div>
+
+  <!-- 60-130-60 ROLL RACE -->
+  <div class="timer-col">
+    <div class="timer-header">
+      <div class="timer-name">60 — 130 — 60</div>
+      <div class="timer-desc">Roll race: accel + brake</div>
+    </div>
+    <div class="timer-body">
+      <div class="big-time" id="troll-time" style="color:#ffaa00;">0.000</div>
+      <div class="big-unit">SECONDS</div>
+      <div class="speed-now" id="troll-speed" style="color:#ffaa0066;">0</div>
+      <div class="speed-label">CURRENT MPH</div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>60</span><span>130</span><span>60 MPH</span></div>
+        <div class="progress-track"><div class="progress-fill" id="troll-bar" style="background:#ffaa00;width:0%"></div></div>
+      </div>
+      <div class="timer-status" id="troll-status" style="color:#ffffff33;">TAP ARM TO START</div>
+      <div class="timer-actions">
+        <button class="t-btn primary" id="troll-btn" onclick="armRoll()">ARM</button>
+        <button class="t-btn" onclick="resetRoll()">RESET</button>
+      </div>
+      <div class="splits" id="troll-splits"></div>
+    </div>
+    <div class="best-section">
+      <div class="best-label">BEST TIME</div>
+      <div class="best-val" id="troll-best">—</div>
+    </div>
+    <div class="history-section" id="troll-history"></div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+//  STATE
+// ============================================================
+let speed = 0, connected = false, lastTickTime = 0;
+
+// Timer states: idle | armed | running | done
+let t060 = { state:'idle', start:0, time:0, splits:{}, best:null, history:[] };
+let t0100 = { state:'idle', start:0, time:0, splits:{}, best:null, history:[] };
+let t600 = { state:'idle', start:0, time:0, dist:0, startSpeed:0, best:null, history:[] };
+let troll = { state:'idle', start:0, time:0, phase:'accel', split130:0, best:null, history:[] };
+
+// Load bests
+try { const b=JSON.parse(localStorage.getItem('timer-bests')||'{}'); if(b.t060)t060.best=b.t060; if(b.t0100)t0100.best=b.t0100; if(b.t600)t600.best=b.t600; if(b.troll)troll.best=b.troll; } catch(e){}
+try { t060.history=JSON.parse(localStorage.getItem('timer-hist-060')||'[]'); } catch(e){}
+try { t0100.history=JSON.parse(localStorage.getItem('timer-hist-0100')||'[]'); } catch(e){}
+try { t600.history=JSON.parse(localStorage.getItem('timer-hist-600')||'[]'); } catch(e){}
+try { troll.history=JSON.parse(localStorage.getItem('timer-hist-roll')||'[]'); } catch(e){}
+
+function saveBests(){
+  localStorage.setItem('timer-bests', JSON.stringify({t060:t060.best,t0100:t0100.best,t600:t600.best,troll:troll.best}));
+}
+
+// ============================================================
+//  0-60
+// ============================================================
+function arm060(){
+  t060.state='armed'; t060.time=0; t060.splits={};
+  document.getElementById('t060-btn').textContent='ARMED'; document.getElementById('t060-btn').className='t-btn armed';
+  document.getElementById('t060-status').textContent='COME TO A STOP...'; document.getElementById('t060-status').style.color='#ffcc00';
+}
+function reset060(){
+  t060.state='idle'; t060.time=0; t060.splits={};
+  document.getElementById('t060-btn').textContent='ARM'; document.getElementById('t060-btn').className='t-btn primary';
+  document.getElementById('t060-status').textContent='TAP ARM TO START'; document.getElementById('t060-status').style.color='#ffffff33';
+  document.getElementById('t060-time').textContent='0.000';
+  document.getElementById('t060-bar').style.width='0%';
+  document.getElementById('t060-splits').innerHTML='';
+}
+function tick060(dt){
+  if(t060.state==='armed' && speed < 2){
+    document.getElementById('t060-status').textContent='STOPPED — FLOOR IT!'; document.getElementById('t060-status').style.color='#00cc44';
+  }
+  if(t060.state==='armed' && speed >= 3){
+    t060.state='running'; t060.start=performance.now();
+    document.getElementById('t060-btn').textContent='TIMING'; document.getElementById('t060-btn').className='t-btn';
+    document.getElementById('t060-status').textContent='GO!'; document.getElementById('t060-status').style.color='#00ff44';
+  }
+  if(t060.state==='running'){
+    t060.time = (performance.now()-t060.start)/1000;
+    document.getElementById('t060-time').textContent=t060.time.toFixed(3);
+    document.getElementById('t060-bar').style.width=Math.min(100,speed/60*100)+'%';
+    // Splits
+    if(!t060.splits['30'] && speed>=30){ t060.splits['30']=t060.time; }
+    if(!t060.splits['40'] && speed>=40){ t060.splits['40']=t060.time; }
+    if(!t060.splits['50'] && speed>=50){ t060.splits['50']=t060.time; }
+    if(speed>=60){
+      t060.state='done';
+      document.getElementById('t060-status').textContent='0-60: '+t060.time.toFixed(3)+'s'; document.getElementById('t060-status').style.color='#00cc88';
+      document.getElementById('t060-btn').textContent='ARM'; document.getElementById('t060-btn').className='t-btn primary';
+      if(!t060.best||t060.time<t060.best){t060.best=t060.time;saveBests();}
+      t060.history.unshift(t060.time.toFixed(3)); if(t060.history.length>10)t060.history.pop();
+      localStorage.setItem('timer-hist-060',JSON.stringify(t060.history));
+      renderSplits('t060-splits',{'0-30':t060.splits['30'],'0-40':t060.splits['40'],'0-50':t060.splits['50'],'0-60':t060.time},'#cc2200');
+    }
+  }
+}
+
+// ============================================================
+//  0-100
+// ============================================================
+function arm0100(){
+  t0100.state='armed'; t0100.time=0; t0100.splits={};
+  document.getElementById('t0100-btn').textContent='ARMED'; document.getElementById('t0100-btn').className='t-btn armed';
+  document.getElementById('t0100-status').textContent='COME TO A STOP...'; document.getElementById('t0100-status').style.color='#ffcc00';
+}
+function reset0100(){
+  t0100.state='idle'; t0100.time=0; t0100.splits={};
+  document.getElementById('t0100-btn').textContent='ARM'; document.getElementById('t0100-btn').className='t-btn primary';
+  document.getElementById('t0100-status').textContent='TAP ARM TO START'; document.getElementById('t0100-status').style.color='#ffffff33';
+  document.getElementById('t0100-time').textContent='0.000';
+  document.getElementById('t0100-bar').style.width='0%';
+  document.getElementById('t0100-splits').innerHTML='';
+}
+function tick0100(dt){
+  if(t0100.state==='armed' && speed < 2){
+    document.getElementById('t0100-status').textContent='STOPPED — FLOOR IT!'; document.getElementById('t0100-status').style.color='#00cc44';
+  }
+  if(t0100.state==='armed' && speed >= 3){
+    t0100.state='running'; t0100.start=performance.now();
+    document.getElementById('t0100-btn').textContent='TIMING'; document.getElementById('t0100-btn').className='t-btn';
+    document.getElementById('t0100-status').textContent='GO!'; document.getElementById('t0100-status').style.color='#00ff44';
+  }
+  if(t0100.state==='running'){
+    t0100.time = (performance.now()-t0100.start)/1000;
+    document.getElementById('t0100-time').textContent=t0100.time.toFixed(3);
+    document.getElementById('t0100-bar').style.width=Math.min(100,speed/100*100)+'%';
+    if(!t0100.splits['30'] && speed>=30){t0100.splits['30']=t0100.time;}
+    if(!t0100.splits['60'] && speed>=60){t0100.splits['60']=t0100.time;}
+    if(!t0100.splits['80'] && speed>=80){t0100.splits['80']=t0100.time;}
+    if(speed>=100){
+      t0100.state='done';
+      document.getElementById('t0100-status').textContent='0-100: '+t0100.time.toFixed(3)+'s'; document.getElementById('t0100-status').style.color='#00cc88';
+      document.getElementById('t0100-btn').textContent='ARM'; document.getElementById('t0100-btn').className='t-btn primary';
+      if(!t0100.best||t0100.time<t0100.best){t0100.best=t0100.time;saveBests();}
+      t0100.history.unshift(t0100.time.toFixed(3)); if(t0100.history.length>10)t0100.history.pop();
+      localStorage.setItem('timer-hist-0100',JSON.stringify(t0100.history));
+      renderSplits('t0100-splits',{'0-30':t0100.splits['30'],'0-60':t0100.splits['60'],'0-80':t0100.splits['80'],'0-100':t0100.time},'#ff6644');
+    }
+  }
+}
+
+// ============================================================
+//  60-0 BRAKING
+// ============================================================
+function arm600(){
+  t600.state='armed'; t600.time=0; t600.dist=0; t600.startSpeed=0;
+  document.getElementById('t600-btn').textContent='ARMED'; document.getElementById('t600-btn').className='t-btn armed';
+  document.getElementById('t600-status').textContent='GET TO 60+ MPH...'; document.getElementById('t600-status').style.color='#ffcc00';
+}
+function reset600(){
+  t600.state='idle'; t600.time=0; t600.dist=0;
+  document.getElementById('t600-btn').textContent='ARM'; document.getElementById('t600-btn').className='t-btn primary';
+  document.getElementById('t600-status').textContent='TAP ARM TO START'; document.getElementById('t600-status').style.color='#ffffff33';
+  document.getElementById('t600-time').textContent='0.000';
+  document.getElementById('t600-bar').style.width='0%';
+  document.getElementById('t600-dist').textContent='— ft';
+  document.getElementById('t600-decel').textContent='— G';
+}
+function tick600(dt){
+  if(t600.state==='armed'){
+    if(speed >= 60){
+      document.getElementById('t600-status').textContent='AT 60+ MPH — BRAKE HARD!'; document.getElementById('t600-status').style.color='#00cc44';
+    }
+    // Detect braking from 60+: speed was >= 60 and now dropping
+    if(speed >= 58 && speed <= 62){
+      // Check on next tick if speed is decreasing
+      t600.startSpeed = speed;
+    }
+    if(t600.startSpeed >= 58 && speed < t600.startSpeed - 2){
+      t600.state='running'; t600.start=performance.now(); t600.dist=0; t600.startSpeed=speed;
+      document.getElementById('t600-btn').textContent='BRAKING'; document.getElementById('t600-btn').className='t-btn';
+      document.getElementById('t600-status').textContent='BRAKING...'; document.getElementById('t600-status').style.color='#4488ff';
+    }
+  }
+  if(t600.state==='running'){
+    t600.time = (performance.now()-t600.start)/1000;
+    t600.dist += speed * 5280/3600 * dt; // ft
+    document.getElementById('t600-time').textContent=t600.time.toFixed(3);
+    document.getElementById('t600-bar').style.width=Math.min(100,(1-speed/60)*100)+'%';
+    document.getElementById('t600-dist').textContent=Math.round(t600.dist)+' ft';
+    if(t600.time > 0){
+      const avgDecel = (t600.startSpeed * 5280/3600) / (t600.time) / 32.174;
+      document.getElementById('t600-decel').textContent=avgDecel.toFixed(2)+' G';
+    }
+    if(speed < 1){
+      t600.state='done';
+      document.getElementById('t600-status').textContent='60-0: '+t600.time.toFixed(3)+'s / '+Math.round(t600.dist)+' ft'; document.getElementById('t600-status').style.color='#00cc88';
+      document.getElementById('t600-btn').textContent='ARM'; document.getElementById('t600-btn').className='t-btn primary';
+      if(!t600.best||t600.time<t600.best){t600.best=t600.time;saveBests();}
+      t600.history.unshift(t600.time.toFixed(3)+'s / '+Math.round(t600.dist)+'ft'); if(t600.history.length>10)t600.history.pop();
+      localStorage.setItem('timer-hist-600',JSON.stringify(t600.history));
+    }
+  }
+}
+
+// ============================================================
+//  60-130-60 ROLL RACE
+// ============================================================
+function armRoll(){
+  troll.state='armed'; troll.time=0; troll.phase='accel'; troll.split130=0;
+  document.getElementById('troll-btn').textContent='ARMED'; document.getElementById('troll-btn').className='t-btn armed';
+  document.getElementById('troll-status').textContent='CRUISE AT 60 MPH...'; document.getElementById('troll-status').style.color='#ffcc00';
+}
+function resetRoll(){
+  troll.state='idle'; troll.time=0; troll.split130=0;
+  document.getElementById('troll-btn').textContent='ARM'; document.getElementById('troll-btn').className='t-btn primary';
+  document.getElementById('troll-status').textContent='TAP ARM TO START'; document.getElementById('troll-status').style.color='#ffffff33';
+  document.getElementById('troll-time').textContent='0.000';
+  document.getElementById('troll-bar').style.width='0%';
+  document.getElementById('troll-splits').innerHTML='';
+}
+function tickRoll(dt){
+  if(troll.state==='armed'){
+    if(speed >= 58 && speed <= 65){
+      document.getElementById('troll-status').textContent='AT 60 — FLOOR IT!'; document.getElementById('troll-status').style.color='#00cc44';
+    }
+    if(speed >= 62 && speed < 70){
+      troll.state='running'; troll.start=performance.now(); troll.phase='accel';
+      document.getElementById('troll-btn').textContent='TIMING'; document.getElementById('troll-btn').className='t-btn';
+      document.getElementById('troll-status').textContent='ACCELERATING TO 130...'; document.getElementById('troll-status').style.color='#ffaa00';
+    }
+  }
+  if(troll.state==='running'){
+    troll.time = (performance.now()-troll.start)/1000;
+    document.getElementById('troll-time').textContent=troll.time.toFixed(3);
+
+    if(troll.phase==='accel'){
+      document.getElementById('troll-bar').style.width=Math.min(50,((speed-60)/70)*50)+'%';
+      if(speed >= 130){
+        troll.phase='brake'; troll.split130=troll.time;
+        document.getElementById('troll-status').textContent='HIT 130 — BRAKE TO 60!'; document.getElementById('troll-status').style.color='#4488ff';
+      }
+    } else {
+      document.getElementById('troll-bar').style.width=(50+Math.min(50,((130-speed)/70)*50))+'%';
+      if(speed <= 60){
+        troll.state='done';
+        document.getElementById('troll-status').textContent='60-130-60: '+troll.time.toFixed(3)+'s'; document.getElementById('troll-status').style.color='#00cc88';
+        document.getElementById('troll-btn').textContent='ARM'; document.getElementById('troll-btn').className='t-btn primary';
+        if(!troll.best||troll.time<troll.best){troll.best=troll.time;saveBests();}
+        troll.history.unshift(troll.time.toFixed(3)); if(troll.history.length>10)troll.history.pop();
+        localStorage.setItem('timer-hist-roll',JSON.stringify(troll.history));
+        renderSplits('troll-splits',{'60-130':troll.split130,'130-60':troll.time-troll.split130,'TOTAL':troll.time},'#ffaa00');
+      }
+    }
+  }
+}
+
+// ============================================================
+//  HELPERS
+// ============================================================
+function renderSplits(id, splits, color){
+  const el = document.getElementById(id);
+  let html = '';
+  Object.entries(splits).forEach(([name,val]) => {
+    if(val !== undefined) html += `<div class="split-row"><span class="split-name">${name} MPH</span><span class="split-val" style="color:${color}">${val.toFixed(3)}s</span></div>`;
+  });
+  el.innerHTML = html;
+}
+
+function renderHistory(id, hist){
+  const el = document.getElementById(id);
+  el.innerHTML = hist.map((v,i) => `<div class="hist-row">#${i+1} <span>${v}</span></div>`).join('');
+}
+
+function updateBests(){
+  document.getElementById('t060-best').textContent = t060.best ? t060.best.toFixed(3)+'s' : '—';
+  document.getElementById('t0100-best').textContent = t0100.best ? t0100.best.toFixed(3)+'s' : '—';
+  document.getElementById('t600-best').textContent = t600.best ? t600.best.toFixed(3)+'s' : '—';
+  document.getElementById('troll-best').textContent = troll.best ? troll.best.toFixed(3)+'s' : '—';
+}
+
+// ============================================================
+//  OBD2 BRIDGE
+// ============================================================
+function updateFromFlashPro(data){
+  connected = true;
+  document.getElementById('conn-dot').classList.add('live');
+  document.getElementById('conn-status').textContent = 'CONNECTED';
+  if(data.speed !== undefined) speed = data.speed;
+}
+
+// ============================================================
+//  SIMULATION
+// ============================================================
+let simT = 0, simSpeed = 0, simPhase = 'idle';
+
+function simTick(){
+  simT++;
+  const p = simT % 800;
+
+  let target;
+  if(p < 50) target = 0;           // stopped
+  else if(p < 200) target = 65;    // accel to 65
+  else if(p < 300) target = 105;   // push to 105
+  else if(p < 350) target = 135;   // push to 135
+  else if(p < 450) target = 60;    // brake to 60
+  else if(p < 500) target = 0;     // full stop
+  else if(p < 600) target = 70;    // cruise
+  else if(p < 650) target = 0;     // brake
+  else target = 0;
+
+  const rate = target > simSpeed ? 0.06 : 0.08;
+  simSpeed += (target - simSpeed) * rate + (Math.random()-0.5)*0.5;
+  simSpeed = Math.max(0, simSpeed);
+  speed = simSpeed;
+}
+
+// ============================================================
+//  MAIN LOOP
+// ============================================================
+function tick(){
+  const now = performance.now();
+  const dt = lastTickTime ? (now-lastTickTime)/1000 : 0.05;
+  lastTickTime = now;
+
+  if(!connected) simTick();
+
+  // Update all timers
+  tick060(dt); tick0100(dt); tick600(dt); tickRoll(dt);
+
+  // Speed display
+  document.getElementById('speed-hud').textContent = Math.round(speed) + ' MPH';
+  document.getElementById('t060-speed').textContent = Math.round(speed);
+  document.getElementById('t0100-speed').textContent = Math.round(speed);
+  document.getElementById('t600-speed').textContent = Math.round(speed);
+  document.getElementById('troll-speed').textContent = Math.round(speed);
+}
+
+// Init
+updateBests();
+renderHistory('t060-history', t060.history);
+renderHistory('t0100-history', t0100.history);
+renderHistory('t600-history', t600.history);
+renderHistory('troll-history', troll.history);
+setInterval(tick, 50);
+</script>
+</body>
+</html>

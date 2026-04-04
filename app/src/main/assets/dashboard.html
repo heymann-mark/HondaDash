@@ -13,6 +13,9 @@ body.theme-cyberpunk { --accent:#cc2200; --accent2:#ff2200; --accentA:rgba(204,3
 body.theme-neon      { --accent:#00ccff; --accent2:#00ffee; --accentA:rgba(0,204,255,0.2); --bg:#050510; --panelbg:rgba(5,5,20,0.97); --textdim:#00ccff44; --textmed:#00ccff; background:#050510; }
 body.theme-racing    { --accent:#ff8800; --accent2:#ffaa00; --accentA:rgba(255,136,0,0.2); --bg:#0a0a0a; --panelbg:rgba(10,10,10,0.97); --textdim:#ff880044; --textmed:#ff8800; background:#0a0a0a; }
 body.theme-steelseries { --accent:#88cc00; --accent2:#aaee00; --accentA:rgba(136,204,0,0.2); --bg:#111; --panelbg:rgba(17,17,17,0.97); --textdim:#88cc0044; --textmed:#88cc00; background:#111; }
+body.theme-knightrider { --accent:#ff0044; --accent2:#ff2266; --accentA:rgba(255,0,68,0.2); --bg:#050505; --panelbg:rgba(5,5,5,0.97); --textdim:#ff004444; --textmed:#ff0044; background:#050505; }
+body.theme-aventador { --accent:#ffcc00; --accent2:#ffdd33; --accentA:rgba(255,204,0,0.15); --bg:#0a0a0a; --panelbg:rgba(10,10,10,0.97); --textdim:#ffcc0044; --textmed:#ffcc00; background:#0a0a0a; }
+body.theme-bttf { --accent:#ff8800; --accent2:#ffaa33; --accentA:rgba(255,136,0,0.15); --bg:#0a0800; --panelbg:rgba(10,8,0,0.97); --textdim:#ff880044; --textmed:#ff8800; background:#0a0800; }
 
 /* ===== AMBIENT OVERLAYS ===== */
 .ambient { position:fixed; inset:0; background:radial-gradient(ellipse 140% 60% at 50% 0%, var(--accentA) 0%, transparent 65%); pointer-events:none; z-index:1; transition:background 0.5s; }
@@ -97,6 +100,30 @@ body:not(.theme-cyberpunk) .scanlines { opacity:0; }
 .sim-bar input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:36px; height:36px; background:var(--accent); border-radius:50%; cursor:pointer; margin-top:-4px; }
 .sim-bar .sim-rpm-val { font-family:'Orbitron',monospace; font-size:18px; color:var(--accent); min-width:60px; text-align:right; }
 
+/* ===== BTTF SEVEN-SEGMENT ===== */
+@font-face { font-family:'DSEG7'; src:url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2'); font-weight:bold; }
+.seg7 { font-family:'DSEG7','Orbitron',monospace; }
+.seg7-ghost { position:absolute; font-family:'DSEG7','Orbitron',monospace; }
+.bttf-readout { position:relative; display:inline-block; background:#0d0800; border:1px solid #ff880022; padding:4px 10px; border-radius:2px; }
+
+/* Time circuit rows */
+.tc-row { display:flex; align-items:stretch; background:#2a2a2a; border:2px solid #444; border-radius:3px; overflow:hidden; }
+.tc-cell { display:flex; flex-direction:column; align-items:center; padding:3px 0; }
+.tc-cell-label { font-size:6px; letter-spacing:1px; color:#999; margin-bottom:2px; font-family:'Share Tech Mono',monospace; }
+.tc-digit-group { display:flex; gap:2px; padding:0 4px; }
+.tc-digit { background:#0a0a0a; border:1px solid #1a1a1a; padding:2px 3px; border-radius:1px; position:relative; display:inline-block; }
+.tc-digit .seg7 { position:relative; z-index:1; }
+.tc-digit .seg7-ghost { z-index:0; }
+.tc-sep { display:flex; align-items:center; justify-content:center; padding:0 1px; }
+.tc-row-label { font-size:7px; letter-spacing:3px; text-align:center; padding:2px 0; font-family:'Share Tech Mono',monospace; background:#333; border-top:1px solid #444; }
+.tc-led { width:8px; height:8px; border-radius:50%; margin:0 6px; flex-shrink:0; align-self:center; }
+
+/* Flux capacitor overlay */
+#flux-canvas { position:fixed; inset:0; z-index:8; pointer-events:none; opacity:0; transition:opacity 0.5s; }
+.flux-overlay { position:fixed; inset:0; z-index:65; pointer-events:none; display:flex; align-items:center; justify-content:center; opacity:0; }
+.flux-text { font-family:'Orbitron',monospace; font-size:36px; font-weight:700; color:#ffffff; letter-spacing:6px; text-shadow:0 0 20px #00ccff,0 0 60px #00aaff,0 0 120px #0066ff; }
+.flux-sub { font-family:'Share Tech Mono',monospace; font-size:14px; color:#88ccff; letter-spacing:4px; text-align:center; margin-top:6px; opacity:0; }
+
 /* ===== REDLINE ===== */
 .rl-overlay { position:fixed; inset:0; background:rgba(255,0,0,0); pointer-events:none; z-index:50; }
 .rl-border { position:fixed; inset:0; border:3px solid transparent; pointer-events:none; z-index:51; }
@@ -138,6 +165,18 @@ html.redlining body { animation:rlshake 0.08s infinite; }
 html.redlining .rl-overlay { animation:rloverlayflash 0.15s infinite; }
 html.redlining .rl-border { animation:rlflash 0.12s infinite; }
 html.redlining .rpm-bar.red { animation:rpmbarflash 0.1s infinite; }
+
+/* ===== SHIFT LIGHT STRIP ===== */
+.shift-strip { position:fixed; top:0; left:0; right:0; height:10px; z-index:55; display:flex; gap:2px; padding:0 1px; }
+.shift-led { flex:1; background:#111; border-bottom:1px solid #ffffff06; transition:all 0.06s; }
+
+/* ===== GEAR INDICATOR ===== */
+.gear-box { position:fixed; top:44px; left:50%; transform:translateX(-50%); z-index:55; text-align:center; pointer-events:none; }
+.gear-num { font-family:'Orbitron',monospace; font-size:42px; font-weight:900; color:#ffffff18; line-height:1; transition:color 0.2s; }
+.gear-num.engaged { color:#ffffff44; }
+.gear-label { font-size:7px; color:#ffffff15; letter-spacing:3px; }
+
+
 </style>
 </head>
 <body class="theme-cyberpunk">
@@ -147,6 +186,13 @@ html.redlining .rpm-bar.red { animation:rpmbarflash 0.1s infinite; }
 <div class="rl-border"></div>
 <div class="scanlines"></div>
 <canvas id="warp-canvas"></canvas>
+<canvas id="flux-canvas"></canvas>
+<div class="flux-overlay" id="flux-overlay">
+  <div>
+    <div class="flux-text" id="flux-text">VTEC ENGAGED</div>
+    <div class="flux-sub" id="flux-sub">FLUX CAPACITOR // 1.21 GIGAWATTS</div>
+  </div>
+</div>
 <div class="vtec-bar" id="vtec-bar"></div>
 <div class="vtec-overlay" id="vtec-overlay">
   <div>
@@ -167,14 +213,23 @@ html.redlining .rpm-bar.red { animation:rpmbarflash 0.1s infinite; }
 
 <div class="hbar" id="hbar"><span>K20Z3 // YAUTJA INTERFACE // SYSTEM REBOOT // V4.2</span></div>
 
+<!-- SHIFT LIGHT STRIP -->
+<div class="shift-strip" id="shift-strip"></div>
+
+<!-- GEAR INDICATOR -->
+<div class="gear-box">
+  <div class="gear-label">GEAR</div>
+  <div class="gear-num" id="gear-num">N</div>
+</div>
+
 <!-- GAUGE PICKER BUTTON -->
 <button class="picker-btn" id="picker-btn" onclick="openPicker()">⚙ GAUGES</button>
 
 <!-- SIM CONTROL BAR -->
 <div class="sim-bar" id="sim-bar">
-  <label>RPM</label>
-  <input type="range" id="rpm-slider" min="800" max="8300" value="3240" step="100" oninput="manualRPM(this.value)">
-  <div class="sim-rpm-val" id="rpm-slider-val">3240</div>
+  <label>THROTTLE</label>
+  <input type="range" id="throttle-slider" min="0" max="100" value="0" step="1" oninput="manualThrottle(this.value)">
+  <div class="sim-rpm-val" id="throttle-slider-val">0%</div>
 </div>
 
 <!-- GAUGE GRID -->
@@ -240,7 +295,7 @@ function setTheme(name){
   localStorage.setItem('hondadash-theme', name);
   document.body.className = 'theme-' + name;
   // Update Honda SVG color
-  const hue = {cyberpunk:'#880000', neon:'#004488', racing:'#884400', steelseries:'#448800'}[name];
+  const hue = {cyberpunk:'#880000', neon:'#004488', racing:'#884400', steelseries:'#448800', knightrider:'#880022', aventador:'#886600', bttf:'#884400'}[name];
   document.querySelectorAll('#honda-bg path, #honda-bg polygon').forEach(p => p.setAttribute('fill', hue));
   // Update theme list active state
   document.querySelectorAll('.theme-item').forEach(t => t.classList.toggle('active', t.dataset.theme===name));
@@ -250,6 +305,9 @@ function setTheme(name){
 
 function cleanupTheme(){
   if(racingAnimId){ cancelAnimationFrame(racingAnimId); racingAnimId=null; }
+  if(THEMES.knightrider._scanAnimId){ cancelAnimationFrame(THEMES.knightrider._scanAnimId); THEMES.knightrider._scanAnimId=null; }
+  if(fluxAnimId){ cancelAnimationFrame(fluxAnimId); fluxAnimId=null; }
+  fluxActive=false; fluxIntensity=0; fluxCanvas.style.opacity='0';
   Object.values(gaugeInstances).forEach(g => { if(g && g.destroy) g.destroy(); });
   gaugeInstances = {};
 }
@@ -259,6 +317,9 @@ const THEME_INFO = [
   { id:'neon',      name:'NEON',      desc:'Glowing cyan radial gauges', color:'#00ccff' },
   { id:'racing',    name:'RACING',    desc:'Orange arc gauges with glow', color:'#ff8800' },
   { id:'steelseries', name:'STEEL',   desc:'Carbon fiber & brushed metal', color:'#88cc00' },
+  { id:'knightrider', name:'KNIGHT RIDER', desc:'KITT scanner bar + horizontal bars', color:'#ff0044' },
+  { id:'aventador', name:'AVENTADOR', desc:'Lamborghini-style digital cluster', color:'#ffcc00' },
+  { id:'bttf',      name:'BACK TO FUTURE', desc:'Time machine flux readout', color:'#ff8800' },
 ];
 
 function buildThemeList(){
@@ -302,6 +363,22 @@ function applyGauges(){ activeGauges=[...pendingGauges]; closePicker(); cleanupT
 // ============================================================
 function rebuildGrid(){
   const grid = document.getElementById('gauge-grid');
+  const builder = THEMES[currentTheme];
+
+  // Custom layout override — theme takes full control
+  if(builder.customLayout){
+    grid.style.gridTemplateColumns = '1fr';
+    grid.style.gridTemplateRows = '1fr';
+    grid.innerHTML = '';
+    const box = document.createElement('div');
+    box.style.cssText = 'position:relative;grid-column:1/-1;grid-row:1/-1;overflow:hidden;';
+    box.innerHTML = builder.customLayout();
+    grid.appendChild(box);
+    builder.init();
+    updateThemeGauges(latestData);
+    return;
+  }
+
   const n = activeGauges.length;
   let cols = n<=2?2 : n<=4?2 : n<=6?3 : 4;
   let rows = n<=2?1 : 2;
@@ -309,7 +386,6 @@ function rebuildGrid(){
   grid.style.gridTemplateRows = `1.4fr repeat(${rows}, 1fr)`;
   grid.innerHTML = '';
 
-  const builder = THEMES[currentTheme];
   // RPM box - full width
   const rpmBox = builder.buildRPM();
   rpmBox.style.gridColumn = '1 / -1';
@@ -851,6 +927,807 @@ THEMES.steelseries = {
 };
 
 // ============================================================
+//  THEME: KNIGHT RIDER (KITT-style scanner + horizontal bars)
+// ============================================================
+THEMES.knightrider = {
+  _scanPos: 0, _scanDir: 1, _scanAnimId: null,
+  buildRPM(){
+    const div = document.createElement('div');
+    div.className = 'gbox'; div.id = 'box-rpm';
+    div.innerHTML = `
+      <div style="position:absolute;inset:0;padding:10px 16px;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+        <div style="font-size:8px;color:#ff004466;letter-spacing:4px;margin-bottom:4px;">KNIGHT INDUSTRIES</div>
+        <div id="kr-rpm-val" style="font-family:Orbitron;font-size:64px;font-weight:900;color:#ff0044;line-height:1;text-shadow:0 0 30px #ff004466;">0</div>
+        <div style="font-size:9px;color:#ff004444;letter-spacing:3px;margin-top:2px;">RPM</div>
+        <div style="width:90%;margin-top:10px;position:relative;height:16px;">
+          <div style="position:absolute;inset:0;background:#111;border:1px solid #ff004422;border-radius:2px;overflow:hidden;">
+            <canvas id="kr-scanner" style="width:100%;height:100%;"></canvas>
+          </div>
+        </div>
+        <div style="width:90%;display:flex;justify-content:space-between;margin-top:3px;">
+          <span style="font-size:7px;color:#ff004433;">0</span>
+          <span style="font-size:7px;color:#ff004433;">VTEC</span>
+          <span id="kr-redline-label" style="font-size:7px;color:#ff004433;">8200</span>
+        </div>
+      </div>`;
+    return div;
+  },
+  buildGauge(def){
+    const div = document.createElement('div');
+    div.className = 'gbox';
+    div.innerHTML = `
+      <div style="position:absolute;inset:0;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+          <span style="font-size:9px;color:#ff004466;letter-spacing:2px;">${def.label.toUpperCase()}</span>
+          <span id="kr-val-${def.id}" style="font-family:Orbitron;font-size:22px;font-weight:700;color:#ff0044;">${def.format(def.min)}</span>
+          <span style="font-size:8px;color:#ff004433;letter-spacing:1px;">${def.unit}</span>
+        </div>
+        <div style="height:12px;background:#111;border:1px solid #ff004422;border-radius:1px;overflow:hidden;position:relative;">
+          <div id="kr-bar-${def.id}" style="height:100%;width:0%;background:linear-gradient(90deg,#ff0044,#ff2266);box-shadow:0 0 10px #ff004466;transition:width 0.15s;border-radius:1px;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:2px;">
+          <span style="font-size:7px;color:#ff004422;">${def.min}</span>
+          <span style="font-size:7px;color:#ff004422;">${def.max}</span>
+        </div>
+      </div>`;
+    return div;
+  },
+  init(){
+    const c = document.getElementById('kr-scanner');
+    if(c){
+      const dpr = window.devicePixelRatio || 1;
+      const rect = c.parentElement.getBoundingClientRect();
+      c.width = rect.width * dpr; c.height = rect.height * dpr;
+      c.getContext('2d').scale(dpr, dpr);
+      c._w = rect.width; c._h = rect.height;
+    }
+    this._scanPos = 0; this._scanDir = 1;
+    if(this._scanAnimId) cancelAnimationFrame(this._scanAnimId);
+    const self = this;
+    function animScan(){
+      self._drawScanner(latestData.rpm);
+      self._scanAnimId = requestAnimationFrame(animScan);
+    }
+    animScan();
+  },
+  _drawScanner(rpm){
+    const c = document.getElementById('kr-scanner');
+    if(!c) return;
+    const ctx = c.getContext('2d');
+    const W = c._w || 200, H = c._h || 14;
+    ctx.clearRect(0,0,W,H);
+
+    const pct = Math.min(1, rpm / 8200);
+    const fillW = pct * W;
+
+    // RPM fill bar
+    const grad = ctx.createLinearGradient(0,0,fillW,0);
+    if(rpm >= 7800){ grad.addColorStop(0,'#ff0044'); grad.addColorStop(1,'#ff0000'); }
+    else { grad.addColorStop(0,'#880022'); grad.addColorStop(1,'#ff0044'); }
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, fillW, H);
+
+    // KITT scanner sweep
+    const speed = 0.015 + rpm/8200 * 0.025;
+    this._scanPos += this._scanDir * speed;
+    if(this._scanPos > 1){ this._scanPos = 1; this._scanDir = -1; }
+    if(this._scanPos < 0){ this._scanPos = 0; this._scanDir = 1; }
+
+    const sx = this._scanPos * W;
+    const scanW = W * 0.15;
+    const scanGrad = ctx.createRadialGradient(sx, H/2, 0, sx, H/2, scanW);
+    scanGrad.addColorStop(0, 'rgba(255,0,68,0.9)');
+    scanGrad.addColorStop(0.5, 'rgba(255,0,68,0.3)');
+    scanGrad.addColorStop(1, 'rgba(255,0,68,0)');
+    ctx.fillStyle = scanGrad;
+    ctx.fillRect(sx - scanW, 0, scanW * 2, H);
+
+    // VTEC line
+    const vtecX = (5800/8200) * W;
+    ctx.beginPath(); ctx.moveTo(vtecX, 0); ctx.lineTo(vtecX, H);
+    ctx.strokeStyle = rpm >= 5800 ? '#4488ffaa' : '#4488ff33';
+    ctx.lineWidth = 1; ctx.setLineDash([2,2]); ctx.stroke(); ctx.setLineDash([]);
+  },
+  updateRPM(r){
+    const el = document.getElementById('kr-rpm-val');
+    if(el) el.textContent = Math.round(r);
+  },
+  updateGauge(id, value, def){
+    const el = document.getElementById('kr-val-'+id);
+    if(el) el.textContent = def.format(value);
+    const bar = document.getElementById('kr-bar-'+id);
+    if(bar) bar.style.width = Math.max(0,Math.min(100,(value-def.min)/(def.max-def.min)*100))+'%';
+  }
+};
+
+// ============================================================
+//  THEME: AVENTADOR (Lamborghini-style digital cluster)
+// ============================================================
+THEMES.aventador = {
+  buildRPM(){
+    const div = document.createElement('div');
+    div.className = 'gbox'; div.id = 'box-rpm';
+    div.innerHTML = `<canvas id="av-rpm" style="width:100%;height:100%;"></canvas>`;
+    return div;
+  },
+  buildGauge(def){
+    const div = document.createElement('div');
+    div.className = 'gbox';
+    div.innerHTML = `<canvas id="av-${def.id}" style="width:100%;height:100%;" data-gid="${def.id}"></canvas>`;
+    return div;
+  },
+  init(){
+    document.querySelectorAll('[id^="av-"]').forEach(c => {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = c.parentElement.getBoundingClientRect();
+      c.width = rect.width * dpr; c.height = rect.height * dpr;
+      c.getContext('2d').scale(dpr, dpr);
+      c._w = rect.width; c._h = rect.height;
+    });
+    this._drawAll();
+  },
+  _drawAll(){
+    this._drawRPMGauge(latestData.rpm);
+    activeGauges.forEach(id => {
+      const def = GAUGE_DEFS.find(g=>g.id===id);
+      if(def) this._drawHexGauge(id, latestData[id]||def.min, def);
+    });
+  },
+  _drawRPMGauge(r){
+    const c = document.getElementById('av-rpm');
+    if(!c) return;
+    const ctx = c.getContext('2d');
+    const W = c._w, H = c._h;
+    ctx.clearRect(0,0,W,H);
+
+    const cx = W/2, cy = H*0.55;
+    const radius = Math.min(W*0.42, H*0.48);
+
+    // Angular segments — Aventador-style segmented arc
+    const startA = 0.75*Math.PI, endA = 2.25*Math.PI;
+    const range = endA - startA;
+    const segments = 40;
+    const segGap = 0.008;
+    const pct = Math.min(1, r / 8200);
+    const activeSegs = Math.floor(pct * segments);
+
+    for(let i = 0; i < segments; i++){
+      const a1 = startA + (i/segments)*range + segGap;
+      const a2 = startA + ((i+1)/segments)*range - segGap;
+      const segPct = i / segments;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, a1, a2);
+      ctx.arc(cx, cy, radius * 0.82, a2, a1, true);
+      ctx.closePath();
+
+      if(i < activeSegs){
+        let color;
+        if(segPct < 0.5) color = '#ffcc00';
+        else if(segPct < 0.7) color = '#ffaa00';
+        else if(segPct < 0.85) color = '#ff6600';
+        else color = '#ff0000';
+
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
+      } else {
+        ctx.fillStyle = '#ffffff08';
+        ctx.shadowBlur = 0;
+      }
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // Inner ring accent
+    ctx.beginPath(); ctx.arc(cx, cy, radius*0.78, startA, endA);
+    ctx.strokeStyle = '#ffcc0022'; ctx.lineWidth = 1; ctx.stroke();
+
+    // RPM number labels around outside
+    ctx.fillStyle = '#ffffff44';
+    ctx.font = `${Math.max(9, radius*0.11)}px 'Share Tech Mono'`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for(let i = 0; i <= 8; i++){
+      const a = startA + (i/8)*range;
+      const lx = cx + Math.cos(a)*(radius*1.12);
+      const ly = cy + Math.sin(a)*(radius*1.12);
+      ctx.fillText(i, lx, ly);
+    }
+
+    // Center content
+    // RPM value
+    ctx.fillStyle = r >= 7800 ? '#ff0000' : '#ffcc00';
+    ctx.font = `bold ${Math.max(32, radius*0.45)}px Orbitron`;
+    ctx.textAlign = 'center';
+    ctx.fillText(Math.round(r), cx, cy - 5);
+
+    // RPM label
+    ctx.fillStyle = '#ffffff33';
+    ctx.font = `${Math.max(9, radius*0.1)}px 'Share Tech Mono'`;
+    ctx.fillText('RPM', cx, cy + radius*0.2);
+
+    // VTEC indicator
+    const vtecOn = r >= 5800;
+    ctx.fillStyle = vtecOn ? '#4488ff' : '#ffffff15';
+    ctx.font = `bold ${Math.max(8, radius*0.09)}px 'Share Tech Mono'`;
+    ctx.fillText('VTEC', cx, cy + radius*0.55);
+    if(vtecOn){
+      ctx.shadowColor = '#4488ff'; ctx.shadowBlur = 8;
+      ctx.fillText('VTEC', cx, cy + radius*0.55);
+      ctx.shadowBlur = 0;
+    }
+
+    // Lamborghini hex accent lines
+    ctx.strokeStyle = '#ffcc0015';
+    ctx.lineWidth = 1;
+    for(let i = 0; i < 6; i++){
+      const a = (i/6) * Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a)*radius*0.25, cy + Math.sin(a)*radius*0.25);
+      ctx.lineTo(cx + Math.cos(a)*radius*0.75, cy + Math.sin(a)*radius*0.75);
+      ctx.stroke();
+    }
+  },
+  _drawHexGauge(id, value, def){
+    const c = document.getElementById('av-'+id);
+    if(!c) return;
+    const ctx = c.getContext('2d');
+    const W = c._w, H = c._h;
+    ctx.clearRect(0,0,W,H);
+
+    const cx = W/2, cy = H/2;
+    const radius = Math.min(W, H) * 0.38;
+    const pct = Math.max(0, Math.min(1, (value-def.min)/(def.max-def.min)));
+    const isWarn = def.warn && value >= def.warn;
+
+    // Hexagonal outline
+    ctx.beginPath();
+    for(let i = 0; i < 6; i++){
+      const a = (i/6)*Math.PI*2 - Math.PI/2;
+      const x = cx + Math.cos(a)*radius;
+      const y = cy + Math.sin(a)*radius;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = '#ffcc0022'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = '#0a0a0a88'; ctx.fill();
+
+    // Progress — fill hex partially from bottom
+    const segments = 24;
+    const activeSegs = Math.floor(pct * segments);
+    const barW = (radius*1.4) / segments;
+    const barH = radius * 0.12;
+    const startY = cy + radius*0.5;
+    const arcStartX = cx - radius*0.7;
+
+    for(let i = 0; i < segments; i++){
+      const x = arcStartX + i * barW + 1;
+      const y = startY;
+      if(i < activeSegs){
+        const segPct = i / segments;
+        ctx.fillStyle = isWarn ? '#ff0000' : (segPct < 0.6 ? '#ffcc00' : '#ff8800');
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 4;
+      } else {
+        ctx.fillStyle = '#ffffff08';
+        ctx.shadowBlur = 0;
+      }
+      ctx.fillRect(x, y, barW - 2, barH);
+      ctx.shadowBlur = 0;
+    }
+
+    // Value
+    ctx.fillStyle = isWarn ? '#ff0000' : '#ffcc00';
+    ctx.font = `bold ${Math.max(18, radius*0.4)}px Orbitron`;
+    ctx.textAlign = 'center';
+    ctx.fillText(def.format(value), cx, cy + 2);
+
+    // Label
+    ctx.fillStyle = '#ffffff44';
+    ctx.font = `${Math.max(8, radius*0.12)}px 'Share Tech Mono'`;
+    ctx.fillText(def.label.toUpperCase(), cx, cy - radius*0.45);
+
+    // Unit
+    ctx.fillStyle = '#ffffff22';
+    ctx.font = `${Math.max(7, radius*0.1)}px 'Share Tech Mono'`;
+    ctx.fillText(def.unit, cx, cy + radius*0.75);
+  },
+  updateRPM(r){ this._drawRPMGauge(r); },
+  updateGauge(id, value, def){ this._drawHexGauge(id, value, def); }
+};
+
+// ============================================================
+//  THEME: BACK TO THE FUTURE (DeLorean time machine readout)
+// ============================================================
+THEMES.bttf = {
+  _fluxCanvasId: 'bttf-flux-cv',
+  _gaugeCanvasId: 'bttf-gauge-cv',
+  _fluxAngle: 0,
+  _fluxAnimId: null,
+
+  // ---- digit cell helpers ----
+  _dCells(id, n, color, ghost, sz){
+    let h='<div class="tc-digit-group">';
+    for(let i=0;i<n;i++) h+=`<div class="tc-digit" style="min-width:${sz*0.65}px;"><span class="seg7-ghost" style="font-size:${sz}px;color:${ghost};">8</span><span class="seg7" id="${id}-d${i}" data-color="${color}" style="font-size:${sz}px;color:transparent;position:relative;">8</span></div>`;
+    return h+'</div>';
+  },
+  _setD(id, text, n){
+    const p=String(text).padStart(n,' ');
+    for(let i=0;i<n;i++){const el=document.getElementById(id+'-d'+i);if(!el)continue;const c=el.dataset.color;if(p[i]===' '){el.textContent='8';el.style.color='transparent';el.style.textShadow='none';}else{el.textContent=p[i];el.style.color=c;el.style.textShadow='0 0 8px '+c+'66';}}
+  },
+
+  // ---- full custom layout ----
+  customLayout(){
+    const red='#ff3322',rg='#ff332210',grn='#00dd44',gg='#00dd4410',amb='#ff8800',ag='#ff880010';
+    return `
+    <div style="position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;padding:4px;background:#080808;">
+
+      <!-- TOP LEFT: DeLorean instrument cluster -->
+      <div style="background:#111;border:2px solid #333;border-radius:4px;position:relative;overflow:hidden;">
+        <canvas id="${this._gaugeCanvasId}" style="width:100%;height:100%;"></canvas>
+        <div style="position:absolute;top:4px;left:8px;font-size:7px;color:#ff880033;letter-spacing:2px;">DMC-12 INSTRUMENTS</div>
+      </div>
+
+      <!-- TOP RIGHT: Status + OUTATIME + extras -->
+      <div style="background:#111;border:2px solid #333;border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;overflow:hidden;">
+        <!-- OUTATIME plate -->
+        <div id="bttf-plate-wrap" style="align-self:center;background:linear-gradient(180deg,#e8dcc8,#d4c8a8);border:3px solid #888;border-radius:4px;padding:2px 14px 4px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.3);position:relative;">
+          <div style="font-size:6px;color:#cc2200;letter-spacing:3px;font-family:'Share Tech Mono',monospace;font-weight:bold;">CALIFORNIA</div>
+          <div id="bttf-plate" style="font-family:'Orbitron',monospace;font-size:22px;font-weight:900;color:#1a3a6a;letter-spacing:5px;text-shadow:1px 1px 0 rgba(0,0,0,0.15);">OUTATIME</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:4px;color:#cc2200;letter-spacing:1px;font-family:'Share Tech Mono',monospace;">NOV</span>
+            <span style="font-size:5px;color:#1a3a6a;letter-spacing:1px;font-family:'Share Tech Mono',monospace;">THE GOLDEN STATE</span>
+            <span style="font-size:4px;color:#cc2200;letter-spacing:1px;font-family:'Share Tech Mono',monospace;">85</span>
+          </div>
+        </div>
+        <!-- Speed + Gear -->
+        <div style="display:flex;gap:6px;justify-content:center;">
+          <div style="background:#0a0a0a;border:1px solid #ff332222;border-radius:2px;padding:4px 10px;text-align:center;">
+            <div style="font-size:6px;color:#ff332266;letter-spacing:2px;">MPH</div>
+            <div id="bttf-big-spd" class="seg7" style="font-size:36px;color:#ff3322;text-shadow:0 0 10px #ff332255;">0</div>
+          </div>
+          <div style="background:#0a0a0a;border:1px solid #ff332222;border-radius:2px;padding:4px 10px;text-align:center;">
+            <div style="font-size:6px;color:#ff332266;letter-spacing:2px;">GEAR</div>
+            <div id="bttf-big-gear" class="seg7" style="font-size:36px;color:#ff3322;text-shadow:0 0 10px #ff332255;">N</div>
+          </div>
+        </div>
+        <!-- 88 MPH warning -->
+        <div id="bttf-88warn" style="text-align:center;padding:3px;border:1px solid #33333322;border-radius:2px;">
+          <span style="font-size:8px;color:#33333344;letter-spacing:3px;">TEMPORAL DISPLACEMENT</span>
+        </div>
+        <!-- 1.21 GW indicator -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+          <div id="bttf-gw-led" style="width:10px;height:10px;border-radius:50%;background:#112;border:1px solid #223;"></div>
+          <div id="bttf-gw-text" style="font-size:10px;color:#33333344;letter-spacing:3px;">1.21 GIGAWATTS</div>
+        </div>
+        <!-- Status readouts -->
+        <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;flex:1;align-items:flex-end;">
+          <div style="background:#0a0a0a;border:1px solid #00dd4422;border-radius:2px;padding:3px 6px;text-align:center;min-width:48px;">
+            <div style="font-size:5px;color:#00dd4466;letter-spacing:1px;">COOLANT</div>
+            <div id="bttf-s-clt" class="seg7" style="font-size:14px;color:#00dd44;text-shadow:0 0 6px #00dd4444;">---</div>
+          </div>
+          <div style="background:#0a0a0a;border:1px solid #00dd4422;border-radius:2px;padding:3px 6px;text-align:center;min-width:48px;">
+            <div style="font-size:5px;color:#00dd4466;letter-spacing:1px;">IAT</div>
+            <div id="bttf-s-iat" class="seg7" style="font-size:14px;color:#00dd44;text-shadow:0 0 6px #00dd4444;">---</div>
+          </div>
+          <div style="background:#0a0a0a;border:1px solid #ff880022;border-radius:2px;padding:3px 6px;text-align:center;min-width:48px;">
+            <div style="font-size:5px;color:#ff880066;letter-spacing:1px;">BATT</div>
+            <div id="bttf-s-batt" class="seg7" style="font-size:14px;color:#ff8800;text-shadow:0 0 6px #ff880044;">----</div>
+          </div>
+          <div style="background:#0a0a0a;border:1px solid #ff880022;border-radius:2px;padding:3px 6px;text-align:center;min-width:48px;">
+            <div style="font-size:5px;color:#ff880066;letter-spacing:1px;">O2</div>
+            <div id="bttf-s-o2" class="seg7" style="font-size:14px;color:#ff8800;text-shadow:0 0 6px #ff880044;">----</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM LEFT: Flux Capacitor -->
+      <div style="background:#080810;border:2px solid #333;border-radius:4px;position:relative;overflow:hidden;">
+        <canvas id="${this._fluxCanvasId}" style="width:100%;height:100%;"></canvas>
+        <div style="position:absolute;top:4px;left:8px;font-size:7px;color:#4488ff33;letter-spacing:2px;">FLUX CAPACITOR</div>
+      </div>
+
+      <!-- BOTTOM RIGHT: Time Circuit rows -->
+      <div style="background:#1a1a1a;border:2px solid #444;border-radius:4px;padding:8px;display:flex;flex-direction:column;justify-content:stretch;gap:0;">
+        <!-- Row 1: RPM (red) -->
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+          <div class="tc-row" style="padding:6px 4px;">
+            <div class="tc-led" id="bttf-led-1" style="background:#331100;border:1px solid #552200;width:12px;height:12px;"></div>
+            <div class="tc-cell"><div class="tc-cell-label" style="color:#ff332288;font-size:7px;">RPM</div>${this._dCells('bttf-rpm',4,red,rg,28)}</div>
+            <div class="tc-sep" style="color:#ff332233;">:</div>
+            <div class="tc-cell"><div class="tc-cell-label" style="color:#ff332288;font-size:7px;">TPS</div>${this._dCells('bttf-tps',3,red,rg,24)}</div>
+            <div class="tc-sep" style="color:#ff332233;">:</div>
+            <div class="tc-cell"><div class="tc-cell-label" style="color:#ff332288;font-size:7px;">IGN</div>${this._dCells('bttf-ign',3,red,rg,24)}</div>
+          </div>
+          <div class="tc-row-label" style="color:#ff332266;font-size:8px;padding:3px 0;">DESTINATION TIME</div>
+        </div>
+
+        <!-- Row 2: Fuel data (green) -->
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+          <div class="tc-row" style="padding:6px 4px;">
+            <div class="tc-led" id="bttf-led-2" style="background:#003311;border:1px solid #005522;width:12px;height:12px;"></div>
+            <div class="tc-cell"><div class="tc-cell-label" style="color:#00dd4488;font-size:7px;">AFR</div>${this._dCells('bttf-o2',4,grn,gg,28)}</div>
+            <div class="tc-sep" style="color:#00dd4433;">:</div>
+            <div class="tc-cell"><div class="tc-cell-label" style="color:#00dd4488;font-size:7px;">STFT</div>${this._dCells('bttf-stft',4,grn,gg,24)}</div>
+            <div class="tc-sep" style="color:#00dd4433;">:</div>
+            <div class="tc-cell"><div class="tc-cell-label" style="color:#00dd4488;font-size:7px;">IDC</div>${this._dCells('bttf-idc',3,grn,gg,24)}</div>
+          </div>
+          <div class="tc-row-label" style="color:#00dd4466;font-size:8px;padding:3px 0;">PRESENT TIME</div>
+        </div>
+
+        <!-- Row 3: Temps (amber) -->
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+          <div class="tc-row" style="padding:6px 4px;">
+            <div class="tc-led" id="bttf-led-3" style="background:#331a00;border:1px solid #552a00;width:12px;height:12px;"></div>
+            <div class="tc-cell"><div class="tc-cell-label" style="color:#ff880088;font-size:7px;">CLT</div>${this._dCells('bttf-clt',3,amb,ag,28)}</div>
+            <div class="tc-sep" style="color:#ff880033;">:</div>
+            <div class="tc-cell"><div class="tc-cell-label" style="color:#ff880088;font-size:7px;">IAT</div>${this._dCells('bttf-iat',3,amb,ag,24)}</div>
+            <div class="tc-sep" style="color:#ff880033;">:</div>
+            <div class="tc-cell"><div class="tc-cell-label" style="color:#ff880088;font-size:7px;">BATT</div>${this._dCells('bttf-batt',4,amb,ag,24)}</div>
+          </div>
+          <div class="tc-row-label" style="color:#ff880066;font-size:8px;padding:3px 0;">LAST TIME DEPARTED</div>
+        </div>
+      </div>
+
+    </div>`;
+  },
+
+  // ---- init canvases ----
+  init(){
+    const self = this;
+    // Gauge canvas
+    const gc = document.getElementById(this._gaugeCanvasId);
+    if(gc){
+      const dpr = window.devicePixelRatio||1;
+      const r = gc.parentElement.getBoundingClientRect();
+      gc.width=r.width*dpr; gc.height=r.height*dpr;
+      gc.getContext('2d').scale(dpr,dpr);
+      gc._w=r.width; gc._h=r.height;
+    }
+    // Flux canvas
+    const fc = document.getElementById(this._fluxCanvasId);
+    if(fc){
+      const dpr = window.devicePixelRatio||1;
+      const r = fc.parentElement.getBoundingClientRect();
+      fc.width=r.width*dpr; fc.height=r.height*dpr;
+      fc.getContext('2d').scale(dpr,dpr);
+      fc._w=r.width; fc._h=r.height;
+    }
+    // Start flux animation loop
+    if(this._fluxAnimId) cancelAnimationFrame(this._fluxAnimId);
+    function animLoop(){
+      if(currentTheme!=='bttf'){self._fluxAnimId=null;return;}
+      self._drawFlux();
+      self._fluxAnimId=requestAnimationFrame(animLoop);
+    }
+    animLoop();
+  },
+
+  // ---- DeLorean analog gauges (top-left canvas) ----
+  _drawGauges(rpm, spd){
+    const c = document.getElementById(this._gaugeCanvasId);
+    if(!c) return;
+    const ctx = c.getContext('2d');
+    const W=c._w, H=c._h;
+    ctx.clearRect(0,0,W,H);
+
+    // Two gauges side by side: Speedometer (left), Tachometer (right)
+    const gapX = W*0.04;
+    const gW = (W - gapX*3) / 2;
+    const gH = H * 0.85;
+    const gY = H*0.08;
+
+    this._drawDeloreanGauge(ctx, gapX, gY, gW, gH, spd, 0, 160, 'MPH', 8, false, null);
+    this._drawDeloreanGauge(ctx, gapX*2 + gW, gY, gW, gH, rpm/1000, 0, 8, 'RPM×1000', 8, true, 5.8);
+  },
+
+  _drawDeloreanGauge(ctx, x, y, w, h, value, min, max, label, divisions, isRPM, vtecMark){
+    const cx = x + w/2, cy = y + h*0.58;
+    const radius = Math.min(w*0.42, h*0.42);
+    const startA = 0.75*Math.PI, endA = 2.25*Math.PI, range = endA-startA;
+    const pct = Math.max(0, Math.min(1, (value-min)/(max-min)));
+    const valA = startA + pct*range;
+
+    // Boxy 80s bezel — rounded rectangle
+    const bx=x+2, by=y+2, bw=w-4, bh=h-4, br=8;
+    ctx.beginPath();
+    ctx.moveTo(bx+br,by); ctx.lineTo(bx+bw-br,by); ctx.arcTo(bx+bw,by,bx+bw,by+br,br);
+    ctx.lineTo(bx+bw,by+bh-br); ctx.arcTo(bx+bw,by+bh,bx+bw-br,by+bh,br);
+    ctx.lineTo(bx+br,by+bh); ctx.arcTo(bx,by+bh,bx,by+bh-br,br);
+    ctx.lineTo(bx,by+br); ctx.arcTo(bx,by,bx+br,by,br); ctx.closePath();
+
+    // Dark brushed metal bezel
+    const bez = ctx.createLinearGradient(bx,by,bx,by+bh);
+    bez.addColorStop(0,'#3a3a3a'); bez.addColorStop(0.3,'#2a2a2a'); bez.addColorStop(0.7,'#333'); bez.addColorStop(1,'#252525');
+    ctx.fillStyle=bez; ctx.fill();
+    ctx.strokeStyle='#444'; ctx.lineWidth=1.5; ctx.stroke();
+
+    // Inner face — deep black
+    const inR = radius*1.2;
+    ctx.beginPath(); ctx.arc(cx,cy,inR,0,Math.PI*2);
+    ctx.fillStyle='#0a0a0a'; ctx.fill();
+    ctx.strokeStyle='#222'; ctx.lineWidth=1; ctx.stroke();
+
+    // Tick marks and numbers — amber/orange like real DeLorean
+    for(let i=0;i<=divisions;i++){
+      const a = startA + (i/divisions)*range;
+      const tickVal = min + (i/divisions)*(max-min);
+      const inner = radius*0.78;
+      const outer = radius*0.95;
+      const isMajor = true;
+
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(a)*inner, cy+Math.sin(a)*inner);
+      ctx.lineTo(cx+Math.cos(a)*outer, cy+Math.sin(a)*outer);
+
+      const inRed = isRPM && tickVal >= 7.8;
+      ctx.strokeStyle = inRed ? '#ff2200' : '#ff8800cc';
+      ctx.lineWidth = 2; ctx.stroke();
+
+      // Minor ticks
+      if(i < divisions){
+        for(let j=1;j<5;j++){
+          const ma = startA + ((i+j/5)/divisions)*range;
+          ctx.beginPath();
+          ctx.moveTo(cx+Math.cos(ma)*(radius*0.85), cy+Math.sin(ma)*(radius*0.85));
+          ctx.lineTo(cx+Math.cos(ma)*(radius*0.92), cy+Math.sin(ma)*(radius*0.92));
+          ctx.strokeStyle='#ff880044'; ctx.lineWidth=0.8; ctx.stroke();
+        }
+      }
+
+      // Numbers
+      const numR = radius*0.65;
+      ctx.fillStyle = inRed ? '#ff2200' : '#ff8800cc';
+      ctx.font=`bold ${Math.max(9,radius*0.14)}px 'Share Tech Mono'`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(Math.round(tickVal), cx+Math.cos(a)*numR, cy+Math.sin(a)*numR);
+    }
+
+    // Redline arc
+    if(isRPM){
+      const redA = startA + (7.8/8)*range;
+      ctx.beginPath(); ctx.arc(cx,cy,radius*0.98,redA,endA);
+      ctx.strokeStyle='#ff220088'; ctx.lineWidth=radius*0.04; ctx.stroke();
+    }
+
+    // VTEC marker
+    if(vtecMark !== null){
+      const va = startA + (vtecMark/max)*range;
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(va)*(radius*0.75), cy+Math.sin(va)*(radius*0.75));
+      ctx.lineTo(cx+Math.cos(va)*(radius*1.0), cy+Math.sin(va)*(radius*1.0));
+      ctx.strokeStyle = value>=vtecMark ? '#4488ff' : '#4488ff44';
+      ctx.lineWidth=2; ctx.setLineDash([2,2]); ctx.stroke(); ctx.setLineDash([]);
+      // VTEC label
+      const vlx=cx+Math.cos(va)*(radius*1.08), vly=cy+Math.sin(va)*(radius*1.08);
+      ctx.fillStyle=value>=vtecMark?'#4488ff':'#4488ff44';
+      ctx.font=`bold ${Math.max(7,radius*0.08)}px 'Share Tech Mono'`;
+      ctx.fillText('V',vlx,vly);
+    }
+
+    // Needle — orange/amber
+    const nLen = radius*0.72;
+    const nBase = radius*0.04;
+    ctx.save();
+    ctx.shadowColor='rgba(255,136,0,0.3)'; ctx.shadowBlur=8;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(valA)*nLen, cy+Math.sin(valA)*nLen);
+    ctx.lineTo(cx+Math.cos(valA+Math.PI/2)*nBase, cy+Math.sin(valA+Math.PI/2)*nBase);
+    ctx.lineTo(cx+Math.cos(valA+Math.PI)*(radius*0.12), cy+Math.sin(valA+Math.PI)*(radius*0.12));
+    ctx.lineTo(cx+Math.cos(valA-Math.PI/2)*nBase, cy+Math.sin(valA-Math.PI/2)*nBase);
+    ctx.closePath();
+    ctx.fillStyle='#ff8800'; ctx.fill();
+    ctx.restore();
+
+    // Center cap
+    ctx.beginPath(); ctx.arc(cx,cy,radius*0.06,0,Math.PI*2);
+    ctx.fillStyle='#444'; ctx.fill();
+    ctx.strokeStyle='#555'; ctx.lineWidth=1; ctx.stroke();
+
+    // Digital readout at bottom
+    ctx.fillStyle='#ff8800';
+    ctx.font=`bold ${Math.max(12,radius*0.2)}px DSEG7, Orbitron`;
+    ctx.textAlign='center';
+    const dispVal = isRPM ? Math.round(value*1000) : Math.round(value);
+    ctx.fillText(dispVal, cx, cy+radius*0.45);
+
+    // Label
+    ctx.fillStyle='#ff880066';
+    ctx.font=`${Math.max(8,radius*0.1)}px 'Share Tech Mono'`;
+    ctx.fillText(label, cx, cy+radius*0.62);
+  },
+
+  // ---- Flux capacitor (bottom-left canvas) ----
+  _drawFlux(){
+    const c = document.getElementById(this._fluxCanvasId);
+    if(!c||!c._w) return;
+    const ctx = c.getContext('2d');
+    const W=c._w, H=c._h, cx=W/2, cy=H/2;
+    ctx.clearRect(0,0,W,H);
+
+    // Intensity based on RPM — idle=dim, high RPM=bright, VTEC=full
+    const rpm = latestData.rpm||0;
+    const fi = Math.max(0.15, Math.min(1, rpm/8000));
+    this._fluxAngle += 0.06 + fi*0.12;
+
+    const armLen = Math.min(W,H)*0.32;
+    const centerY = cy*0.95;
+
+    // Y arms
+    const stemEnd = [cx, centerY + armLen*0.95];
+    const forkLEnd = [cx - armLen*0.7, centerY - armLen*0.75];
+    const forkREnd = [cx + armLen*0.7, centerY - armLen*0.75];
+    const arms = [
+      {sx:cx,sy:centerY,ex:stemEnd[0],ey:stemEnd[1]},
+      {sx:cx,sy:centerY,ex:forkLEnd[0],ey:forkLEnd[1]},
+      {sx:cx,sy:centerY,ex:forkREnd[0],ey:forkREnd[1]},
+    ];
+
+    // Rounded box housing
+    const pad = Math.min(W,H)*0.08;
+    const bx=pad, by=pad, bw=W-pad*2, bh=H-pad*2, br=bw*0.06;
+    ctx.beginPath();
+    ctx.moveTo(bx+br,by); ctx.lineTo(bx+bw-br,by); ctx.arcTo(bx+bw,by,bx+bw,by+br,br);
+    ctx.lineTo(bx+bw,by+bh-br); ctx.arcTo(bx+bw,by+bh,bx+bw-br,by+bh,br);
+    ctx.lineTo(bx+br,by+bh); ctx.arcTo(bx,by+bh,bx,by+bh-br,br);
+    ctx.lineTo(bx,by+br); ctx.arcTo(bx,by,bx+br,by,br); ctx.closePath();
+    ctx.fillStyle=`rgba(5,5,15,${fi*0.6+0.3})`;
+    ctx.fill();
+    // Blue neon border
+    ctx.strokeStyle=`rgba(0,120,255,${fi*0.25})`; ctx.lineWidth=6; ctx.stroke();
+    ctx.strokeStyle=`rgba(80,180,255,${fi*0.5})`; ctx.lineWidth=2; ctx.stroke();
+    ctx.strokeStyle=`rgba(180,230,255,${fi*0.3})`; ctx.lineWidth=0.8; ctx.stroke();
+
+    ctx.lineCap='round';
+    // Draw tubes
+    arms.forEach(arm=>{
+      ctx.beginPath(); ctx.moveTo(arm.sx,arm.sy); ctx.lineTo(arm.ex,arm.ey);
+      ctx.strokeStyle=`rgba(255,255,220,${fi*0.12})`; ctx.lineWidth=armLen*0.1; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(arm.sx,arm.sy); ctx.lineTo(arm.ex,arm.ey);
+      ctx.strokeStyle=`rgba(180,230,255,${fi*0.5})`; ctx.lineWidth=armLen*0.04; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(arm.sx,arm.sy); ctx.lineTo(arm.ex,arm.ey);
+      ctx.strokeStyle=`rgba(255,255,255,${fi*0.6})`; ctx.lineWidth=armLen*0.015; ctx.stroke();
+    });
+
+    // Traveling pulses
+    arms.forEach((arm,ai)=>{
+      const t=((this._fluxAngle*0.8+ai*2.094)%(Math.PI*2))/(Math.PI*2);
+      const px=arm.sx+(arm.ex-arm.sx)*t, py=arm.sy+(arm.ey-arm.sy)*t;
+      const pg=ctx.createRadialGradient(px,py,0,px,py,armLen*0.15);
+      pg.addColorStop(0,`rgba(255,255,255,${fi*0.9})`);
+      pg.addColorStop(0.3,`rgba(100,200,255,${fi*0.5})`);
+      pg.addColorStop(1,'rgba(0,50,150,0)');
+      ctx.fillStyle=pg;
+      ctx.fillRect(px-armLen*0.15,py-armLen*0.15,armLen*0.3,armLen*0.3);
+    });
+
+    // Red bulbs at endpoints
+    [stemEnd,forkLEnd,forkREnd].forEach(([ex,ey])=>{
+      const br2=armLen*0.07;
+      ctx.beginPath(); ctx.arc(ex,ey,br2*1.4,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(255,180,0,${fi*0.6})`; ctx.lineWidth=2; ctx.stroke();
+      const bg2=ctx.createRadialGradient(ex-br2*0.2,ey-br2*0.2,0,ex,ey,br2);
+      bg2.addColorStop(0,`rgba(255,120,100,${fi*0.85})`);
+      bg2.addColorStop(1,`rgba(150,20,10,${fi*0.5})`);
+      ctx.beginPath(); ctx.arc(ex,ey,br2,0,Math.PI*2); ctx.fillStyle=bg2; ctx.fill();
+    });
+
+    // Yellow hooks
+    ctx.strokeStyle=`rgba(255,200,50,${fi*0.5})`; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(forkLEnd[0],forkLEnd[1]+armLen*0.1);
+    ctx.quadraticCurveTo(forkLEnd[0]-armLen*0.18,forkLEnd[1]+armLen*0.25,forkLEnd[0]-armLen*0.12,forkLEnd[1]+armLen*0.38); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(forkREnd[0],forkREnd[1]+armLen*0.1);
+    ctx.quadraticCurveTo(forkREnd[0]+armLen*0.18,forkREnd[1]+armLen*0.25,forkREnd[0]+armLen*0.12,forkREnd[1]+armLen*0.38); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(stemEnd[0],stemEnd[1]+armLen*0.1);
+    ctx.quadraticCurveTo(stemEnd[0]+armLen*0.15,stemEnd[1]+armLen*0.15,stemEnd[0]+armLen*0.1,stemEnd[1]+armLen*0.28); ctx.stroke();
+
+    // Center junction
+    const jg=ctx.createRadialGradient(cx,centerY,0,cx,centerY,armLen*0.15);
+    jg.addColorStop(0,`rgba(255,255,255,${fi*0.85})`);
+    jg.addColorStop(0.4,`rgba(100,180,255,${fi*0.4})`);
+    jg.addColorStop(1,'rgba(0,50,150,0)');
+    ctx.fillStyle=jg; ctx.beginPath(); ctx.arc(cx,centerY,armLen*0.15,0,Math.PI*2); ctx.fill();
+
+    // SHIELD EYES label
+    const labelY = stemEnd[1] - armLen*0.08;
+    ctx.fillStyle=`rgba(200,40,30,${fi*0.6})`;
+    ctx.fillRect(cx-armLen*0.55,labelY-armLen*0.04,armLen*1.1,armLen*0.09);
+    ctx.fillStyle=`rgba(255,255,255,${fi*0.7})`;
+    ctx.font=`bold ${Math.max(6,armLen*0.06)}px 'Share Tech Mono'`;
+    ctx.textAlign='center';
+    ctx.fillText('SHIELD EYES FROM LIGHT',cx,labelY+armLen*0.015);
+
+    // Random arcs
+    if(Math.random()<fi*0.4){
+      const arm=arms[Math.floor(Math.random()*3)];
+      const at=Math.random();
+      const ax=arm.sx+(arm.ex-arm.sx)*at+(Math.random()-0.5)*armLen*0.06;
+      const ay=arm.sy+(arm.ey-arm.sy)*at+(Math.random()-0.5)*armLen*0.06;
+      ctx.beginPath(); ctx.arc(ax,ay,1+Math.random()*2,0,Math.PI*2);
+      ctx.fillStyle=`rgba(200,240,255,${0.5+Math.random()*0.4})`; ctx.fill();
+    }
+  },
+
+  // ---- stubs for standard interface ----
+  buildRPM(){ const d=document.createElement('div'); d.className='gbox'; return d; },
+  buildGauge(){ const d=document.createElement('div'); d.className='gbox'; return d; },
+
+  // ---- update ----
+  updateRPM(r, vtecOn){
+    // Analog gauges
+    this._drawGauges(r, latestData.spd||0);
+
+    // Time circuit digits
+    this._setD('bttf-rpm', Math.round(r), 4);
+    this._setD('bttf-tps', Math.round(latestData.tps||0), 3);
+    this._setD('bttf-ign', (latestData.ign||0).toFixed(1), 3);
+    this._setD('bttf-o2', (latestData.o2||0).toFixed(2), 4);
+    this._setD('bttf-stft', (latestData.stft||0).toFixed(1), 4);
+    this._setD('bttf-idc', Math.round(latestData.idc||0), 3);
+    this._setD('bttf-clt', Math.round(latestData.clt||0), 3);
+    this._setD('bttf-iat', Math.round(latestData.iat||0), 3);
+    this._setD('bttf-batt', (latestData.batt||0).toFixed(1), 4);
+
+    // Speed + gear
+    const spdEl = document.getElementById('bttf-big-spd');
+    if(spdEl) spdEl.textContent = Math.round(latestData.spd||0);
+    const gearEl = document.getElementById('bttf-big-gear');
+    if(gearEl){
+      const gear = calcGear(r, latestData.spd||0);
+      gearEl.textContent = gear===0?'N':gear;
+    }
+
+    // LEDs
+    const led1 = document.getElementById('bttf-led-1');
+    if(led1){ led1.style.background=r>500?'#ff3322':'#331100'; led1.style.boxShadow=r>500?'0 0 6px #ff332244':'none'; }
+    const led2 = document.getElementById('bttf-led-2');
+    if(led2){ led2.style.background=r>500?'#00dd44':'#003311'; led2.style.boxShadow=r>500?'0 0 6px #00dd4444':'none'; }
+    const led3 = document.getElementById('bttf-led-3');
+    if(led3){ led3.style.background=r>500?'#ff8800':'#331a00'; led3.style.boxShadow=r>500?'0 0 6px #ff880044':'none'; }
+
+    // 1.21 GW
+    const gwLed = document.getElementById('bttf-gw-led');
+    const gwText = document.getElementById('bttf-gw-text');
+    if(gwLed&&gwText){
+      if(vtecOn){
+        gwLed.style.background='#00ccff'; gwLed.style.boxShadow='0 0 10px #00ccff88';
+        gwText.style.color='#00ccff'; gwText.style.textShadow='0 0 8px #00ccff66';
+      } else {
+        gwLed.style.background='#112'; gwLed.style.boxShadow='none';
+        gwText.style.color='#33333344'; gwText.style.textShadow='none';
+      }
+    }
+
+    // 88 MPH warning
+    const warn = document.getElementById('bttf-88warn');
+    if(warn){
+      const spd = latestData.spd||0;
+      if(spd>=88){
+        warn.style.borderColor='#00ccff66'; warn.style.background='rgba(0,150,255,0.08)';
+        warn.innerHTML='<span style="font-size:9px;color:#00ccff;letter-spacing:3px;text-shadow:0 0 8px #00ccff66;">⚡ TEMPORAL DISPLACEMENT ACTIVE ⚡</span>';
+      } else {
+        warn.style.borderColor='#33333322'; warn.style.background='transparent';
+        warn.innerHTML='<span style="font-size:8px;color:#33333344;letter-spacing:3px;">TEMPORAL DISPLACEMENT</span>';
+      }
+    }
+
+    // OUTATIME plate lights up at 88
+    const plateWrap = document.getElementById('bttf-plate-wrap');
+    if(plateWrap){
+      if((latestData.spd||0)>=88){ plateWrap.style.boxShadow='0 0 15px rgba(255,136,0,0.4),0 1px 4px rgba(0,0,0,0.5)'; plateWrap.style.borderColor='#ffaa44'; }
+      else { plateWrap.style.boxShadow='0 1px 4px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.3)'; plateWrap.style.borderColor='#888'; }
+    }
+
+    // Status readouts (top-right small digits)
+    const sClt=document.getElementById('bttf-s-clt'); if(sClt) sClt.textContent=Math.round(latestData.clt||0);
+    const sIat=document.getElementById('bttf-s-iat'); if(sIat) sIat.textContent=Math.round(latestData.iat||0);
+    const sBatt=document.getElementById('bttf-s-batt'); if(sBatt) sBatt.textContent=(latestData.batt||0).toFixed(1);
+    const sO2=document.getElementById('bttf-s-o2'); if(sO2) sO2.textContent=(latestData.o2||0).toFixed(2);
+  },
+  updateGauge(){}
+};
+
+// ============================================================
 //  UPDATE DISPATCHER
 // ============================================================
 function updateThemeGauges(d){
@@ -907,9 +1784,195 @@ function startWarp(){ warpActive=true; if(!warpAnimId) warpAnimId=requestAnimati
 function stopWarp(){ warpActive=false; if(!warpAnimId) warpAnimId=requestAnimationFrame(warpLoop); }
 
 function showVTECText(){
+  if(currentTheme === 'bttf'){
+    showFluxText(); return;
+  }
   const ov=document.getElementById('vtec-overlay'),tx=document.getElementById('vtec-text'),sub=document.getElementById('vtec-subtext');
   ov.style.opacity='1';ov.style.transition='opacity 0.3s';
   tx.style.transform='scaleX(0.1)';tx.style.transition='none';
+  setTimeout(()=>{tx.style.transition='transform 0.15s cubic-bezier(0.25,0.46,0.45,0.94)';tx.style.transform='scaleX(1)';},50);
+  setTimeout(()=>{sub.style.opacity='1';sub.style.transition='opacity 0.4s';},200);
+  setTimeout(()=>{ov.style.opacity='0';sub.style.opacity='0';},2500);
+}
+
+// ============================================================
+//  FLUX CAPACITOR (BTTF VTEC effect)
+// ============================================================
+const fluxCanvas = document.getElementById('flux-canvas');
+const fctx = fluxCanvas.getContext('2d');
+let fluxActive = false, fluxIntensity = 0, fluxAnimId = null, fluxAngle = 0;
+
+function resizeFlux(){ fluxCanvas.width=window.innerWidth; fluxCanvas.height=window.innerHeight; }
+resizeFlux(); window.addEventListener('resize', resizeFlux);
+
+function drawFluxFrame(){
+  const w=fluxCanvas.width, h=fluxCanvas.height, cx=w/2, cy=h/2;
+  fctx.clearRect(0,0,w,h);
+  if(fluxIntensity<=0) return;
+
+  const fi = fluxIntensity;
+  const boxW = Math.min(w,h)*0.45;
+  const boxH = boxW * 1.15;
+  const boxX = cx - boxW/2, boxY = cy - boxH/2;
+  const armLen = boxW * 0.35;
+  const centerY = cy - boxH*0.05; // junction point slightly above center
+  fluxAngle += 0.15 * fi;
+
+  // Background darken
+  fctx.fillStyle = `rgba(0,5,15,${fi*0.4})`;
+  fctx.fillRect(0,0,w,h);
+
+  // Rounded box housing
+  const r = boxW*0.08;
+  fctx.beginPath();
+  fctx.moveTo(boxX+r, boxY); fctx.lineTo(boxX+boxW-r, boxY);
+  fctx.arcTo(boxX+boxW, boxY, boxX+boxW, boxY+r, r);
+  fctx.lineTo(boxX+boxW, boxY+boxH-r);
+  fctx.arcTo(boxX+boxW, boxY+boxH, boxX+boxW-r, boxY+boxH, r);
+  fctx.lineTo(boxX+r, boxY+boxH);
+  fctx.arcTo(boxX, boxY+boxH, boxX, boxY+boxH-r, r);
+  fctx.lineTo(boxX, boxY+r);
+  fctx.arcTo(boxX, boxY, boxX+r, boxY, r);
+  fctx.closePath();
+
+  // Dark interior
+  fctx.fillStyle = `rgba(5,8,20,${fi*0.9})`;
+  fctx.fill();
+
+  // Blue border glow (double stroke for neon effect)
+  fctx.strokeStyle = `rgba(0,150,255,${fi*0.3})`;
+  fctx.lineWidth = 8; fctx.stroke();
+  fctx.strokeStyle = `rgba(100,200,255,${fi*0.6})`;
+  fctx.lineWidth = 3; fctx.stroke();
+  fctx.strokeStyle = `rgba(200,240,255,${fi*0.4})`;
+  fctx.lineWidth = 1; fctx.stroke();
+
+  // Y-shape arms: stem down, two forks up
+  const stemEnd = [cx, centerY + armLen*1.1];
+  const forkLEnd = [cx - armLen*0.75, centerY - armLen*0.85];
+  const forkREnd = [cx + armLen*0.75, centerY - armLen*0.85];
+  const arms = [
+    { sx:cx, sy:centerY, ex:stemEnd[0], ey:stemEnd[1] },    // stem
+    { sx:cx, sy:centerY, ex:forkLEnd[0], ey:forkLEnd[1] },  // left fork
+    { sx:cx, sy:centerY, ex:forkREnd[0], ey:forkREnd[1] },  // right fork
+  ];
+
+  // Draw Y tubes
+  fctx.lineCap = 'round';
+  arms.forEach(arm => {
+    // Outer tube (white/yellow shell)
+    fctx.beginPath(); fctx.moveTo(arm.sx, arm.sy); fctx.lineTo(arm.ex, arm.ey);
+    fctx.strokeStyle = `rgba(255,255,200,${fi*0.15})`; fctx.lineWidth = armLen*0.12; fctx.stroke();
+
+    // Inner bright core
+    fctx.beginPath(); fctx.moveTo(arm.sx, arm.sy); fctx.lineTo(arm.ex, arm.ey);
+    fctx.strokeStyle = `rgba(200,240,255,${fi*0.5})`; fctx.lineWidth = armLen*0.05; fctx.stroke();
+
+    // Hot white center line
+    fctx.beginPath(); fctx.moveTo(arm.sx, arm.sy); fctx.lineTo(arm.ex, arm.ey);
+    fctx.strokeStyle = `rgba(255,255,255,${fi*0.7})`; fctx.lineWidth = armLen*0.02; fctx.stroke();
+  });
+
+  // Traveling light pulses — converge to center then shoot out
+  arms.forEach((arm, ai) => {
+    const pulseT = ((fluxAngle*0.8 + ai*2.094) % (Math.PI*2)) / (Math.PI*2);
+    const px = arm.sx + (arm.ex - arm.sx)*pulseT;
+    const py = arm.sy + (arm.ey - arm.sy)*pulseT;
+    const pulseR = armLen*0.08;
+
+    const pg = fctx.createRadialGradient(px,py,0,px,py,pulseR*3);
+    pg.addColorStop(0,`rgba(255,255,255,${fi*0.95})`);
+    pg.addColorStop(0.2,`rgba(150,220,255,${fi*0.7})`);
+    pg.addColorStop(0.5,`rgba(0,150,255,${fi*0.3})`);
+    pg.addColorStop(1,`rgba(0,50,150,0)`);
+    fctx.fillStyle = pg;
+    fctx.fillRect(px-pulseR*3,py-pulseR*3,pulseR*6,pulseR*6);
+  });
+
+  // Red/orange bulb connectors at each endpoint
+  const endpoints = [stemEnd, forkLEnd, forkREnd];
+  endpoints.forEach(([ex,ey]) => {
+    const bulbR = armLen*0.09;
+    // Orange ring
+    fctx.beginPath(); fctx.arc(ex, ey, bulbR*1.3, 0, Math.PI*2);
+    fctx.strokeStyle = `rgba(255,180,0,${fi*0.7})`; fctx.lineWidth = 2.5; fctx.stroke();
+    // Red bulb
+    const bg = fctx.createRadialGradient(ex-bulbR*0.2, ey-bulbR*0.2, 0, ex, ey, bulbR);
+    bg.addColorStop(0, `rgba(255,120,100,${fi*0.9})`);
+    bg.addColorStop(0.6, `rgba(200,40,30,${fi*0.8})`);
+    bg.addColorStop(1, `rgba(150,20,10,${fi*0.5})`);
+    fctx.beginPath(); fctx.arc(ex, ey, bulbR, 0, Math.PI*2);
+    fctx.fillStyle = bg; fctx.fill();
+    // Bulb glow
+    const gg = fctx.createRadialGradient(ex,ey,bulbR,ex,ey,bulbR*2.5);
+    gg.addColorStop(0,`rgba(255,80,50,${fi*0.25})`);
+    gg.addColorStop(1,`rgba(255,40,20,0)`);
+    fctx.fillStyle = gg;
+    fctx.beginPath(); fctx.arc(ex,ey,bulbR*2.5,0,Math.PI*2); fctx.fill();
+  });
+
+  // Yellow hook wires from bulbs
+  fctx.strokeStyle = `rgba(255,200,50,${fi*0.6})`;
+  fctx.lineWidth = 2; fctx.lineCap = 'round';
+  // Left hook
+  fctx.beginPath();
+  fctx.moveTo(forkLEnd[0], forkLEnd[1]+armLen*0.12);
+  fctx.quadraticCurveTo(forkLEnd[0]-armLen*0.2, forkLEnd[1]+armLen*0.3, forkLEnd[0]-armLen*0.15, forkLEnd[1]+armLen*0.45);
+  fctx.stroke();
+  // Right hook
+  fctx.beginPath();
+  fctx.moveTo(forkREnd[0], forkREnd[1]+armLen*0.12);
+  fctx.quadraticCurveTo(forkREnd[0]+armLen*0.2, forkREnd[1]+armLen*0.3, forkREnd[0]+armLen*0.15, forkREnd[1]+armLen*0.45);
+  fctx.stroke();
+  // Bottom hook
+  fctx.beginPath();
+  fctx.moveTo(stemEnd[0], stemEnd[1]+armLen*0.12);
+  fctx.quadraticCurveTo(stemEnd[0]+armLen*0.2, stemEnd[1]+armLen*0.2, stemEnd[0]+armLen*0.15, stemEnd[1]+armLen*0.35);
+  fctx.stroke();
+
+  // Center junction glow
+  const jg = fctx.createRadialGradient(cx,centerY,0,cx,centerY,armLen*0.2);
+  jg.addColorStop(0,`rgba(255,255,255,${fi*0.9})`);
+  jg.addColorStop(0.3,`rgba(150,220,255,${fi*0.5})`);
+  jg.addColorStop(1,`rgba(0,80,200,0)`);
+  fctx.fillStyle = jg;
+  fctx.beginPath(); fctx.arc(cx,centerY,armLen*0.2,0,Math.PI*2); fctx.fill();
+
+  // "SHIELD EYES FROM LIGHT" label
+  fctx.fillStyle = `rgba(255,50,30,${fi*0.7})`;
+  fctx.fillRect(cx-boxW*0.32, stemEnd[1]-armLen*0.15, boxW*0.64, armLen*0.12);
+  fctx.fillStyle = `rgba(255,255,255,${fi*0.8})`;
+  fctx.font = `bold ${Math.max(8,armLen*0.08)}px 'Share Tech Mono'`;
+  fctx.textAlign = 'center';
+  fctx.fillText('SHIELD EYES FROM LIGHT', cx, stemEnd[1]-armLen*0.065);
+
+  // Electric arc flickers along arms
+  if(Math.random() < fi*0.5){
+    const arm = arms[Math.floor(Math.random()*3)];
+    const t = Math.random();
+    const ax = arm.sx + (arm.ex-arm.sx)*t + (Math.random()-0.5)*armLen*0.08;
+    const ay = arm.sy + (arm.ey-arm.sy)*t + (Math.random()-0.5)*armLen*0.08;
+    fctx.beginPath(); fctx.arc(ax, ay, 1+Math.random()*3, 0, Math.PI*2);
+    fctx.fillStyle = `rgba(200,240,255,${0.6+Math.random()*0.4})`;
+    fctx.fill();
+  }
+}
+
+function fluxLoop(){
+  if(!fluxActive && fluxIntensity<=0){ fluxCanvas.style.opacity='0'; fluxAnimId=null; return; }
+  fluxIntensity = fluxActive ? Math.min(1, fluxIntensity+0.03) : Math.max(0, fluxIntensity-0.04);
+  fluxCanvas.style.opacity='1';
+  drawFluxFrame();
+  fluxAnimId = requestAnimationFrame(fluxLoop);
+}
+
+function startFlux(){ fluxActive=true; if(!fluxAnimId) fluxAnimId=requestAnimationFrame(fluxLoop); }
+function stopFlux(){ fluxActive=false; if(!fluxAnimId) fluxAnimId=requestAnimationFrame(fluxLoop); }
+
+function showFluxText(){
+  const ov=document.getElementById('flux-overlay'),tx=document.getElementById('flux-text'),sub=document.getElementById('flux-sub');
+  ov.style.opacity='1'; ov.style.transition='opacity 0.3s';
+  tx.style.transform='scaleX(0.1)'; tx.style.transition='none';
   setTimeout(()=>{tx.style.transition='transform 0.15s cubic-bezier(0.25,0.46,0.45,0.94)';tx.style.transform='scaleX(1)';},50);
   setTimeout(()=>{sub.style.opacity='1';sub.style.transition='opacity 0.4s';},200);
   setTimeout(()=>{ov.style.opacity='0';sub.style.opacity='0';},2500);
@@ -963,56 +2026,213 @@ async function boot(){
 // ============================================================
 //  SIMULATION
 // ============================================================
-let rpm=3240,spd=47,clt=192,tps=38,o2v=0.82,iat=85,ign=18,stft=1.2,ltft=-0.8,batt=14.1,idc=42;
+let rpm=850,spd=0,clt=192,tps=0,o2v=0.82,iat=85,ign=18,stft=1.2,ltft=-0.8,batt=14.1,idc=42;
 let simRL=false,simDir=1,simVTECActive=false,inVTEC=false,manualMode=false;
 const VTEC_RPM=5800;
+let simGear=1, simSpeed=0, simRPM=850, simTPS=0, simT2=0;
 function jit(v,a){return v+(Math.random()-0.5)*a;}
 function startSim(){setInterval(simTick,150);}
 
+// Speed from RPM+gear
+function rpmToSpeed(r,g){ return g<1?0:(r*K20_WHEEL_CIRC_FT*60)/(K20_GEAR_RATIOS[g-1]*K20_FINAL_DRIVE*5280); }
+// RPM from speed+gear
+function speedToRPM(s,g){ return g<1?850:(s*5280/3600)/K20_WHEEL_CIRC_FT*60*K20_GEAR_RATIOS[g-1]*K20_FINAL_DRIVE; }
+
 function simTick(){
-  if(simRL){rpm+=simDir*100;if(rpm>=8300)simDir=-1;if(rpm<=7600)simDir=1;tps=Math.min(100,Math.max(85,jit(tps,3)));spd=Math.min(140,Math.max(70,jit(spd,2)));}
-  else if(simVTECActive){rpm=Math.min(7400,rpm+60);tps=Math.min(100,Math.max(85,jit(tps,3)));spd=Math.min(120,Math.max(60,jit(spd,2)));if(rpm>=7200)simVTECActive=false;}
-  else if(manualMode){rpm=parseInt(document.getElementById('rpm-slider').value);tps=Math.min(100,Math.max(0,jit(rpm/83,5)));spd=Math.min(140,Math.max(0,jit(rpm/60,2)));}
-  else{rpm=Math.max(800,Math.min(7500,jit(rpm,200)));spd=Math.max(0,Math.min(140,jit(spd,3)));tps=Math.max(0,Math.min(100,jit(tps,6)));}
-  clt=Math.max(160,Math.min(230,jit(clt,1)));
+  simT2++;
+  const dt = 0.15; // 150ms tick
+
+  if(manualMode){
+    // Throttle slider controls TPS, sim physics handles the rest
+    simTPS = parseInt(document.getElementById('throttle-slider').value);
+  } else if(simRL){
+    simTPS = 95;
+  } else if(simVTECActive){
+    simTPS = 90;
+    if(simRPM >= 7200) simVTECActive = false;
+  } else {
+    // Auto drive cycle
+    const phase = simT2 % 600;
+    if(phase < 80)       simTPS = 0;      // idle
+    else if(phase < 130) simTPS = 40;     // light accel
+    else if(phase < 180) simTPS = 65;     // moderate
+    else if(phase < 250) simTPS = 100;    // WOT
+    else if(phase < 310) simTPS = 50;     // cruise
+    else if(phase < 360) simTPS = 85;     // hard pull
+    else if(phase < 420) simTPS = 30;     // light cruise
+    else if(phase < 460) simTPS = 0;      // coast
+    else if(phase < 520) simTPS = 70;     // accel again
+    else                 simTPS = 0;      // idle
+  }
+
+  // Engine torque from RPM (K20Z3 curve)
+  let torque;
+  if(simRPM < 1500) torque = 85;
+  else if(simRPM < 3500) torque = 85 + (simRPM-1500)/2000 * 30;
+  else if(simRPM < 5800) torque = 115 + (simRPM-3500)/2300 * 15;
+  else if(simRPM < 6200) torque = 130 + (simRPM-5800)/400 * 9;
+  else if(simRPM < 7200) torque = 139;
+  else torque = 139 - (simRPM-7200)/1000 * 20;
+
+  // Scale torque by throttle
+  const effTorque = torque * (simTPS / 100) * 0.8;
+
+  // Force at wheels
+  const gearRatio = simGear > 0 ? K20_GEAR_RATIOS[simGear-1] * K20_FINAL_DRIVE : 0;
+  const wheelRadius = K20_TIRE_DIAM_IN / 2 / 12; // ft
+  const wheelForce = gearRatio > 0 ? effTorque * gearRatio / wheelRadius : 0;
+
+  // Drag + rolling resistance
+  const speedFtS = simSpeed * 5280 / 3600;
+  const drag = 0.5 * 0.0023769 * 0.31 * 22 * speedFtS * speedFtS;
+  const roll = simSpeed > 1 ? 3070 * 0.015 : 0;
+  const brakeForce = simTPS < 5 && simSpeed > 2 ? 200 : 0; // engine braking when off throttle
+
+  // Net acceleration
+  const netForce = wheelForce - drag - roll - brakeForce;
+  const accel = (netForce / (3070 / 32.174)); // ft/s²
+  simSpeed += accel * dt * 3600 / 5280; // convert to mph
+  simSpeed = Math.max(0, Math.min(160, simSpeed));
+
+  // RPM from speed + gear
+  if(simGear > 0 && simSpeed > 1){
+    simRPM = speedToRPM(simSpeed, simGear);
+  } else {
+    // Idle
+    simRPM += (850 + simTPS * 15 - simRPM) * 0.1; // rev in neutral
+  }
+
+  // Auto shift logic
+  if(simRPM > 8000 && simGear < 6) simGear++;
+  if(simRPM < 1200 && simGear > 1 && simSpeed > 5) simGear--;
+  // Upshift during cruise (don't lug in low gear at high speed)
+  if(simTPS < 40 && simRPM > 4000 && simGear < 6) simGear++;
+  // Downshift when speed drops
+  if(simSpeed < 5 && simGear > 1) simGear = 1;
+
+  simRPM = Math.max(700, Math.min(8500, simRPM));
+
+  // Set outputs
+  rpm = simRPM + jit(0, 15);
+  spd = simSpeed + jit(0, 0.2);
+  tps = simTPS + jit(0, 1);
+
+  clt=Math.max(160,Math.min(230,jit(clt,0.3)));
   o2v=Math.max(0.1,Math.min(1.0,jit(o2v,0.04)));
-  iat=Math.max(60,Math.min(160,jit(iat,1)));
+  iat=Math.max(60,Math.min(160,jit(iat,0.3)));
   ign=Math.max(8,Math.min(42,jit(ign,0.5)));
   stft=Math.max(-10,Math.min(10,jit(stft,0.3)));
   ltft=Math.max(-5,Math.min(5,jit(ltft,0.1)));
   batt=Math.max(13.5,Math.min(14.8,jit(batt,0.05)));
-  idc=Math.max(20,Math.min(85,jit(idc,2)));
+  idc=Math.max(20,Math.min(85,(rpm/9000)*60+tps*0.35+jit(0,2)));
   updateGauges(rpm,spd,clt,tps,o2v,iat,ign,stft,ltft,batt,idc);
 }
 
-function manualRPM(val){
-  manualMode=true;simRL=false;simVTECActive=false;rpm=parseInt(val);
-  const sv=document.getElementById('rpm-slider-val');if(sv)sv.textContent=val;
-  const rb=document.getElementById('rl-btn');if(rb){rb.classList.remove('active');rb.textContent='REDLINE';}
+function manualThrottle(val){
+  manualMode=true;simRL=false;simVTECActive=false;
+  document.getElementById('throttle-slider-val').textContent=val+'%';
 }
 function toggleRL(){
   simRL=!simRL;simVTECActive=false;manualMode=false;
   const btn=document.getElementById('rl-btn');
   if(btn){btn.textContent=simRL?'STOP RL':'REDLINE';btn.classList.toggle('active',simRL);}
-  if(simRL)rpm=7800;
 }
 function simVTEC(){
-  rpm=5200;simVTECActive=true;simRL=false;manualMode=false;
+  simVTECActive=true;simRL=false;manualMode=false;simTPS=90;
   const rb=document.getElementById('rl-btn');if(rb){rb.classList.remove('active');rb.textContent='REDLINE';}
   const btn=document.getElementById('vtec-btn');
   if(btn){btn.classList.add('vtec-active');setTimeout(()=>btn.classList.remove('vtec-active'),4000);}
 }
 function resetSim(){
   simRL=false;simVTECActive=false;inVTEC=false;manualMode=false;
-  rpm=3240;spd=47;clt=192;tps=38;o2v=0.82;
-  const slider=document.getElementById('rpm-slider');if(slider)slider.value=3240;
-  const sv=document.getElementById('rpm-slider-val');if(sv)sv.textContent='3240';
+  simRPM=850;simSpeed=0;simGear=1;simTPS=0;
+  rpm=850;spd=0;clt=192;tps=0;o2v=0.82;
+  const slider=document.getElementById('throttle-slider');if(slider)slider.value=0;
+  const sv=document.getElementById('throttle-slider-val');if(sv)sv.textContent='0%';
   const rb=document.getElementById('rl-btn');if(rb){rb.textContent='REDLINE';rb.classList.remove('active');}
   const vb=document.getElementById('vtec-btn');if(vb)vb.classList.remove('vtec-active');
   document.getElementById('vtec-bar').style.opacity='0';
   const rl=document.getElementById('rpm-label');if(rl){rl.textContent='ENGINE RPM // REDLINE 8200';rl.style.color='';}
   const vr=document.getElementById('val-rpm');if(vr)vr.style.color='';
   stopWarp();
+}
+
+// ============================================================
+//  GEAR CALCULATION + SHIFT LIGHTS
+// ============================================================
+const K20_GEAR_RATIOS = [3.267, 2.130, 1.517, 1.147, 0.921, 0.738];
+const K20_FINAL_DRIVE = 4.764;
+const K20_TIRE_DIAM_IN = 25.7; // 215/45R17
+const K20_WHEEL_CIRC_FT = (K20_TIRE_DIAM_IN * Math.PI) / 12;
+const SHIFT_LEDS = 20;
+
+// Init shift LEDs
+(function(){
+  const strip = document.getElementById('shift-strip');
+  for(let i=0; i<SHIFT_LEDS; i++){
+    const led = document.createElement('div');
+    led.className = 'shift-led';
+    strip.appendChild(led);
+  }
+})();
+
+let lastGear = 0, gearHoldCount = 0;
+
+function calcGear(rpm, speed){
+  if(speed < 3 || rpm < 600) { lastGear=0; gearHoldCount=0; return 0; }
+  let best = 0, bestDiff = Infinity;
+  for(let g=0; g<6; g++){
+    const expected = (rpm * K20_WHEEL_CIRC_FT * 60) / (K20_GEAR_RATIOS[g] * K20_FINAL_DRIVE * 5280);
+    const diff = Math.abs(expected - speed);
+    if(diff < bestDiff){ bestDiff = diff; best = g+1; }
+  }
+  // Hysteresis: require 4 consecutive readings of the new gear before switching
+  if(best !== lastGear){
+    gearHoldCount++;
+    if(gearHoldCount < 4) return lastGear || best;
+    lastGear = best;
+    gearHoldCount = 0;
+  } else {
+    gearHoldCount = 0;
+  }
+  return lastGear;
+}
+
+function updateShiftLights(rpm){
+  const leds = document.getElementById('shift-strip').children;
+  const norm = rpm / 8200;
+  for(let i=0; i<SHIFT_LEDS; i++){
+    const thresh = (i+1) / SHIFT_LEDS;
+    const led = leds[i];
+    if(norm >= thresh){
+      const t = i / (SHIFT_LEDS-1);
+      let color;
+      if(t < 0.4) color = '#00cc44';
+      else if(t < 0.6) color = '#88cc00';
+      else if(t < 0.75) color = '#ccaa00';
+      else if(t < 0.88) color = '#cc4400';
+      else color = '#ff0044';
+      led.style.background = color;
+      led.style.boxShadow = '0 0 6px ' + color;
+      // Flash at redline
+      if(rpm > 7800 && t >= 0.88){
+        led.style.opacity = Math.sin(performance.now()*0.025) > 0 ? '1' : '0.15';
+      } else {
+        led.style.opacity = '1';
+      }
+    } else {
+      led.style.background = '#111';
+      led.style.boxShadow = 'none';
+      led.style.opacity = '1';
+    }
+  }
+}
+
+function updateGearDisplay(rpm, speed){
+  const gear = calcGear(rpm, speed);
+  const el = document.getElementById('gear-num');
+  el.textContent = gear === 0 ? 'N' : gear;
+  el.classList.toggle('engaged', gear > 0);
 }
 
 // ============================================================
@@ -1026,12 +2246,14 @@ function updateGauges(r,s,c,t,o2,ia,ig,sf,lf,bv,id){
 
   // VTEC state
   if(r>=VTEC_RPM && !inVTEC){
-    inVTEC=true; startWarp(); showVTECText();
+    inVTEC=true;
+    if(currentTheme==='bttf'){ startFlux(); } else { startWarp(); }
+    showVTECText();
     document.getElementById('vtec-bar').style.opacity='1';
     const rl=document.getElementById('rpm-label');if(rl){rl.textContent='ENGINE RPM // i-VTEC ENGAGED';rl.style.color='#4488ffaa';}
     const vr=document.getElementById('val-rpm');if(vr)vr.style.color='#4488ff';
   } else if(r<VTEC_RPM && inVTEC){
-    inVTEC=false; stopWarp();
+    inVTEC=false; stopWarp(); stopFlux();
     document.getElementById('vtec-bar').style.opacity='0';
     const rl=document.getElementById('rpm-label');if(rl){rl.textContent='ENGINE RPM // REDLINE 8200';rl.style.color='';}
     const vr=document.getElementById('val-rpm');if(vr)vr.style.color='';
@@ -1049,6 +2271,10 @@ function updateGauges(r,s,c,t,o2,ia,ig,sf,lf,bv,id){
     const be=document.getElementById('val-batt');if(be)be.style.color=bv<12.5?'#ff4400':'';
   }
 
+  // Shift lights + gear
+  updateShiftLights(r);
+  updateGearDisplay(r, s);
+
   // Update theme gauges
   updateThemeGauges(latestData);
 }
@@ -1058,7 +2284,7 @@ function updateGauges(r,s,c,t,o2,ia,ig,sf,lf,bv,id){
 // ============================================================
 // Apply saved theme
 document.body.className = 'theme-' + currentTheme;
-const hue = {cyberpunk:'#880000',neon:'#004488',racing:'#884400',steelseries:'#448800'}[currentTheme];
+const hue = {cyberpunk:'#880000',neon:'#004488',racing:'#884400',steelseries:'#448800',knightrider:'#880022',aventador:'#886600',bttf:'#884400'}[currentTheme];
 document.querySelectorAll('#honda-bg path, #honda-bg polygon').forEach(p => p.setAttribute('fill', hue));
 
 rebuildGrid();
@@ -1066,7 +2292,7 @@ boot();
 
 // Handle resize for canvas-based themes
 window.addEventListener('resize', () => {
-  if(currentTheme === 'racing' || currentTheme === 'neon' || currentTheme === 'steelseries'){
+  if(['racing','neon','steelseries','aventador'].includes(currentTheme)){
     cleanupTheme();
     rebuildGrid();
   }

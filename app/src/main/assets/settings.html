@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; width:100vw; height:100vh; overflow-y:auto; overflow-x:hidden; font-family:'Share Tech Mono',monospace; color:#ccc; }
+
+/* STATUS BAR */
+.status-bar { position:fixed; top:0; left:0; right:0; height:28px; background:#0d0d0d; border-bottom:1px solid #ffffff0d; display:flex; align-items:center; padding:0 12px; gap:16px; z-index:10; }
+.status-label { font-size:10px; color:#ffffff55; letter-spacing:2px; }
+.status-spacer { flex:1; }
+.status-tag { font-size:9px; color:#cc2200; letter-spacing:2px; border:1px solid #cc220033; padding:1px 6px; }
+
+.content { padding:40px 20px 40px; max-width:700px; margin:0 auto; }
+
+/* SECTION */
+.section { margin-bottom:24px; border:1px solid #ffffff0a; background:#0d0d0d; border-radius:4px; overflow:hidden; }
+.section-header { padding:12px 16px; border-bottom:1px solid #ffffff08; display:flex; align-items:center; gap:10px; }
+.section-title { font-size:11px; color:#cc2200; letter-spacing:3px; }
+.section-icon { font-size:14px; color:#cc220066; }
+.section-body { padding:16px; }
+
+/* SETTING ROW */
+.setting-row { display:flex; align-items:center; padding:10px 0; border-bottom:1px solid #ffffff06; }
+.setting-row:last-child { border-bottom:none; }
+.setting-info { flex:1; }
+.setting-name { font-size:11px; color:#ffffffcc; letter-spacing:1px; }
+.setting-desc { font-size:9px; color:#ffffff33; margin-top:2px; line-height:1.4; }
+.setting-control { flex-shrink:0; margin-left:16px; }
+
+/* SELECT */
+.sel { background:#111; border:1px solid #ffffff15; color:#ff8844; font-family:'Orbitron',monospace; font-size:11px; padding:6px 10px; appearance:none; cursor:pointer; letter-spacing:1px; min-width:140px; }
+.sel:focus { border-color:#cc2200; outline:none; }
+.sel option { background:#111; color:#ccc; }
+
+/* INPUT */
+.cfg-input { background:#111; border:1px solid #ffffff15; color:#ff8844; font-family:'Orbitron',monospace; font-size:11px; padding:6px 10px; text-align:right; width:80px; }
+.cfg-input:focus { border-color:#cc2200; outline:none; }
+
+/* TOGGLE */
+.toggle { width:44px; height:24px; border-radius:12px; background:#1a1a1a; border:1px solid #ffffff15; position:relative; cursor:pointer; transition:all 0.2s; }
+.toggle.on { background:rgba(204,34,0,0.15); border-color:#cc220066; }
+.toggle::after { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#444; transition:all 0.2s; }
+.toggle.on::after { transform:translateX(20px); background:#cc2200; }
+
+/* BUTTON */
+.btn { background:transparent; border:1px solid #ffffff22; color:#ffffff55; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1px; padding:6px 12px; cursor:pointer; transition:all 0.15s; }
+.btn:hover { border-color:#cc2200; color:#cc2200; }
+.btn.small { padding:4px 8px; font-size:9px; }
+
+/* SOUND PICKER */
+.sound-grid { display:flex; flex-direction:column; gap:4px; }
+.sound-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid #ffffff08; border-radius:2px; cursor:pointer; transition:all 0.15s; }
+.sound-item:hover { border-color:#ffffff22; }
+.sound-item.active { border-color:#cc2200; background:rgba(204,34,0,0.06); }
+.sound-dot { width:10px; height:10px; border-radius:50%; background:#222; border:1px solid #ffffff15; flex-shrink:0; }
+.sound-item.active .sound-dot { background:#cc2200; border-color:#cc2200; box-shadow:0 0 6px #cc220066; }
+.sound-name { font-size:10px; color:#ffffffcc; letter-spacing:1px; flex:1; }
+.sound-desc { font-size:8px; color:#ffffff33; }
+.sound-play { background:transparent; border:1px solid #ffffff15; color:#ffffff44; font-family:'Share Tech Mono',monospace; font-size:9px; padding:3px 8px; cursor:pointer; transition:all 0.15s; flex-shrink:0; }
+.sound-play:hover { border-color:#cc2200; color:#cc2200; }
+
+/* UNIT ROW */
+.unit-row { display:flex; gap:4px; }
+.unit-btn { background:transparent; border:1px solid #ffffff11; color:#ffffff33; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; padding:5px 12px; cursor:pointer; transition:all 0.15s; }
+.unit-btn.active { border-color:#cc220066; color:#cc2200; background:rgba(204,34,0,0.05); }
+
+/* COLOR SWATCH */
+.color-row { display:flex; gap:6px; flex-wrap:wrap; }
+.color-swatch { width:28px; height:28px; border-radius:3px; border:2px solid transparent; cursor:pointer; transition:all 0.15s; }
+.color-swatch.active { border-color:#ffffff88; box-shadow:0 0 8px rgba(255,255,255,0.2); }
+
+/* STORAGE BAR */
+.storage-bar { height:6px; background:#ffffff08; border-radius:3px; margin-top:8px; overflow:hidden; }
+.storage-fill { height:100%; background:#cc2200; border-radius:3px; }
+
+/* VERSION */
+.version-info { text-align:center; padding:20px; color:#ffffff15; font-size:9px; letter-spacing:2px; }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <span class="status-label">HONDADASH</span>
+  <div class="status-spacer"></div>
+  <div class="status-tag">SETTINGS</div>
+</div>
+
+<div class="content">
+
+  <!-- STARTUP SOUND -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">STARTUP SOUND</span>
+    </div>
+    <div class="section-body">
+      <div class="sound-grid" id="sound-grid"></div>
+    </div>
+  </div>
+
+  <!-- DISPLAY -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">DISPLAY</span>
+    </div>
+    <div class="section-body">
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">BOOT SEQUENCE</div>
+          <div class="setting-desc">Show the hex address loading animation on startup</div>
+        </div>
+        <div class="setting-control">
+          <div class="toggle" id="tog-boot" onclick="toggleSetting('boot-sequence',this)"></div>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">SCANLINES</div>
+          <div class="setting-desc">CRT scanline overlay on Cyberpunk theme</div>
+        </div>
+        <div class="setting-control">
+          <div class="toggle" id="tog-scanlines" onclick="toggleSetting('scanlines',this)"></div>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">VTEC ANIMATION</div>
+          <div class="setting-desc">Full-screen effect when VTEC engages at 5800 RPM</div>
+        </div>
+        <div class="setting-control">
+          <div class="toggle" id="tog-vtec-anim" onclick="toggleSetting('vtec-animation',this)"></div>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">REDLINE EFFECTS</div>
+          <div class="setting-desc">Screen shake and flash at 7800+ RPM</div>
+        </div>
+        <div class="setting-control">
+          <div class="toggle" id="tog-redline" onclick="toggleSetting('redline-effects',this)"></div>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">SHIFT LIGHT STRIP</div>
+          <div class="setting-desc">LED bar across the top of the dashboard</div>
+        </div>
+        <div class="setting-control">
+          <div class="toggle" id="tog-shiftlights" onclick="toggleSetting('shift-lights',this)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NIGHT MODE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">NIGHT MODE</span>
+    </div>
+    <div class="section-body">
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">MODE</div>
+          <div class="setting-desc">Auto dims the display between sunset and sunrise</div>
+        </div>
+        <div class="setting-control">
+          <div class="unit-row">
+            <button class="unit-btn" data-key="night-mode" data-val="off" onclick="setUnit(this)">OFF</button>
+            <button class="unit-btn" data-key="night-mode" data-val="auto" onclick="setUnit(this)">AUTO</button>
+            <button class="unit-btn" data-key="night-mode" data-val="on" onclick="setUnit(this)">ALWAYS</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">DIM LEVEL</div>
+          <div class="setting-desc">How dark to go at night (lower = dimmer)</div>
+        </div>
+        <div class="setting-control" style="display:flex;align-items:center;gap:8px;">
+          <input type="range" id="night-dim" min="20" max="80" value="50" style="width:100px;accent-color:#cc2200;" oninput="setNightDim(this.value)">
+          <span id="night-dim-val" style="font-size:10px;color:#ff8844;font-family:Orbitron;min-width:30px;">50%</span>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">NIGHT START</div>
+          <div class="setting-desc">When auto night mode begins</div>
+        </div>
+        <div class="setting-control">
+          <input class="cfg-input" id="night-start" type="time" value="19:30" onchange="saveNightSchedule()" style="width:90px;color:#ff8844;">
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">NIGHT END</div>
+          <div class="setting-desc">When auto night mode ends</div>
+        </div>
+        <div class="setting-control">
+          <input class="cfg-input" id="night-end" type="time" value="06:30" onchange="saveNightSchedule()" style="width:90px;color:#ff8844;">
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">RED SHIFT</div>
+          <div class="setting-desc">Warm color shift at night to reduce eye strain</div>
+        </div>
+        <div class="setting-control">
+          <div class="toggle" id="tog-redshift" onclick="toggleSetting('night-redshift',this)"></div>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">STATUS</div>
+          <div class="setting-desc" id="night-status-desc">—</div>
+        </div>
+        <div class="setting-control">
+          <span id="night-active-badge" style="font-size:10px;padding:3px 8px;border-radius:2px;letter-spacing:1px;">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UNITS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">UNITS</span>
+    </div>
+    <div class="section-body">
+      <div class="setting-row">
+        <div class="setting-info"><div class="setting-name">TEMPERATURE</div></div>
+        <div class="setting-control">
+          <div class="unit-row">
+            <button class="unit-btn" data-key="temp-unit" data-val="f" onclick="setUnit(this)">°F</button>
+            <button class="unit-btn" data-key="temp-unit" data-val="c" onclick="setUnit(this)">°C</button>
+          </div>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info"><div class="setting-name">SPEED</div></div>
+        <div class="setting-control">
+          <div class="unit-row">
+            <button class="unit-btn" data-key="speed-unit" data-val="mph" onclick="setUnit(this)">MPH</button>
+            <button class="unit-btn" data-key="speed-unit" data-val="kph" onclick="setUnit(this)">KPH</button>
+          </div>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info"><div class="setting-name">PRESSURE</div></div>
+        <div class="setting-control">
+          <div class="unit-row">
+            <button class="unit-btn" data-key="pressure-unit" data-val="kpa" onclick="setUnit(this)">kPa</button>
+            <button class="unit-btn" data-key="pressure-unit" data-val="psi" onclick="setUnit(this)">PSI</button>
+            <button class="unit-btn" data-key="pressure-unit" data-val="bar" onclick="setUnit(this)">BAR</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VEHICLE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">VEHICLE</span>
+    </div>
+    <div class="section-body">
+      <div class="setting-row">
+        <div class="setting-info"><div class="setting-name">CURB WEIGHT</div><div class="setting-desc">2007 Civic Si FA5 stock: 2906 lbs</div></div>
+        <div class="setting-control"><input class="cfg-input" id="v-weight" type="number" value="2906" onchange="saveVehicle()"> <span style="font-size:8px;color:#ffffff33;">LBS</span></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info"><div class="setting-name">DRIVER WEIGHT</div></div>
+        <div class="setting-control"><input class="cfg-input" id="v-driver" type="number" value="170" onchange="saveVehicle()"> <span style="font-size:8px;color:#ffffff33;">LBS</span></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info"><div class="setting-name">TIRE DIAMETER</div><div class="setting-desc">215/45R17 stock: 25.7 in</div></div>
+        <div class="setting-control"><input class="cfg-input" id="v-tire" type="number" value="25.7" step="0.1" onchange="saveVehicle()"> <span style="font-size:8px;color:#ffffff33;">IN</span></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info"><div class="setting-name">REDLINE RPM</div></div>
+        <div class="setting-control"><input class="cfg-input" id="v-redline" type="number" value="8200" step="100" onchange="saveVehicle()"></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info"><div class="setting-name">VTEC CROSSOVER</div></div>
+        <div class="setting-control"><input class="cfg-input" id="v-vtec" type="number" value="5800" step="100" onchange="saveVehicle()"> <span style="font-size:8px;color:#ffffff33;">RPM</span></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info"><div class="setting-name">DRAG COEFFICIENT</div><div class="setting-desc">FA5 Civic stock: 0.31</div></div>
+        <div class="setting-control"><input class="cfg-input" id="v-cd" type="number" value="0.31" step="0.01" onchange="saveVehicle()"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">DATA & STORAGE</span>
+    </div>
+    <div class="section-body">
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">LOCAL STORAGE</div>
+          <div class="setting-desc" id="storage-info">Calculating...</div>
+          <div class="storage-bar"><div class="storage-fill" id="storage-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">TRIP HISTORY</div>
+          <div class="setting-desc" id="trip-count">0 trips saved</div>
+        </div>
+        <div class="setting-control">
+          <button class="btn small" onclick="clearTrips()">CLEAR TRIPS</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">DYNO RUNS</div>
+          <div class="setting-desc" id="dyno-count">0 runs saved</div>
+        </div>
+        <div class="setting-control">
+          <button class="btn small" onclick="clearDyno()">CLEAR RUNS</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">DRAG TIMES</div>
+          <div class="setting-desc" id="drag-count">0 runs saved</div>
+        </div>
+        <div class="setting-control">
+          <button class="btn small" onclick="clearDrag()">CLEAR TIMES</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">RESET ALL DATA</div>
+          <div class="setting-desc">Clears all saved data, runs, trips, and settings</div>
+        </div>
+        <div class="setting-control">
+          <button class="btn small" style="color:#ff4444;border-color:#ff444433;" onclick="resetAll()">RESET ALL</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABOUT -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">ABOUT</span>
+    </div>
+    <div class="section-body">
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">HONDADASH</div>
+          <div class="setting-desc">Android dashboard for 2007 Honda Civic Si (FA5)<br>K20Z3 // 6-Speed Manual // FWD</div>
+        </div>
+        <div class="setting-control" style="font-family:Orbitron;font-size:14px;color:#cc2200;">v7</div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-name">PAGES</div>
+          <div class="setting-desc">Dashboard, Tuner, FlashPro, CarView, Chassis, Datalog, Engine 3D, Drag, Heatmap, G-Force, Dyno, Playback, Trips, Battery, Music, StreetView</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="version-info">HONDADASH V7 // K20Z3 // FA5 // BUILT WITH CLAUDE</div>
+
+</div>
+
+<script>
+// ============================================================
+//  STARTUP SOUNDS — Web Audio API synthesized
+// ============================================================
+const SOUNDS = [
+  { id:'none',     name:'SILENT',          desc:'No startup sound' },
+  { id:'cyber',    name:'CYBER BOOT',      desc:'Digital beeps + static burst' },
+  { id:'delorean', name:'DELOREAN',         desc:'Flux capacitor whine + time travel whoosh' },
+  { id:'vtec',     name:'VTEC CROSSOVER',   desc:'Engine rev through VTEC engagement' },
+  { id:'f1',       name:'F1 START',         desc:'Formation lap tone sequence' },
+  { id:'turbo',    name:'TURBO SPOOL',      desc:'Wastegate flutter + boost whoosh' },
+  { id:'retro',    name:'RETRO ARCADE',     desc:'8-bit power-up chiptune' },
+  { id:'synth',    name:'SYNTHWAVE',        desc:'80s analog synth sweep' },
+];
+
+const actx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(id){
+  if(id==='none') return;
+  actx.resume();
+
+  const now = actx.currentTime;
+  const master = actx.createGain();
+  master.gain.setValueAtTime(0.5, now);
+  master.connect(actx.destination);
+
+  switch(id){
+    case 'cyber': {
+      // Digital beeps
+      for(let i=0;i<4;i++){
+        const o=actx.createOscillator(), g=actx.createGain();
+        o.type='square'; o.frequency.value=800+i*200;
+        g.gain.setValueAtTime(0,now+i*0.12); g.gain.linearRampToValueAtTime(0.3,now+i*0.12+0.02);
+        g.gain.linearRampToValueAtTime(0,now+i*0.12+0.08);
+        o.connect(g); g.connect(master); o.start(now+i*0.12); o.stop(now+i*0.12+0.1);
+      }
+      // Static burst
+      const buf=actx.createBuffer(1,actx.sampleRate*0.3,actx.sampleRate);
+      const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()-0.5)*0.4;
+      const n=actx.createBufferSource(),ng=actx.createGain();
+      n.buffer=buf; ng.gain.setValueAtTime(0,now+0.5); ng.gain.linearRampToValueAtTime(0.2,now+0.55);
+      ng.gain.linearRampToValueAtTime(0,now+0.8);
+      n.connect(ng); ng.connect(master); n.start(now+0.5);
+      // Final tone
+      const f=actx.createOscillator(),fg=actx.createGain();
+      f.type='sine'; f.frequency.value=1200; fg.gain.setValueAtTime(0,now+0.8);
+      fg.gain.linearRampToValueAtTime(0.4,now+0.85); fg.gain.linearRampToValueAtTime(0,now+1.3);
+      f.connect(fg); fg.connect(master); f.start(now+0.8); f.stop(now+1.4);
+      break;
+    }
+    case 'delorean': {
+      // Rising whine
+      const o=actx.createOscillator(),g=actx.createGain();
+      o.type='sawtooth'; o.frequency.setValueAtTime(200,now); o.frequency.exponentialRampToValueAtTime(2000,now+1.5);
+      g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(0.15,now+0.3);
+      g.gain.linearRampToValueAtTime(0.3,now+1.2); g.gain.linearRampToValueAtTime(0,now+2.0);
+      o.connect(g); g.connect(master); o.start(now); o.stop(now+2.1);
+      // Electrical crackle
+      for(let i=0;i<8;i++){
+        const t=now+0.8+Math.random()*0.8;
+        const co=actx.createOscillator(),cg=actx.createGain();
+        co.type='square'; co.frequency.value=3000+Math.random()*2000;
+        cg.gain.setValueAtTime(0.15,t); cg.gain.linearRampToValueAtTime(0,t+0.03);
+        co.connect(cg); cg.connect(master); co.start(t); co.stop(t+0.04);
+      }
+      // Boom
+      const bo=actx.createOscillator(),bg=actx.createGain();
+      bo.type='sine'; bo.frequency.setValueAtTime(80,now+1.5); bo.frequency.exponentialRampToValueAtTime(30,now+2.2);
+      bg.gain.setValueAtTime(0,now+1.5); bg.gain.linearRampToValueAtTime(0.5,now+1.55);
+      bg.gain.linearRampToValueAtTime(0,now+2.2);
+      bo.connect(bg); bg.connect(master); bo.start(now+1.5); bo.stop(now+2.3);
+      break;
+    }
+    case 'vtec': {
+      // Engine rev up
+      const o=actx.createOscillator(),g=actx.createGain();
+      o.type='sawtooth'; o.frequency.setValueAtTime(60,now); o.frequency.exponentialRampToValueAtTime(120,now+0.8);
+      o.frequency.exponentialRampToValueAtTime(200,now+1.2); // VTEC hit
+      o.frequency.exponentialRampToValueAtTime(280,now+1.8);
+      g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(0.15,now+0.2);
+      g.gain.setValueAtTime(0.15,now+1.1); g.gain.linearRampToValueAtTime(0.25,now+1.3); // VTEC bump
+      g.gain.linearRampToValueAtTime(0,now+2.0);
+      o.connect(g); g.connect(master); o.start(now); o.stop(now+2.1);
+      // Harmonics
+      const h=actx.createOscillator(),hg=actx.createGain();
+      h.type='square'; h.frequency.setValueAtTime(120,now); h.frequency.exponentialRampToValueAtTime(560,now+1.8);
+      hg.gain.setValueAtTime(0,now); hg.gain.linearRampToValueAtTime(0.05,now+0.5); hg.gain.linearRampToValueAtTime(0,now+2.0);
+      h.connect(hg); hg.connect(master); h.start(now); h.stop(now+2.1);
+      break;
+    }
+    case 'f1': {
+      // 5 lights then go
+      for(let i=0;i<5;i++){
+        const o=actx.createOscillator(),g=actx.createGain();
+        o.type='sine'; o.frequency.value=800;
+        g.gain.setValueAtTime(0,now+i*0.3); g.gain.linearRampToValueAtTime(0.3,now+i*0.3+0.02);
+        g.gain.setValueAtTime(0.3,now+i*0.3+0.2); g.gain.linearRampToValueAtTime(0,now+i*0.3+0.25);
+        o.connect(g); g.connect(master); o.start(now+i*0.3); o.stop(now+i*0.3+0.3);
+      }
+      // Go tone (higher)
+      const go=actx.createOscillator(),gg2=actx.createGain();
+      go.type='sine'; go.frequency.value=1200;
+      gg2.gain.setValueAtTime(0,now+1.8); gg2.gain.linearRampToValueAtTime(0.4,now+1.82);
+      gg2.gain.linearRampToValueAtTime(0,now+2.5);
+      go.connect(gg2); gg2.connect(master); go.start(now+1.8); go.stop(now+2.6);
+      break;
+    }
+    case 'turbo': {
+      // Spool whine
+      const o=actx.createOscillator(),g=actx.createGain();
+      o.type='sine'; o.frequency.setValueAtTime(400,now); o.frequency.exponentialRampToValueAtTime(4000,now+1.5);
+      g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(0.2,now+0.5);
+      g.gain.linearRampToValueAtTime(0.3,now+1.3); g.gain.linearRampToValueAtTime(0,now+1.8);
+      o.connect(g); g.connect(master); o.start(now); o.stop(now+1.9);
+      // Flutter (BOV)
+      for(let i=0;i<12;i++){
+        const t=now+1.5+i*0.04;
+        const fo=actx.createOscillator(),fg=actx.createGain();
+        fo.type='triangle'; fo.frequency.value=600-i*40;
+        fg.gain.setValueAtTime(0.2-i*0.015,t); fg.gain.linearRampToValueAtTime(0,t+0.03);
+        fo.connect(fg); fg.connect(master); fo.start(t); fo.stop(t+0.04);
+      }
+      break;
+    }
+    case 'retro': {
+      // 8-bit power-up
+      const notes=[523,659,784,1047,784,1047,1319];
+      notes.forEach((f,i)=>{
+        const o=actx.createOscillator(),g=actx.createGain();
+        o.type='square'; o.frequency.value=f;
+        g.gain.setValueAtTime(0,now+i*0.1); g.gain.linearRampToValueAtTime(0.2,now+i*0.1+0.01);
+        g.gain.setValueAtTime(0.2,now+i*0.1+0.07); g.gain.linearRampToValueAtTime(0,now+i*0.1+0.09);
+        o.connect(g); g.connect(master); o.start(now+i*0.1); o.stop(now+i*0.1+0.1);
+      });
+      break;
+    }
+    case 'synth': {
+      // 80s analog sweep
+      const o=actx.createOscillator(),g=actx.createGain();
+      const f=actx.createBiquadFilter();
+      o.type='sawtooth'; o.frequency.value=110;
+      f.type='lowpass'; f.frequency.setValueAtTime(200,now); f.frequency.exponentialRampToValueAtTime(4000,now+1.5);
+      f.frequency.exponentialRampToValueAtTime(800,now+2.5); f.Q.value=8;
+      g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(0.25,now+0.3);
+      g.gain.linearRampToValueAtTime(0.15,now+1.5); g.gain.linearRampToValueAtTime(0,now+2.5);
+      o.connect(f); f.connect(g); g.connect(master); o.start(now); o.stop(now+2.6);
+      // Pad
+      const p=actx.createOscillator(),pg=actx.createGain();
+      p.type='triangle'; p.frequency.value=220;
+      pg.gain.setValueAtTime(0,now); pg.gain.linearRampToValueAtTime(0.08,now+0.5); pg.gain.linearRampToValueAtTime(0,now+2.5);
+      p.connect(pg); pg.connect(master); p.start(now); p.stop(now+2.6);
+      break;
+    }
+  }
+}
+
+// ============================================================
+//  SETTINGS STORAGE
+// ============================================================
+const SETTINGS_KEY = 'hondadash-settings';
+let settings = {};
+
+function loadSettings(){
+  try { settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch(e){ settings={}; }
+
+  // Defaults
+  if(settings['boot-sound'] === undefined) settings['boot-sound'] = 'cyber';
+  if(settings['boot-sequence'] === undefined) settings['boot-sequence'] = true;
+  if(settings['scanlines'] === undefined) settings['scanlines'] = true;
+  if(settings['vtec-animation'] === undefined) settings['vtec-animation'] = true;
+  if(settings['redline-effects'] === undefined) settings['redline-effects'] = true;
+  if(settings['shift-lights'] === undefined) settings['shift-lights'] = true;
+  if(settings['temp-unit'] === undefined) settings['temp-unit'] = 'f';
+  if(settings['speed-unit'] === undefined) settings['speed-unit'] = 'mph';
+  if(settings['pressure-unit'] === undefined) settings['pressure-unit'] = 'kpa';
+  if(settings['night-mode'] === undefined) settings['night-mode'] = 'auto';
+  if(settings['night-dim'] === undefined) settings['night-dim'] = 50;
+  if(settings['night-start'] === undefined) settings['night-start'] = '19:30';
+  if(settings['night-end'] === undefined) settings['night-end'] = '06:30';
+  if(settings['night-redshift'] === undefined) settings['night-redshift'] = true;
+}
+
+function save(){
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+// ============================================================
+//  SOUND PICKER UI
+// ============================================================
+function buildSoundGrid(){
+  const grid = document.getElementById('sound-grid');
+  grid.innerHTML = '';
+  SOUNDS.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'sound-item' + (settings['boot-sound']===s.id?' active':'');
+    div.innerHTML = `
+      <div class="sound-dot"></div>
+      <div style="flex:1;">
+        <div class="sound-name">${s.name}</div>
+        <div class="sound-desc">${s.desc}</div>
+      </div>
+      <button class="sound-play" onclick="event.stopPropagation();playSound('${s.id}')">PLAY</button>
+    `;
+    div.onclick = () => {
+      settings['boot-sound'] = s.id;
+      save();
+      document.querySelectorAll('.sound-item').forEach(el => el.classList.remove('active'));
+      div.classList.add('active');
+    };
+    grid.appendChild(div);
+  });
+}
+
+// ============================================================
+//  TOGGLE / UNIT CONTROLS
+// ============================================================
+function toggleSetting(key, el){
+  settings[key] = !settings[key];
+  el.classList.toggle('on', settings[key]);
+  save();
+}
+
+function setUnit(btn){
+  const key = btn.dataset.key;
+  const val = btn.dataset.val;
+  settings[key] = val;
+  save();
+  // Update active states
+  btn.parentElement.querySelectorAll('.unit-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.val === val)
+  );
+}
+
+// ============================================================
+//  VEHICLE CONFIG
+// ============================================================
+function loadVehicle(){
+  try {
+    const v = JSON.parse(localStorage.getItem('dyno-cfg') || '{}');
+    if(v.weight) document.getElementById('v-weight').value = v.weight;
+    if(v.driver) document.getElementById('v-driver').value = v.driver;
+    if(v.tire) document.getElementById('v-tire').value = v.tire;
+    if(v.cd) document.getElementById('v-cd').value = v.cd;
+  } catch(e){}
+  const vs = JSON.parse(localStorage.getItem('hondadash-vehicle') || '{}');
+  if(vs.redline) document.getElementById('v-redline').value = vs.redline;
+  if(vs.vtec) document.getElementById('v-vtec').value = vs.vtec;
+}
+
+function saveVehicle(){
+  // Save to dyno-cfg (shared with dyno.html)
+  const dynoCfg = JSON.parse(localStorage.getItem('dyno-cfg') || '{}');
+  dynoCfg.weight = parseFloat(document.getElementById('v-weight').value) || 2906;
+  dynoCfg.driver = parseFloat(document.getElementById('v-driver').value) || 170;
+  dynoCfg.tire = parseFloat(document.getElementById('v-tire').value) || 25.7;
+  dynoCfg.cd = parseFloat(document.getElementById('v-cd').value) || 0.31;
+  localStorage.setItem('dyno-cfg', JSON.stringify(dynoCfg));
+
+  // Save vehicle-specific settings
+  localStorage.setItem('hondadash-vehicle', JSON.stringify({
+    redline: parseInt(document.getElementById('v-redline').value) || 8200,
+    vtec: parseInt(document.getElementById('v-vtec').value) || 5800
+  }));
+}
+
+// ============================================================
+//  DATA MANAGEMENT
+// ============================================================
+function updateStorageInfo(){
+  let total = 0;
+  for(let key in localStorage){ if(localStorage.hasOwnProperty(key)) total += localStorage[key].length * 2; }
+  const kb = (total/1024).toFixed(1);
+  const maxKB = 5120; // 5MB typical limit
+  document.getElementById('storage-info').textContent = kb + ' KB used of ~' + maxKB + ' KB';
+  document.getElementById('storage-fill').style.width = Math.min(100, (total/1024/maxKB*100)).toFixed(1) + '%';
+
+  // Counts
+  try { const t=JSON.parse(localStorage.getItem('hondadash_trips_v2')||'[]'); document.getElementById('trip-count').textContent=t.length+' trips saved'; } catch(e){}
+  try { const d=JSON.parse(localStorage.getItem('dyno-runs')||'[]'); document.getElementById('dyno-count').textContent=d.length+' runs saved'; } catch(e){}
+  try { const h=JSON.parse(localStorage.getItem('drag-history')||'[]'); document.getElementById('drag-count').textContent=h.length+' runs saved'; } catch(e){}
+}
+
+function clearTrips(){ if(confirm('Clear all trip data?')){ localStorage.removeItem('hondadash_trips_v2'); updateStorageInfo(); } }
+function clearDyno(){ if(confirm('Clear all dyno runs?')){ localStorage.removeItem('dyno-runs'); updateStorageInfo(); } }
+function clearDrag(){ if(confirm('Clear all drag times?')){ localStorage.removeItem('drag-history'); localStorage.removeItem('drag-bests'); updateStorageInfo(); } }
+function resetAll(){ if(confirm('RESET ALL DATA? This cannot be undone.')){ localStorage.clear(); location.reload(); } }
+
+// ============================================================
+//  INIT
+// ============================================================
+// ============================================================
+//  NIGHT MODE
+// ============================================================
+function setNightDim(val){
+  settings['night-dim'] = parseInt(val);
+  document.getElementById('night-dim-val').textContent = val+'%';
+  save();
+  applyNightMode();
+}
+
+function saveNightSchedule(){
+  settings['night-start'] = document.getElementById('night-start').value;
+  settings['night-end'] = document.getElementById('night-end').value;
+  save();
+  updateNightStatus();
+}
+
+function isNightTime(){
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  const current = h*60+m;
+  const [sh,sm] = (settings['night-start']||'19:30').split(':').map(Number);
+  const [eh,em] = (settings['night-end']||'06:30').split(':').map(Number);
+  const start = sh*60+sm;
+  const end = eh*60+em;
+  // Handle overnight (e.g., 19:30 -> 06:30)
+  if(start > end) return current >= start || current < end;
+  return current >= start && current < end;
+}
+
+function getNightActive(){
+  const mode = settings['night-mode'] || 'auto';
+  if(mode === 'on') return true;
+  if(mode === 'off') return false;
+  return isNightTime();
+}
+
+function applyNightMode(){
+  const active = getNightActive();
+  const dim = settings['night-dim'] || 50;
+  const redshift = settings['night-redshift'] !== false;
+
+  // Apply to current page via CSS filter
+  const brightness = active ? dim/100 : 1;
+  const sepia = active && redshift ? 0.2 : 0;
+  document.documentElement.style.filter = active ? `brightness(${brightness}) sepia(${sepia})` : '';
+
+  // Write state to localStorage for other pages to read
+  localStorage.setItem('hondadash-night', JSON.stringify({
+    active, dim, redshift, brightness
+  }));
+
+  updateNightStatus();
+}
+
+function updateNightStatus(){
+  const active = getNightActive();
+  const mode = settings['night-mode'] || 'auto';
+  const badge = document.getElementById('night-active-badge');
+  const desc = document.getElementById('night-status-desc');
+
+  if(active){
+    badge.textContent = 'NIGHT';
+    badge.style.color = '#4488ff';
+    badge.style.border = '1px solid #4488ff33';
+    const dimVal = settings['night-dim']||50;
+    desc.textContent = 'Dimmed to '+dimVal+'%' + (mode==='auto' ? ' (auto: '+settings['night-start']+' - '+settings['night-end']+')' : ' (forced on)');
+  } else {
+    badge.textContent = 'DAY';
+    badge.style.color = '#ffcc00';
+    badge.style.border = '1px solid #ffcc0033';
+    desc.textContent = mode==='auto' ? 'Day mode until '+settings['night-start'] : 'Night mode disabled';
+  }
+}
+
+function initNightUI(){
+  document.getElementById('night-dim').value = settings['night-dim']||50;
+  document.getElementById('night-dim-val').textContent = (settings['night-dim']||50)+'%';
+  document.getElementById('night-start').value = settings['night-start']||'19:30';
+  document.getElementById('night-end').value = settings['night-end']||'06:30';
+  applyNightMode();
+}
+
+// Check every 60s for auto transitions
+setInterval(applyNightMode, 60000);
+
+function initUI(){
+  loadSettings();
+  buildSoundGrid();
+
+  // Apply toggle states
+  ['boot-sequence','scanlines','vtec-animation','redline-effects','shift-lights'].forEach(key => {
+    const el = document.getElementById('tog-'+key.replace(/-/g,'-'));
+    // Match element IDs
+    const togId = 'tog-' + key.replace(/-/g,'-');
+    const togEl = document.getElementById(togId);
+    if(togEl) togEl.classList.toggle('on', settings[key] !== false);
+  });
+
+  // Apply unit states
+  document.querySelectorAll('.unit-btn').forEach(btn => {
+    const key = btn.dataset.key;
+    btn.classList.toggle('active', settings[key] === btn.dataset.val);
+  });
+
+  loadVehicle();
+  updateStorageInfo();
+  initNightUI();
+}
+
+initUI();
+</script>
+</body>
+</html>

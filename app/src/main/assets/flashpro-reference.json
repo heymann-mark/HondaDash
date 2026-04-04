@@ -1,0 +1,1367 @@
+{
+  "_meta": {
+    "title": "Hondata FlashPro Reference",
+    "version": "1.0.0",
+    "source": "Hondata FlashPro Manager Documentation",
+    "generated": "2026-03-30",
+    "description": "Comprehensive structured reference for FlashPro sensors, parameters, calibration tables, and features extracted from official Hondata documentation."
+  },
+
+  "sensors": {
+    "_description": "All datalog sensors available via FlashPro datalogging. These values are captured in each datalog frame.",
+    "RPM": {
+      "name": "RPM",
+      "full_name": "Engine Speed",
+      "description": "Engine speed in revolutions per minute, calculated from the crank position sensor. Extremely accurate; factory tachometers typically read 0-5% over.",
+      "unit": "rpm",
+      "range": [0, 9000],
+      "category": "engine",
+      "tips": ["FlashPro RPM is more accurate than the dash tachometer", "Most tachometers read 0-5% high"]
+    },
+    "VSS": {
+      "name": "VSS",
+      "full_name": "Vehicle Speed Sensor",
+      "description": "Vehicle ground speed calculated from the VSS sensor located on the transmission. Measures driven wheel speed; wheel slip and spin are not compensated for.",
+      "unit": "mph or km/h",
+      "range": [0, 200],
+      "category": "vehicle",
+      "tips": ["Measures driven wheel speed only", "Does not compensate for wheel slip or spin"]
+    },
+    "Gear": {
+      "name": "Gear",
+      "full_name": "Current Gear",
+      "description": "Current gear as calculated by the ECU from vehicle speed and RPM.",
+      "unit": "gear number",
+      "range": [0, 6],
+      "category": "vehicle",
+      "tips": ["Calculated value, not a direct sensor reading", "0 indicates neutral or clutch disengaged"]
+    },
+    "MAP": {
+      "name": "MAP",
+      "full_name": "Manifold Absolute Pressure",
+      "description": "Air pressure inside the intake manifold measured after the throttle plate. On forced induction vehicles the MAP sensor should read manifold pressure after the supercharger/turbocharger.",
+      "unit": "kPa or bar",
+      "range": [0, 400],
+      "category": "engine",
+      "tips": ["Stock MAP sensor reads up to ~1.78 bar (~11.5 psi boost)", "Hondata 4 bar MAP sensor reads up to ~40 psi boost", "Do not set boost cut over 1.75 bar with stock MAP sensor"]
+    },
+    "TPedal": {
+      "name": "TPedal",
+      "full_name": "Throttle Pedal Position",
+      "description": "Throttle pedal position measured as percentage of full throttle (0-100%).",
+      "unit": "%",
+      "range": [0, 100],
+      "category": "throttle"
+    },
+    "TPlate": {
+      "name": "TPlate",
+      "full_name": "Throttle Plate Position",
+      "description": "Throttle plate (butterfly valve) position measured as percentage of fully open (0-100%). The ECU maps throttle pedal to plate position; the plate opens less at low RPM for smoothness.",
+      "unit": "%",
+      "range": [0, 100],
+      "category": "throttle"
+    },
+    "ECT": {
+      "name": "ECT",
+      "full_name": "Engine Coolant Temperature",
+      "description": "Engine coolant temperature measured in the cylinder head.",
+      "unit": "°F or °C",
+      "range": [-40, 300],
+      "category": "temperature",
+      "tips": ["Normal operating temp ~185-210°F (85-99°C)", "Stock thermostat opens at 185°F (85°C), fully open at 195°F (90°C)"]
+    },
+    "IAT": {
+      "name": "IAT",
+      "full_name": "Intake Air Temperature",
+      "description": "Temperature of intake air. For naturally aspirated vehicles, measured in the intake pipe by the AFM. For turbo vehicles, measured in the intake manifold.",
+      "unit": "°F or °C",
+      "range": [-40, 300],
+      "category": "temperature",
+      "tips": ["Location differs between NA and turbo vehicles", "Affects ignition and fuel compensation tables"]
+    },
+    "IGN": {
+      "name": "IGN",
+      "full_name": "Ignition Timing",
+      "description": "Ignition timing measured in degrees before top dead center (BTDC). This is the actual ignition timing including all compensations.",
+      "unit": "degrees BTDC",
+      "range": [-20, 60],
+      "category": "ignition",
+      "tips": ["At idle, ECU uses ignition to control idle speed; timing ranges from -10 to +15 degrees", "Excessive advance damages the engine", "Actual timing may differ from base table due to knock control, temperature compensation, etc."]
+    },
+    "INJ": {
+      "name": "INJ",
+      "full_name": "Injector Duration",
+      "description": "Injector pulse width duration for #1 injector, usually measured in milliseconds.",
+      "unit": "ms",
+      "range": [0, 30],
+      "category": "fuel"
+    },
+    "DUTY": {
+      "name": "DUTY",
+      "full_name": "Injector Duty Cycle",
+      "description": "Injector duty cycle as a percentage of available time. High duty cycle indicates the injectors are approaching their flow limit.",
+      "unit": "%",
+      "range": [0, 100],
+      "category": "fuel",
+      "tips": ["Over 85% duty cycle indicates injectors are near capacity", "Consider larger injectors if regularly above 80%"]
+    },
+    "AF": {
+      "name": "AF",
+      "full_name": "Air/Fuel Ratio",
+      "description": "Air/fuel ratio calculated from the stock lambda sensor.",
+      "unit": "AFR",
+      "range": [10, 20],
+      "category": "fuel",
+      "tips": ["Stoichiometric is 14.7:1 for gasoline", "Stock wideband reads 10.7:1 to 20:1 but progressively reads richer as EGT increases", "For forced induction, use aftermarket wideband for accurate WOT readings"]
+    },
+    "AFM": {
+      "name": "AFM",
+      "full_name": "Air Flow Meter Mass Flow",
+      "description": "Air flow meter reading converted to mass flow. The AFM measures airflow into the engine and produces a voltage which the ECU converts to grams per second.",
+      "unit": "g/s",
+      "range": [0, 300],
+      "category": "fuel"
+    },
+    "AFM.v": {
+      "name": "AFM.v",
+      "full_name": "Air Flow Meter Voltage",
+      "description": "Raw voltage output from the air flow meter before conversion to mass flow units.",
+      "unit": "V",
+      "range": [0, 5],
+      "category": "fuel"
+    },
+    "BAT": {
+      "name": "BAT",
+      "full_name": "Battery Voltage",
+      "description": "Battery voltage as measured by the ECU.",
+      "unit": "V",
+      "range": [9, 16],
+      "category": "electrical",
+      "tips": ["Normal running voltage is 13.5-14.5V", "Below 12V may indicate charging system issues"]
+    },
+    "CAM": {
+      "name": "CAM",
+      "full_name": "Intake Camshaft Position",
+      "description": "Actual intake camshaft position measured in degrees of crankshaft rotation from the base (fully retarded) position. Locked at zero for the first 10 seconds after startup.",
+      "unit": "degrees",
+      "range": [0, 50],
+      "category": "vtc",
+      "tips": ["Locked at 0 degrees for 10 seconds after startup", "May lag CAMCMD by 0.1-0.5 seconds", "Normal range 0-50 degrees depending on calibration"]
+    },
+    "CAMCMD": {
+      "name": "CAMCMD",
+      "full_name": "Intake Camshaft Command",
+      "description": "Desired (target) intake camshaft position based on the cam advance table and engine conditions. The actual CAM position may lag this value by 0.1-0.5 seconds due to the closed-loop VTC mechanism.",
+      "unit": "degrees",
+      "range": [0, 50],
+      "category": "vtc",
+      "tips": ["Compare with CAM to verify VTC is tracking properly", "Large difference between CAMCMD and CAM may indicate VTC problems"]
+    },
+    "VTS": {
+      "name": "VTS",
+      "full_name": "VTEC Spool Valve",
+      "description": "Shows when VTEC has engaged the high speed cam. Binary indicator.",
+      "unit": "on/off",
+      "range": [0, 1],
+      "category": "vtec",
+      "tips": ["1 = high speed cam engaged", "0 = low speed cam active"]
+    },
+    "S.TRIM": {
+      "name": "S.TRIM",
+      "full_name": "Short Term Fuel Trim",
+      "description": "Short term fuel trim used in closed loop to keep the air/fuel ratio near stoichiometric for optimal catalytic converter operation. Positive values mean the ECU is adding fuel; negative values mean it is removing fuel.",
+      "unit": "%",
+      "range": [-25, 25],
+      "normal_range": [-10, 10],
+      "category": "fuel",
+      "tips": ["Normal range is -10% to +10%", "Outside this range indicates fuel maps need part-throttle tuning", "Often goes very high during fuel overrun conditions while shifting"]
+    },
+    "L.TRIM": {
+      "name": "L.TRIM",
+      "full_name": "Long Term Fuel Trim",
+      "description": "Long term fuel trim based on the trend of short term fuel trim. Represents a learned adjustment the ECU applies over time.",
+      "unit": "%",
+      "range": [-25, 25],
+      "normal_range": [-5, 5],
+      "category": "fuel",
+      "tips": ["Normal range is -5% to +5%", "Large values indicate a consistent fueling error that should be corrected in the calibration"]
+    },
+    "TRIM": {
+      "name": "TRIM",
+      "full_name": "Combined Fuel Trim",
+      "description": "Combined long term and short term fuel trim value.",
+      "unit": "%",
+      "range": [-50, 50],
+      "category": "fuel"
+    },
+    "Fuel Status": {
+      "name": "Fuel Status",
+      "full_name": "Fuel System Status",
+      "description": "Shows if the ECU is running in open loop or closed loop mode.",
+      "unit": "status code",
+      "range": [1, 8],
+      "category": "fuel",
+      "values": {
+        "1": "Open loop (sensor warming up)",
+        "2": "Closed loop",
+        "4": "Open loop (driving conditions / WOT)",
+        "8": "Open loop (error)"
+      },
+      "tips": ["Status 2 (closed loop) is normal at part throttle", "Status 4 at WOT is normal behavior"]
+    },
+    "K.Count": {
+      "name": "K.Count",
+      "full_name": "Knock Count",
+      "description": "Knock count per cylinder. Incremented each time the ECU determines a knock-type event from the knock sensor. Recorded individually for each cylinder.",
+      "unit": "count",
+      "range": [0, 255],
+      "category": "knock",
+      "tips": ["Not affected by knock sensitivity table changes", "Supercharger noise and exhaust headers are common causes of false knock", "Monitor per-cylinder to identify problem areas"]
+    },
+    "K.Level": {
+      "name": "K.Level",
+      "full_name": "Knock Level",
+      "description": "Knock level as detected by the knock sensor, measured in percentage.",
+      "unit": "%",
+      "range": [0, 100],
+      "category": "knock"
+    },
+    "K.Retard": {
+      "name": "K.Retard",
+      "full_name": "Knock Retard",
+      "description": "Amount of ignition timing retard applied by the knock control system, measured in degrees.",
+      "unit": "degrees",
+      "range": [0, 30],
+      "category": "knock",
+      "tips": ["0 degrees means no knock retard is being applied", "Persistent retard indicates the engine is knocking and needs attention"]
+    },
+    "K.Control": {
+      "name": "K.Control",
+      "full_name": "Knock Control",
+      "description": "Knock control value in percent. Represents the ECU's estimate of fuel octane quality. 0% means the ECU considers the fuel high octane; higher values mean lower estimated octane, applying more retard.",
+      "unit": "%",
+      "range": [0, 100],
+      "category": "knock",
+      "tips": ["Starts high after ECU reflash and slowly comes down during normal driving", "Hold steady RPM on dyno to reduce K.Control faster", "50% means halfway between high and low octane knock limits"]
+    },
+    "Ign.Limit": {
+      "name": "Ign.Limit",
+      "full_name": "Knock Ignition Limit",
+      "description": "The current knock ignition limit in degrees. Maximum timing the ECU will allow based on knock control tables.",
+      "unit": "degrees",
+      "range": [-10, 60],
+      "category": "knock"
+    },
+    "PA": {
+      "name": "PA",
+      "full_name": "Atmospheric Pressure",
+      "description": "Atmospheric (barometric) air pressure measured internally by the ECU.",
+      "unit": "kPa",
+      "range": [70, 105],
+      "category": "environment",
+      "tips": ["Sea level is approximately 101.3 kPa", "Lower at higher altitudes"]
+    },
+    "Eco": {
+      "name": "Eco",
+      "full_name": "Fuel Economy",
+      "description": "Fuel economy as calculated by the ECU. Requires correct injector size settings in fuel parameters for accuracy.",
+      "unit": "mpg or L/100km",
+      "range": [0, 99],
+      "category": "fuel"
+    },
+    "Fuel Used": {
+      "name": "Fuel Used",
+      "full_name": "Trip Fuel Used",
+      "description": "Fuel consumed during this trip, calculated by the ECU from injector duration and flow. Requires correct injector size settings.",
+      "unit": "gallons or liters",
+      "range": [0, 999],
+      "category": "fuel"
+    }
+  },
+
+  "calibration_tables": {
+    "_description": "Tuning tables available in FlashPro calibrations. Tables are organized by category.",
+    "fuel": {
+      "fuel_tables_low_cam": {
+        "name": "Fuel Tables (Low Cam)",
+        "description": "Volumetric efficiency tables for the low speed cam when using speed-density (MAP-based) fueling. Not used by AFM-based systems.",
+        "axes": {"x": "RPM", "y": "MAP (kPa)"},
+        "unit": "VE %",
+        "live_tunable": true
+      },
+      "fuel_tables_high_cam": {
+        "name": "Fuel Tables (High Cam)",
+        "description": "Volumetric efficiency tables for the high speed cam when using speed-density (MAP-based) fueling.",
+        "axes": {"x": "RPM", "y": "MAP (kPa)"},
+        "unit": "VE %",
+        "live_tunable": true
+      },
+      "wot_lambda_low_cam": {
+        "name": "WOT Lambda Adjustment (Low Cam)",
+        "description": "Wide open throttle lambda/AFR target for the low speed cam. Applied when ECU determines WOT conditions. Based on stoichiometric fueling assumption.",
+        "axes": {"x": "RPM", "y": "MAP (kPa)"},
+        "unit": "lambda or AFR",
+        "tips": ["Do not use values above 12.50 AFR or 0.85 lambda, otherwise ECU will always run closed loop"]
+      },
+      "wot_lambda_high_cam": {
+        "name": "WOT Lambda Adjustment (High Cam)",
+        "description": "Wide open throttle lambda/AFR target for the high speed cam.",
+        "axes": {"x": "RPM", "y": "MAP (kPa)"},
+        "unit": "lambda or AFR"
+      },
+      "afm_fuel": {
+        "name": "AFM Fuel",
+        "description": "Converts from air mass per cylinder to injector duration. Used on AFM-based vehicles.",
+        "unit": "ms"
+      },
+      "individual_cylinder_fuel_trim": {
+        "name": "Individual Cylinder Fuel Trim",
+        "description": "Per-cylinder fuel trim to compensate for flow differences between injectors. Only adjust with individual cylinder lambda probes.",
+        "unit": "%"
+      },
+      "fuel_iat_compensation": {
+        "name": "Fuel IAT Compensation",
+        "description": "Three tables adjusting fuel by intake air temperature at low, medium, and high airflow rates. Positive values add fuel; negative values reduce fuel.",
+        "unit": "%"
+      },
+      "fuel_ect_compensation": {
+        "name": "Fuel ECT Compensation",
+        "description": "Two tables adjusting fuel by coolant temperature - one for low load (<40 kPa) and one for high load. Positive adds fuel; negative reduces fuel.",
+        "unit": "%"
+      },
+      "cranking_fuel_iat": {
+        "name": "Cranking Fuel IAT Compensation",
+        "description": "Adjusts cranking (starting) fuel by intake air temperature.",
+        "unit": "%"
+      },
+      "cranking_fuel_ect": {
+        "name": "Cranking Fuel ECT Compensation",
+        "description": "Adjusts cranking (starting) fuel by coolant temperature.",
+        "unit": "%"
+      }
+    },
+    "ignition": {
+      "ignition_tables_low_cam": {
+        "name": "Ignition Tables (Low Cam)",
+        "description": "Base ignition timing (MBT) for the low speed cam. Additional compensations (knock, temperature, etc.) are applied on top of these values.",
+        "axes": {"x": "RPM", "y": "MAP (kPa)"},
+        "unit": "degrees BTDC",
+        "live_tunable": true
+      },
+      "ignition_tables_high_cam": {
+        "name": "Ignition Tables (High Cam)",
+        "description": "Base ignition timing (MBT) for the high speed cam.",
+        "axes": {"x": "RPM", "y": "MAP (kPa)"},
+        "unit": "degrees BTDC",
+        "live_tunable": true
+      },
+      "egr_ignition_tables": {
+        "name": "EGR Ignition Tables",
+        "description": "Affects partial throttle ignition timing when EGR is between 12-25%. Indexed by RPM and EGR percentage.",
+        "axes": {"x": "RPM", "y": "EGR (%)"},
+        "unit": "degrees"
+      },
+      "individual_cylinder_ignition_trim": {
+        "name": "Individual Cylinder Ignition Trim",
+        "description": "Per-cylinder ignition timing trim. Only adjust using exhaust gas temperature gauge data.",
+        "unit": "degrees"
+      },
+      "ignition_iat_compensation": {
+        "name": "Ignition IAT Compensation",
+        "description": "Two tables compensating ignition timing by intake air temperature - low load and medium/high load (crossover at ~40 kPa). Positive values retard; negative values advance.",
+        "unit": "degrees"
+      },
+      "ignition_ect_cold": {
+        "name": "Ignition ECT Compensation (Cold)",
+        "description": "Retards ignition when coolant is below normal operating temperature. Two tables for low and high load.",
+        "unit": "degrees"
+      },
+      "ignition_ect_hot": {
+        "name": "Ignition ECT Compensation (Hot)",
+        "description": "Retards ignition when coolant is above normal (overheating). Two tables for low and high load.",
+        "unit": "degrees"
+      },
+      "ignition_gear_compensation": {
+        "name": "Ignition Gear Compensation",
+        "description": "Adjusts ignition timing by gear. Positive values advance, negative values retard. Applies to all load/rpm points.",
+        "unit": "degrees"
+      },
+      "cranking_ignition": {
+        "name": "Cranking Ignition",
+        "description": "Base ignition timing during engine cranking, indexed by coolant temperature.",
+        "unit": "degrees"
+      },
+      "throttle_tip_in_retard": {
+        "name": "Throttle Tip-In Ignition Retard",
+        "description": "Ignition retard upon throttle tip-in, with RPM, throttle, and gear compensation sub-tables.",
+        "unit": "degrees"
+      }
+    },
+    "cam_vtc": {
+      "cam_angle_low_cam": {
+        "name": "Cam Angle Table (Low Cam)",
+        "description": "Target intake cam advance angle for the low speed cam, indexed by RPM and MAP. Values in crank degrees from base position.",
+        "axes": {"x": "RPM", "y": "MAP (kPa)"},
+        "unit": "degrees",
+        "live_tunable": true,
+        "tips": ["Set to 0 at idle and low RPM", "15-30 degrees at cruising conditions", "0.1 seconds per 10 degrees rotation delay"]
+      },
+      "cam_angle_high_cam": {
+        "name": "Cam Angle Table (High Cam)",
+        "description": "Target intake cam advance angle for the high speed cam.",
+        "axes": {"x": "RPM", "y": "MAP (kPa)"},
+        "unit": "degrees",
+        "live_tunable": true
+      }
+    },
+    "knock": {
+      "knock_ignition_limit_low_cam": {
+        "name": "Knock Ignition Limit (Low Cam)",
+        "description": "Maximum ignition advance before knock is likely, relative to the MBT ignition table. Negative values mean the knock limit is lower than MBT timing.",
+        "axes": {"x": "RPM", "y": "MAP (kPa)"},
+        "unit": "degrees (relative to MBT)",
+        "tips": ["Caution: increasing negative values toward zero advances timing", "For forced induction on pump fuel, use 0 or less in boost columns"]
+      },
+      "knock_ignition_limit_high_cam": {
+        "name": "Knock Ignition Limit (High Cam)",
+        "description": "Knock ignition limit table for the high speed cam.",
+        "axes": {"x": "RPM", "y": "MAP (kPa)"},
+        "unit": "degrees (relative to MBT)"
+      },
+      "knock_sensitivity": {
+        "name": "Knock Sensitivity",
+        "description": "Threshold for knock sensor noise before ECU determines knock is occurring. Lower values = more sensitive.",
+        "axes": {"x": "RPM", "y": "MAP (kPa)"},
+        "tips": ["Increase values for noisy cams/headers to reduce false knock", "Decrease values for better knock detection with forced induction"]
+      },
+      "knock_retard": {
+        "name": "Knock Retard Tables",
+        "description": "Amount of retard between high-octane and low-octane knock limits. Actual retard depends on K.Control value. Only retards when knock limit < MBT timing.",
+        "axes": {"x": "RPM", "y": "MAP (kPa)"},
+        "unit": "degrees",
+        "tips": ["Use 4-10 degrees for aftermarket tuning", "Lower columns (6 and below) have little effect"]
+      },
+      "knock_air_limit": {
+        "name": "Knock Air Limit",
+        "description": "Cylinder filling limit (mg) based on knock retard. Can be increased without adversely affecting K.Control. Helps make boost levels more consistent as knock retard varies.",
+        "unit": "mg"
+      }
+    },
+    "vtec": {
+      "vtec_rpm_window": {
+        "name": "VTEC RPM Window",
+        "description": "Minimum and maximum RPM for VTEC activation.",
+        "unit": "rpm",
+        "tips": [
+          "Do not set below 2500 rpm on twin cam, 1800 on single cam, 1000 on R18/R20",
+          "Do not set above 6500 rpm to prevent valve train damage",
+          "Stock engines typically 5500-5700 rpm",
+          "Intake & exhaust mods: 4500-4800 rpm",
+          "Supercharged: 3000-3200 rpm"
+        ]
+      },
+      "vtec_window_pressure": {
+        "name": "VTEC Window Pressure",
+        "description": "Minimum MAP for VTEC activation vs RPM. Prevents cam switch at light throttle for better fuel economy and driveability.",
+        "axes": {"x": "RPM"},
+        "unit": "kPa",
+        "tips": ["Set 80 kPa at lower RPM, 40 kPa at upper RPM for NA", "Set 110-120 kPa at lower RPM for forced induction"]
+      }
+    }
+  },
+
+  "parameters": {
+    "_description": "All tunable parameters organized by subcategory.",
+    "fuel": {
+      "injector_size": {
+        "name": "Injector Size",
+        "description": "Current injector flow rate. Changing this automatically compensates main fuel tables, cranking fuel, and closed loop operation.",
+        "unit": "cc/min",
+        "tips": ["Flow is nominally at 3 bar (43.5 psi)", "Changing size auto-compensates fuel tables"]
+      },
+      "fuel_pressure": {
+        "name": "Fuel Pressure",
+        "description": "Compensates for fuel pressure if different from stock. Includes test pressure values for both stock and current injectors.",
+        "unit": "bar or psi"
+      },
+      "fuel_trim_compensation": {
+        "name": "Fuel Trim Compensation",
+        "description": "Manual compensation of main fuel tables, AFM tables, and cranking fuel. Normally not needed if injector size is set correctly.",
+        "unit": "%"
+      },
+      "injector_opening_time": {
+        "name": "Injector Opening Time (Dead Time)",
+        "description": "Injector latency/dead time compensation. Manufacturer provides these values for aftermarket injectors.",
+        "unit": "ms"
+      },
+      "overrun_fuel_cut_delay": {
+        "name": "Overrun Fuel Cut Delay",
+        "description": "Delay between overrun conditions being met (throttle closed, RPM >1800) and injectors shutting off. Long delay gives rev hang; short delay makes the vehicle jerky.",
+        "unit": "ms",
+        "tips": ["For 6-speed vehicles, 5th gear setting is used for both 5th and 6th gears"]
+      },
+      "fuel_table_type": {
+        "name": "Fuel Table Type",
+        "description": "For some AFM calibrations, allows using MAP (VE) lookup tables instead of AFM flow. Can also blend AFM at low pressure and MAP at higher pressures.",
+        "options": ["AFM (mass flow)", "MAP (speed/density)", "AFM/MAP blend"]
+      },
+      "fuel_economy": {
+        "name": "Fuel Economy Parameters",
+        "description": "Injector flow reference values used by ECU and dash for fuel economy calculations.",
+        "sub_params": ["Injector flow for fuel economy", "Injector flow for dash"]
+      }
+    },
+    "ignition": {
+      "cold_retard": {
+        "name": "Cold Start Ignition Retard",
+        "description": "When cold, ECU retards ignition to heat catalytic converter faster. Can be disabled for race vehicles without a catalyst.",
+        "unit": "degrees"
+      },
+      "iat_retard_target": {
+        "name": "IAT Retard Application",
+        "description": "Controls whether IAT-based ignition retard is applied to the knock ignition limit tables or directly to ignition advance.",
+        "options": ["Applied to knock ignition limit", "Applied to ignition advance"],
+        "tips": ["Only one option should be checked at a time"]
+      }
+    },
+    "idle": {
+      "idle_speed_normal": {
+        "name": "Idle Speed (Normal)",
+        "description": "Target idle speed indexed by coolant temperature. Used after the after-start period (20-60 seconds).",
+        "unit": "rpm",
+        "tips": ["With larger injectors, increase idle speed slightly for better quality idle"]
+      },
+      "idle_speed_after_start": {
+        "name": "Idle Speed (After Start)",
+        "description": "Elevated idle speed used immediately after engine start. Returns to normal idle speed after 20-60 seconds.",
+        "unit": "rpm"
+      },
+      "idle_torque_reserve": {
+        "name": "Idle Torque Reserve",
+        "description": "Percentage of torque held in reserve at idle for stability, created by retarding timing. Target ~0 degrees average ignition at idle.",
+        "unit": "%",
+        "tips": ["Too low = ECU may increase idle speed to compensate", "Too high = ignition overly retarded"]
+      }
+    },
+    "vtec": {
+      "vtec_min_coolant_temp": {
+        "name": "VTEC Minimum Coolant Temperature",
+        "description": "Minimum water temperature before VTEC will activate.",
+        "unit": "°F or °C"
+      },
+      "vtec_engage_speed": {
+        "name": "VTEC Engage Minimum Speed",
+        "description": "Minimum vehicle speed for VTEC activation.",
+        "unit": "mph or km/h"
+      },
+      "vtec_disengage_speed": {
+        "name": "VTEC Disengage Speed",
+        "description": "Vehicle speed below which VTEC disengages. Should always be lower than engage speed.",
+        "unit": "mph or km/h"
+      }
+    },
+    "vtc": {
+      "vtc_decel_zero": {
+        "name": "Zero VTC Upon Decel Fuel Cut",
+        "description": "Default behavior returns cam to 0 degrees when throttle is released. Uncheck for smoother gear shifts.",
+        "type": "checkbox",
+        "tips": ["Recommended to disable for smoother shifting", "Set decel angle or use VTC tables instead"]
+      },
+      "vtc_decel_angle": {
+        "name": "VTC Decel Fuel Cut Angle",
+        "description": "Fixed cam angle to use during deceleration instead of returning to zero. Typically 20-30 degrees works well.",
+        "unit": "degrees",
+        "range": [0, 50]
+      },
+      "vtc_use_tables_decel": {
+        "name": "Use VTC Tables Upon Decel Fuel Cut",
+        "description": "Uses normal VTC table lookup during deceleration for the smoothest shifting.",
+        "type": "checkbox",
+        "tips": ["Recommended: disable Zero VTC and enable this", "Ensure idle area of VTC tables is set to 0 degrees"]
+      },
+      "vtc_pid": {
+        "name": "VTC Closed Loop PID",
+        "description": "PID parameters for the VTC closed loop cam position control. Only change if needed; will not fix mechanical problems.",
+        "sub_params": ["P gain", "I gain", "D gain"]
+      }
+    },
+    "knock": {
+      "knock_sensor_enabled": {
+        "name": "Knock Sensor",
+        "description": "Enable/disable the knock sensor. If disabled, ECU uses default (conservative) advance tables resulting in considerable retard.",
+        "type": "checkbox",
+        "tips": ["Normally does not need to be disabled during tuning"]
+      },
+      "knock_light_control": {
+        "name": "Knock Light Control",
+        "description": "When enabled, flashes the check engine light when knock occurs.",
+        "type": "checkbox"
+      }
+    },
+    "throttle": {
+      "target_throttle_plate": {
+        "name": "Target Throttle Plate Table",
+        "description": "Maps throttle pedal position to throttle plate opening. Advanced table - incorrect settings could cause sudden acceleration.",
+        "axes": {"x": "RPM", "y": "Throttle Pedal %"},
+        "unit": "%",
+        "warning": "Advanced table. Incorrect settings could result in the throttle not responding normally."
+      },
+      "throttle_dampening": {
+        "name": "Throttle Dampening",
+        "description": "Slows throttle opening in 1st gear while moving, which may cause a jerk when the throttle opens fully. Can be disabled.",
+        "type": "checkbox"
+      },
+      "overrun_throttle": {
+        "name": "Overrun Throttle Opening",
+        "description": "Holds throttle plate slightly open during overrun (deceleration).",
+        "unit": "%"
+      },
+      "throttle_flow": {
+        "name": "Throttle Flow Table",
+        "description": "Air flow past the throttle body for a given throttle opening. Only needs adjustment for larger-than-stock throttle bodies.",
+        "unit": "g/s"
+      },
+      "throttle_tip_in_fuel": {
+        "name": "Throttle Tip-In Fuel",
+        "description": "Extra fuel added when throttle is opened quickly. Includes ECT and throttle position compensation sub-tables.",
+        "unit": "fuel units"
+      },
+      "injector_overrun_cutoff": {
+        "name": "Injector Overrun Cutoff",
+        "description": "Controls when fuel injectors are shut off during deceleration. Separate tables for cut/recover RPM and MAP thresholds for low and high speed cams.",
+        "unit": "rpm / kPa"
+      }
+    },
+    "rev_limit": {
+      "overall_limiter": {
+        "name": "Overall Rev Limiter",
+        "description": "Maximum engine speed the ECU will allow under any conditions. Uses fuel cut method. Will not protect against misshift overrev.",
+        "unit": "rpm",
+        "sub_params": ["Activation RPM", "Recovery RPM"],
+        "tips": ["Set recovery 100-300 rpm lower than activation", "Larger difference = slower, rougher limit"]
+      },
+      "overrev_rpm": {
+        "name": "Overrev RPM",
+        "description": "Engine speed where ECU generates a fault condition. Set ~200 rpm above overall rev limiter.",
+        "unit": "rpm"
+      },
+      "launch_limiter": {
+        "name": "Launch Limiter",
+        "description": "Active when vehicle is stationary for drivetrain protection. Fastest action when cut and recovery RPM are the same.",
+        "unit": "rpm"
+      },
+      "speed_limiter": {
+        "name": "Speed Limiter",
+        "description": "Maximum vehicle speed limiter. Set higher than vehicle top speed to effectively disable.",
+        "unit": "mph or km/h"
+      },
+      "boost_cut": {
+        "name": "Boost Cut",
+        "description": "Rev limits the engine if manifold pressure exceeds the specified limit. Active above 2000 RPM only. Protects against over-boost.",
+        "unit": "bar",
+        "tips": ["Do not set over 1.75 bar with stock MAP sensor", "Only active above 2000 RPM to ensure engine can always start"]
+      },
+      "full_throttle_shift": {
+        "name": "Full Throttle Shift (Flat Shift)",
+        "description": "Allows flat shifting by cutting fuel when clutch is depressed at WOT. ECU detects clutch + wide open throttle and cuts injectors for gear change.",
+        "sub_params": ["RPM Limit", "Minimum Throttle"],
+        "tips": ["Set RPM limit 2000-3000 rpm below shift RPM", "Minimum throttle prevents activation during part throttle shifts"]
+      }
+    },
+    "closed_loop": {
+      "primary_o2_sensor": {
+        "name": "Primary Oxygen Sensor",
+        "description": "Enable/disable the primary O2 sensor for closed loop operation. Recommended to keep enabled during tuning.",
+        "type": "checkbox"
+      },
+      "secondary_o2_sensor": {
+        "name": "Secondary Oxygen Sensor",
+        "description": "Enable/disable the secondary O2 sensor (catalyst monitor). Should be enabled unless running a race vehicle without a catalyst.",
+        "type": "checkbox"
+      },
+      "wot_determination_type": {
+        "name": "WOT Determination Type",
+        "description": "Use MAP or TPS to determine when to switch from closed loop to open loop. MAP is more consistent; required for forced induction.",
+        "options": ["MAP", "TPS"]
+      },
+      "map_wot_determination": {
+        "name": "MAP WOT Determination",
+        "description": "Manifold pressure threshold for WOT (open loop) determination by RPM.",
+        "unit": "kPa"
+      },
+      "closed_loop_target_lambda": {
+        "name": "Closed Loop Target Lambda",
+        "description": "Target lambda/AFR in closed loop. Uses the richer of multiple tables based on temperature and load.",
+        "unit": "lambda",
+        "warning": "Running leaner than stoichiometric increases EGT. Not recommended for vehicles with catalysts."
+      },
+      "fuel_trim_min_max": {
+        "name": "Fuel Trim Min/Max",
+        "description": "Controls the allowable range of short term and long term fuel trim in closed loop.",
+        "unit": "%"
+      },
+      "laf_voltage_to_lambda": {
+        "name": "LAF Voltage to Lambda",
+        "description": "Conversion table from stock wideband oxygen sensor voltage to lambda (AFR).",
+        "unit": "lambda"
+      }
+    },
+    "misc": {
+      "immobilizer": {
+        "name": "Immobilizer",
+        "description": "Cannot be disabled for security reasons.",
+        "type": "fixed"
+      },
+      "vsa": {
+        "name": "VSA (Vehicle Stability Assistance)",
+        "description": "Enable/disable VSA. Should be enabled for all vehicles that support it.",
+        "type": "checkbox"
+      },
+      "eps": {
+        "name": "EPS (Electric Power Steering)",
+        "description": "Enables engine idle-up when steering wheel is turned. Does not enable/disable the EPS unit itself.",
+        "type": "checkbox"
+      },
+      "cruise_control": {
+        "name": "Cruise Control",
+        "description": "Enable/disable cruise control.",
+        "type": "checkbox"
+      },
+      "starter_relay": {
+        "name": "Starter Relay",
+        "description": "Enable/disable the starter motor relay. Only needed for push-button start vehicles.",
+        "type": "checkbox"
+      },
+      "radiator_fan": {
+        "name": "Radiator Fan",
+        "description": "Temperature thresholds for radiator fan on/off. 'On' should be ~3°C/5°F higher than 'off'. Uses second coolant temp sensor (radiator bottom) by default.",
+        "unit": "°F or °C",
+        "tips": ["Stock thermostat opens at 85°C/185°F, fully open at 90°C/195°F", "Setting fan temps below thermostat open temp means fans always on"]
+      }
+    },
+    "turbo": {
+      "max_pressure_ratio": {
+        "name": "Turbocharger Maximum Pressure Ratio",
+        "description": "Controls maximum turbocharger discharge air pressure based on ambient pressure. Indexed by RPM and PA.",
+        "axes": {"x": "RPM", "y": "PA (bar)"},
+        "unit": "bar"
+      },
+      "scramble": {
+        "name": "Scramble Mode",
+        "description": "Bypasses built-in protection limits to target maximum boost levels from the pressure ratio table. Toggled via Res+ cruise control button (or Sport button on 10th gen Si).",
+        "tips": ["Cruise control must be off, ECON must be off", "Raise torque limit table when using scramble", "2017 Civic Si may need P0299 error disabled"]
+      },
+      "boost_by_gear": {
+        "name": "Boost By Gear",
+        "description": "Maximum boost pressure by gear to aid traction. Controls maximum boost, not actual boost.",
+        "unit": "bar or psi"
+      }
+    },
+    "boost": {
+      "boost_control_enabled": {
+        "name": "Boost Control Enabled",
+        "description": "Enables the boost control solenoid output. For NA-to-turbo conversions using external solenoid.",
+        "type": "checkbox",
+        "pin_info": "ECU pin B2 (Civic Si) or B16 (S2000)"
+      },
+      "solenoid_configuration": {
+        "name": "Solenoid Configuration",
+        "description": "Normally open or normally closed solenoid type. Normally open (e.g., GM) gives max boost at 0% duty; FlashPro inverts the display.",
+        "options": ["Normally open", "Normally closed"],
+        "tips": ["Set boost limit as failure results in maximum boost with normally open solenoids"]
+      },
+      "activation_pressure": {
+        "name": "Activation Pressure",
+        "description": "Manifold pressure above which the boost control solenoid activates. Set slightly over atmospheric pressure.",
+        "unit": "bar or psi"
+      },
+      "solenoid_frequency": {
+        "name": "Solenoid Frequency",
+        "description": "PWM frequency for the boost control solenoid output. Affects boost level and maximum achievable boost.",
+        "unit": "Hz",
+        "range": [10, 100],
+        "tips": ["Most solenoids operate best from 10-60 Hz"]
+      },
+      "control_method": {
+        "name": "Control Method",
+        "description": "Fixed duty cycle for flat boost, or duty cycle by RPM & gear for per-gear boost control.",
+        "options": ["Fixed duty cycle", "Duty cycle by RPM & Gear"]
+      },
+      "boost_iat_compensation": {
+        "name": "Boost IAT Compensation",
+        "description": "Adjusts boost duty cycle based on intake air temperature. Cooler air = more boost pressure for same duty.",
+        "unit": "%"
+      },
+      "boost_tps_compensation": {
+        "name": "Boost TPS Compensation",
+        "description": "Adjusts boost duty cycle based on throttle pedal position.",
+        "unit": "%"
+      },
+      "quick_spool": {
+        "name": "Quick Spool",
+        "description": "Opens boost solenoid fully to build boost faster. Returns to normal duty once target pressure is reached.",
+        "unit": "bar or psi",
+        "tips": ["Set activation pressure to 1 psi boost", "Set quick spool 1-2 psi below target boost", "Set values below activation pressure to disable"]
+      },
+      "max_boost_by_speed": {
+        "name": "Max Boost by Speed",
+        "description": "Limits boost pressure at different vehicle speeds for safety.",
+        "unit": "bar"
+      },
+      "boost_pid": {
+        "name": "Boost Control PID",
+        "description": "PID parameters for closed-loop boost control. I and D Smoothing parameters are very sensitive.",
+        "sub_params": ["P", "I", "D", "D Smoothing"],
+        "warning": "Only modify I and D Smoothing if necessary and you know what you are doing."
+      }
+    },
+    "ethanol": {
+      "ethanol_input": {
+        "name": "Ethanol Input",
+        "description": "Input source for ethanol content signal. Requires flex fuel sensor and control unit outputting 0-5V.",
+        "options": ["ECT2", "CANFlex"]
+      },
+      "ethanol_percentage": {
+        "name": "Ethanol Percentage Table",
+        "description": "Defines signal range from ethanol control unit when using ECT2 input. Most units: 0V = 0%, 5V = 100%.",
+        "tips": ["Zeitronix ECA: 0.34V = 0%, 4.97V = 100% (won't read below 15%)", "Innovate ECF-1: 0.00V = 0%, 5.00V = 100% (won't read below 1.5%)", "US pump gas has 0-10% ethanol (typically 10%)", "E85 is 55-80% depending on location and time of year"]
+      },
+      "ethanol_fuel_compensation": {
+        "name": "Ethanol Fuel Compensation",
+        "description": "Additional fuel delivery based on ethanol percentage.",
+        "unit": "%"
+      },
+      "ethanol_ignition_multiplier": {
+        "name": "Ethanol Ignition Multiplier",
+        "description": "Multiplier applied to the ethanol ignition compensation table based on ethanol percentage.",
+        "unit": "multiplier"
+      },
+      "ethanol_ignition_compensation": {
+        "name": "Ethanol Ignition Compensation",
+        "description": "Ignition advance added based on ethanol content. Final value = table value x ignition multiplier.",
+        "unit": "degrees"
+      },
+      "ethanol_wot_fuel": {
+        "name": "Ethanol WOT Fuel Compensation",
+        "description": "Adjusts WOT fueling by ethanol content. DI vehicles may respond better to leaner WOT AFR at high ethanol.",
+        "tips": ["DI vehicles may make more power at 11.8:1 vs 11:1 with 85% ethanol"]
+      },
+      "boost_by_ethanol": {
+        "name": "Boost by Ethanol Limit",
+        "description": "Limits maximum boost based on ethanol content. Higher ethanol allows more boost but requires more fuel.",
+        "unit": "bar"
+      },
+      "advanced_ethanol": {
+        "name": "Advanced Ethanol",
+        "description": "Disables simple 2D tables and enables 3D fuel and boost tables for more precise ethanol tuning."
+      }
+    },
+    "launch_control": {
+      "adjustable_launch_rpm": {
+        "name": "Adjustable Launch RPM",
+        "description": "Launch control RPM adjustable via cruise control switches without reflashing. Use resume/set to change in 100 RPM increments with clutch depressed.",
+        "unit": "rpm",
+        "tips": ["Clutch must be depressed and vehicle stationary", "Cancel button shows current launch RPM on tachometer", "Value retained until battery disconnect or reflash"]
+      },
+      "launch_disengage_speed": {
+        "name": "Launch RPM Disengage Speed",
+        "description": "Maximum vehicle speed for launch control fuel and ignition changes.",
+        "unit": "mph or km/h"
+      },
+      "launch_min_rpm_retard": {
+        "name": "Launch Min RPM for Retard/Enrichment",
+        "description": "Engine speed threshold where launch-specific fuel and ignition changes activate. Set below launch RPM. Set above rev limiter to disable.",
+        "unit": "rpm"
+      },
+      "launch_additional_fuel": {
+        "name": "Launch Additional Fuel",
+        "description": "Extra fuel added when launch limiter is active.",
+        "unit": "fuel units",
+        "warning": "Builds significant exhaust heat. Do not use with catalytic converter. Only use for a few seconds."
+      },
+      "launch_ignition_retard": {
+        "name": "Launch Ignition Retard",
+        "description": "Ignition retard when launch limiter is active. Positive values retard timing.",
+        "unit": "degrees",
+        "warning": "Builds significant exhaust heat. Do not use with catalytic converter."
+      }
+    },
+    "torque": {
+      "torque_limit": {
+        "name": "Torque Limit",
+        "description": "Overall torque limit as percentage (0-100%) for transmission protection.",
+        "unit": "%",
+        "tips": ["CVT transmissions damaged by power braking or torque above ~250 Nm", "Raise when using scramble mode to prevent throttle closing"]
+      },
+      "reference_torque": {
+        "name": "Reference Torque",
+        "description": "Provided for Bosch torque model visualization. Do not change as it affects cruise control and other functions.",
+        "unit": "Nm",
+        "warning": "Do not modify."
+      },
+      "nominal_charge_reference_torque": {
+        "name": "Nominal Charge / Reference Torque Tables",
+        "description": "Bosch torque model tables. If one is altered, the other must be updated to maintain inverse lookup. Use built-in modifications only.",
+        "warning": "Incorrect changes cause abrupt/unpredictable operation and possible throttle control disabling."
+      },
+      "minimum_efficiency": {
+        "name": "Minimum Efficiency",
+        "description": "Minimum efficiency from ignition, lambda etc. when calculating air charge.",
+        "unit": "%"
+      }
+    },
+    "sensor": {
+      "afm_flow": {
+        "name": "AFM Flow Table",
+        "description": "Conversion from AFM voltage to air flow. Advanced table normally requiring a flow bench. Can be tuned by analyzing fuel trims at different AFM voltages.",
+        "unit": "g/s",
+        "warning": "Advanced table. Normally requires a flow bench."
+      },
+      "map_sensor_type": {
+        "name": "MAP Sensor Type",
+        "description": "Stock MAP sensor reads ~1.7 bar absolute (~10 psi boost). Hondata 4 bar MAP sensor reads ~40 psi boost. No retune needed when switching.",
+        "options": ["Stock", "Hondata 4 bar"]
+      },
+      "speed_adjustment": {
+        "name": "Speed Adjustment",
+        "description": "Adjusts calculated and displayed vehicle speed. Positive increases speed; negative decreases. Needed when final drive or 3rd gear ratios are changed.",
+        "unit": "%"
+      },
+      "gear_ratios": {
+        "name": "Gear Ratios",
+        "description": "Transmission gear ratios for correct cruise control operation and speed calculation with non-stock gearing.",
+        "unit": "ratio"
+      }
+    }
+  },
+
+  "datalogging": {
+    "_description": "Datalogging capabilities and settings.",
+    "methods": {
+      "laptop_usb": {
+        "name": "Laptop Datalogging (USB)",
+        "description": "Datalog via USB connection to laptop running FlashProManager."
+      },
+      "onboard": {
+        "name": "On Board Datalogging",
+        "description": "Datalog to FlashPro internal memory. Up to 20 hours of storage.",
+        "storage": "20 hours"
+      },
+      "bluetooth": {
+        "name": "Bluetooth Datalogging",
+        "description": "Datalog to smartphone via Bluetooth using compatible apps."
+      }
+    },
+    "features": {
+      "frame_based": "All sensors captured in each frame snapshot",
+      "speed": "4x faster than standard OBDII protocols",
+      "autosave": "Datalogs can be automatically saved when recording stops or ignition is turned off",
+      "file_format": ".fpdl file extension",
+      "channels": "30+ advanced datalogging channels"
+    },
+    "graph_templates": {
+      "description": "Configurable graph templates for the Graph Window with 1-4 sub-graphs, each containing 1-4 sensors.",
+      "features": ["Import/export templates between computers", "Quick switching between display configurations"]
+    },
+    "traction_control_datalog": {
+      "description": "TC hardware module has 20-second datalog at 100 Hz. Stores last 2 seconds automatically. Triggered manually or by speed/slip thresholds.",
+      "frequency": "100 Hz",
+      "duration": "20 seconds",
+      "pre_trigger": "2 seconds"
+    }
+  },
+
+  "bluetooth": {
+    "_description": "Bluetooth connectivity for FlashPro datalogging to mobile devices.",
+    "availability": "All FlashPros manufactured after December 2013 (some from July 2013).",
+    "types": {
+      "v2_1": {
+        "name": "Bluetooth V2.1 (BR/EDR)",
+        "description": "Classic Bluetooth. Works with Android without restriction. Apple requires special chip (jailbreak workaround available).",
+        "speed": "Faster than BLE"
+      },
+      "ble": {
+        "name": "Bluetooth 4.0 (Low Energy / BLE)",
+        "description": "Works with Apple products (iPhone 4S+, iPad 3rd gen+). Slower than V2.1. Tuning via Bluetooth disabled for BLE.",
+        "speed": "Slower than V2.1"
+      }
+    },
+    "protocols": [
+      {"name": "FlashPro binary", "use": "Datalogging from FlashProManager on laptop"},
+      {"name": "Hondata binary", "use": "Datalogging from Android & iOS apps"},
+      {"name": "ELM327 emulation", "use": "Compatibility with existing OBDII smartphone apps"}
+    ],
+    "compatible_devices": {
+      "android": "Android 2.3.3 (Gingerbread) and later",
+      "apple": "iPhone 4S+, iPod touch 3rd gen+, iPad 3rd gen+",
+      "other": "Any device supporting ELM327 protocol using RFCOMM"
+    },
+    "android_apps": [
+      "Car Gauge Lite OBD2", "Car Gauge Pro", "DashCommand", "OBDAutoDoctor",
+      "OBD Car Doctor", "OBD Dashboard", "OBD DROIDSCAN PRO", "OBDLink",
+      "ScanMaster Lite", "Torque Lite", "Torque Pro"
+    ],
+    "options": {
+      "bluetooth_enabled": "Enable/disable Bluetooth on FlashPro",
+      "device_name": "FlashPro Bluetooth name",
+      "tuning_via_bluetooth": "Allows datalogging and some settings changes over Bluetooth (uploading not supported)",
+      "alternative_pairing_mode": "Shows FlashPro as a phone for head unit pairing (required for 2018+ Civics)",
+      "bluetooth_pin": "PIN code for pairing (default: 1234)",
+      "limit_access_by_address": "Restrict connections to specific device addresses (most secure)"
+    },
+    "vehicle_pairing": {
+      "description": "For Hondata mobile app on vehicle head units, FlashPro may need to be paired as a phone.",
+      "required_for": "2018+ Civic head units",
+      "steps": [
+        "Unplug FlashPro from vehicle OBDII",
+        "Connect to laptop and enable 'Alternative pairing mode' in FlashPro Bluetooth options",
+        "Unplug and re-plug FlashPro from USB",
+        "On vehicle radio, pair to FlashPro with matching PIN code",
+        "Connect from Hondata mobile app"
+      ]
+    }
+  },
+
+  "error_codes": {
+    "_description": "OBDII diagnostics and error code management.",
+    "dtcs": {
+      "description": "Diagnostic Trouble Codes (DTCs) set by the ECU to indicate problems. Expressed as 4-digit codes starting with 'P' for powertrain.",
+      "tip": "Fix all error codes before tuning the vehicle."
+    },
+    "readiness_codes": {
+      "description": "OBDII readiness codes indicate if various emissions components have been tested by the ECU.",
+      "continuous": ["Misfire monitoring", "Fuel system monitoring", "Comprehensive component monitoring"],
+      "non_continuous": [
+        "Catalyst monitoring", "Heated catalyst monitoring", "Evaporative system monitoring",
+        "Secondary air system monitoring", "A/C system refrigerant monitoring",
+        "Oxygen sensor monitoring", "Oxygen sensor heater monitoring", "EGR system monitoring"
+      ],
+      "reset_conditions": "Readiness codes reset to 'incomplete' when ECU is reprogrammed, DTCs are cleared, ECU is removed, or battery is disconnected.",
+      "setting_guide": {
+        "catalyst": "5 miles of stop/go driving with steady cruise periods. Needs working secondary O2 and good fuel tuning.",
+        "evap": "Cold start, stop/go warm-up, then 5-10 min highway speed with steady throttle.",
+        "oxygen_sensor": "Warm engine, 3.5 miles driving including 5 seconds of closed-throttle decel.",
+        "oxygen_sensor_heater": "10-20 seconds after engine start.",
+        "egr": "Warm engine, ~1 mile of driving.",
+        "cold_start_definition": "ECT below 120°F, IAT and ECT within 7°F, minimum 6 hours engine off."
+      }
+    },
+    "emissions_check": {
+      "description": "Simulates the emissions test used by most testing stations."
+    },
+    "diagnostics": {
+      "description": "Shows DTCs from all CAN bus modules. Refresh searches for common modules; Shift+Refresh performs exhaustive search (~1 minute). Clear DTCs with engine off, then switch off ignition for 1 minute."
+    },
+    "tc_errors": {
+      "types": ["Pending (input out of range, not yet triggered)", "Active (currently out of range)", "Old (previously existed, now working)"],
+      "error_counters": "Accumulated wheel speed sensor pulses and errors per wheel. High error count indicates bad sensor or wiring."
+    }
+  },
+
+  "traction_control": {
+    "_description": "Hondata traction control system - available as hardware module or software-based using VSA wheel speed data.",
+    "hardware": {
+      "description": "Uses an interface module to the wheel speed sensors (sold separately as Hondata Traction Control).",
+      "setup_note": "TC module must be plugged in while FlashProManager is running at least once before options appear.",
+      "parameters": {
+        "input_pin": "ECU input pin from TC module. ECT2 not recommended (too slow for effective TC).",
+        "voltage_offset": "Should be zero unless wiring ground problem exists.",
+        "minimum_rpm": "Minimum engine speed for TC operation. Set above idle, below expected wheel slip RPM.",
+        "ignition_retard_table": "Amount of ignition retard by wheel slip percentage. Values interpolated between columns.",
+        "light_control": "Flashes alternator light when TC is retarding ignition."
+      }
+    },
+    "software": {
+      "description": "Uses wheel speed data from factory VSA unit. Not available for all vehicles. Covered by US Patents 9,371,792; 9,091,224; 9,254,748.",
+      "requirements": "Do not disable VSA in FlashProManager. VSA can be disabled via dashboard button.",
+      "advantages": [
+        "No additional hardware needed",
+        "Uses 'fast torque' method (ignition retard) for instant power reduction and restoration",
+        "Parameters under user control vs fixed factory VSA"
+      ],
+      "differences_from_factory_vsa": "Factory VSA uses 'slow torque' (throttle closing, boost reduction). Hondata TC uses 'fast torque' (ignition retard) for instant response.",
+      "parameters": {
+        "enabled": "Enable software TC. Can be disabled while driving by switching on cruise control main.",
+        "minimum_speed": "Minimum un-driven wheel speed before TC operates.",
+        "target_slip": "Maximum allowed wheel slip between driven and un-driven wheels.",
+        "ignition_retard": "Retard amount by slip percentage, interpolated between columns.",
+        "cornering_correction": "Compensates for different front/rear wheel speeds during turning. Calculated from track and wheelbase.",
+        "launch_compensation": "Allows increased wheel slip at low speeds for better launches.",
+        "smoothing": {
+          "use_pid": "PID control with P, I, D gains and D smoothing.",
+          "change_rate": "Maximum rate of change (increasing and decreasing) when PID is disabled."
+        }
+      },
+      "multi_tune_options": {
+        "target_slip_by_tune": "Target slip can be varied by tune number.",
+        "launch_slip_by_tune": "Launch slip varied by tune and speed."
+      }
+    }
+  },
+
+  "vehicle_notes": {
+    "_description": "Vehicle-specific information for FlashPro supported models.",
+    "civic_si_2006_2011": {
+      "name": "Civic Si 2006-2011",
+      "engine": "K20Z3",
+      "type": "Naturally aspirated i-VTEC",
+      "years": "2006-2011",
+      "regions": ["USA", "International"],
+      "flashpro_model": "Civic Si Americas / International",
+      "features": [
+        "Full fuel, ignition, cam angle table editing",
+        "VTEC and VTC parameters",
+        "Rev and launch limiters",
+        "Boost control (for FI conversions)",
+        "Speed-density conversion",
+        "Traction control support",
+        "Software traction control (2007+ with VSA)",
+        "Bluetooth datalogging"
+      ],
+      "notes": [
+        "2006 models do not have VSA",
+        "2007+ models have VSA for software traction control"
+      ]
+    },
+    "civic_si_2012_2015": {
+      "name": "Civic Si 2012-2015",
+      "engine": "K24Z7",
+      "type": "Naturally aspirated i-VTEC",
+      "years": "2012-2015",
+      "flashpro_model": "Civic Si/ILX Americas",
+      "features": [
+        "Full fuel, ignition, cam angle table editing",
+        "VTEC and VTC parameters",
+        "Rev and launch limiters",
+        "CAN Boost control support",
+        "Traction control support"
+      ]
+    },
+    "civic_si_2017": {
+      "name": "Civic Si 2017+",
+      "engine": "L15B7 1.5T",
+      "type": "Turbocharged",
+      "years": "2017+",
+      "flashpro_model": "FP-16CIVIC-L15T-US",
+      "ecu_parts": ["5AM-A03 to 5AM-A05", "5AM-C03 to 5AM-C05", "5AM-A12", "5AM-C12", "5AM-A21 to 5AM-A22"],
+      "features": [
+        "Speed limiter removed",
+        "Ignition, fuel, idle speed table editing",
+        "Ignition and fuel temperature compensation tables",
+        "Rev and adjustable launch limiters",
+        "AFM calibration table",
+        "Individual cylinder fuel & ignition trim",
+        "Map tracing & lambda overlay",
+        "Advanced graphing",
+        "30+ advanced datalogging channels",
+        "Multi-tune support"
+      ],
+      "tips": [
+        "Use Hondata mode + Sport torque table for different power levels via SPORT switch",
+        "If using scramble + Hondata mode, enable scramble toggle via SPORT switch",
+        "Disabling rev hang: turning cruise control main on reverts throttle to stock behavior"
+      ]
+    },
+    "civic_type_r_2007_2011": {
+      "name": "Civic Type R 2007-2011 (FD2/FN2)",
+      "engine": "K20A/K20Z4",
+      "type": "Naturally aspirated VTEC",
+      "years": "2007-2011",
+      "regions": ["International (JDM/EDM)"]
+    },
+    "civic_type_r_2015_2017": {
+      "name": "Civic Type R 2015-2017 (FK2)",
+      "engine": "K20C1 2.0T",
+      "type": "Turbocharged VTEC",
+      "years": "2015-2017",
+      "regions": ["International"]
+    },
+    "civic_type_r_2023": {
+      "name": "Civic Type R 2023+ (FL5)",
+      "engine": "K20C1 2.0T",
+      "type": "Turbocharged VTEC",
+      "years": "2023+",
+      "features": ["Multi-tune support", "Pops and bangs", "Software traction control"]
+    },
+    "other_supported": [
+      {"name": "Civic R18 2006-2015", "engine": "R18"},
+      {"name": "S2000 2006-2008", "engine": "F22C/F20C"},
+      {"name": "Accord 2003-2010", "engine": "K24/K20"},
+      {"name": "Accord 2013-2015", "engine": "K24W/J35Y"},
+      {"name": "TSX 2004-2014", "engine": "K24A2/K24Z3"},
+      {"name": "RDX 2007-2012", "engine": "K23A1 Turbo"},
+      {"name": "Fit 2007-2008", "engine": "L15A"},
+      {"name": "CR-Z 2011-2013", "engine": "LEA Hybrid"},
+      {"name": "TL 2007-2008", "engine": "J35A8/J37A"},
+      {"name": "FK8 Type R 2018-2021", "engine": "K20C1 2.0T"},
+      {"name": "DE5 Integra Type S 2024+", "engine": "K20C1 2.0T"}
+    ]
+  },
+
+  "features": {
+    "_description": "FlashPro hardware features and software capabilities.",
+    "hardware": {
+      "connection": "Connects via OBDII diagnostic port, no ECU modification necessary (except Bosch ECUs)",
+      "programming_speed": "Fast ECU programming time",
+      "datalogging_memory": "20 hours on board datalogging",
+      "datalogging_speed": "4x faster than OBDII protocols",
+      "bluetooth": "Built-in Bluetooth (V2.1 and BLE) for smartphone datalogging",
+      "supply_voltage": "9-16V",
+      "current_active": "<100 mA",
+      "current_standby": "<10 mA",
+      "protocol": "ISO 15765 CAN",
+      "models": {
+        "FlashProOG": {"weight": "210g / 7.4oz", "cable": "2m / 6ft OBDII cable"},
+        "FlashProMini": {"weight": "85g"}
+      },
+      "temperature": {
+        "storage": "-20 to 85°C / 0 to 185°F",
+        "operational": "0 to 70°C / 30 to 160°F"
+      }
+    },
+    "software": {
+      "flashpro_manager": "Windows tuning software",
+      "diagnostics": "Check and clear diagnostic codes",
+      "custom_gauges": "Custom laptop gauges",
+      "readiness_codes": "Readiness codes and smog check status",
+      "cam_angle_aware": "Cam angle aware table editing (3D table visualization for VTC)",
+      "dual_calibration": "Dual calibration support"
+    },
+    "live_tuning": {
+      "description": "Real-time update of some tables without re-uploading. ECU copies tables from flash to RAM. Changes take effect in a fraction of a second.",
+      "limitations": [
+        "FlashPro and laptop must be connected to vehicle",
+        "Not all tables can be live tuned",
+        "Only some tables can be live tuned simultaneously (limited RAM)",
+        "Tables reset to uploaded values on ignition cycle (FlashProManager re-uploads automatically if connected)"
+      ],
+      "procedure": [
+        "Select tables for live tuning",
+        "Upload calibration to ECU",
+        "Edit/tune tables (changes apply immediately)",
+        "When finished, deselect live tuning and upload final calibration"
+      ],
+      "tip": "Only use while actively tuning. Disable for regular driving."
+    },
+    "multi_tune": {
+      "description": "Switch between up to 5 tunes on the fly using cruise control switches. Tachometer shows selected tune (1000 RPM = #1 to 5000 RPM = #5).",
+      "supported_vehicles": [
+        "2017-2021 Civic Si", "2022+ Civic Si",
+        "FK8 2018-2021 Civic Type R", "FL5 2023+ Civic Type R",
+        "DE5 2024+ Integra Type S"
+      ],
+      "switching": {
+        "steps": [
+          "Switch off cruise control main for several seconds",
+          "Hold down cruise control resume button",
+          "Change tune with set/resume buttons",
+          "Press cancel to show current tune or wait to exit"
+        ]
+      },
+      "per_tune_tables": [
+        "Traction control target slip",
+        "Traction control launch slip (by speed and tune)",
+        "Boost by gear (by gear, RPM, and tune)"
+      ],
+      "notes": [
+        "Tune number retained when vehicle off, but not through battery disconnect or reflash",
+        "Cannot change tune when cruise control main is enabled"
+      ]
+    },
+    "vault": {
+      "name": "Hondata Vault",
+      "description": "Online storage for calibrations and datalogs, accessible directly from FlashProManager.",
+      "features": [
+        "Transfer calibrations between computers",
+        "Backup calibrations to prevent loss",
+        "Share calibrations via public repository",
+        "Search calibrations by keywords or parameters"
+      ]
+    },
+    "security": {
+      "flashpro_security": {
+        "owner_info": "Password-protected owner information and registration",
+        "upload_protection": "Optional password required before uploading calibrations (prevents unauthorized use and vehicle unlocking)"
+      },
+      "vehicle_security": {
+        "immobilizer": "Cannot be disabled via FlashPro",
+        "lock_protection": "FlashPro can only lock to a vehicle without an existing FlashPro lock"
+      },
+      "calibration_permissions": {
+        "hide_tables": "Do not show tables & parameters",
+        "hide_non_tuning_mods": "Prevent non-tuning modifications",
+        "hide_tuning_mods": "Prevent tuning modifications",
+        "prevent_vault_upload": "Do not allow upload to Vault",
+        "restrict_serial": "Only allow upload to specific FlashPro serial number"
+      }
+    }
+  },
+
+  "tuning_guides": {
+    "_description": "Key tuning guidance extracted from official documentation.",
+    "fuel_tuning": {
+      "methods": {
+        "mass_flow": "Uses air flow meter (AFM/MAF) for fuel calculation",
+        "speed_density": "Uses manifold pressure sensor (MAP) for fuel calculation"
+      },
+      "tips": [
+        "A lambda meter (wideband AFR gauge) is necessary for fuel tuning",
+        "Aim for a flat AFR plot across the RPM range",
+        "Stock wideband reads 10.7:1-20:1 but reads progressively richer as EGT increases",
+        "For forced induction, use aftermarket wideband for WOT tuning"
+      ]
+    },
+    "ignition_tuning": {
+      "full_load": [
+        "Best determined on a dyno",
+        "Tune for max power, then retard until ~1 hp loss",
+        "Monitor knock at all times",
+        "Abort dyno run immediately if knock/pinging is detected",
+        "With forced induction, use conservative settings - engine damage occurs in seconds"
+      ],
+      "part_throttle": "Default calibrations usually suitable. EGT gauge helps if tuning needed.",
+      "idle": "ECU uses ignition to control idle speed. Normal range: -10 to +15 degrees.",
+      "warnings": [
+        "Excessive advance damages engine (bearing stress, combustion pressure)",
+        "Too little advance damages engine via excessive EGT (especially turbo)",
+        "Do not rely on knock sensor alone to prevent detonation"
+      ]
+    },
+    "vtc_tuning": {
+      "na_guidelines": "Max cam advance after VTEC engagement to ~6500-7000 RPM, then retard back ~25 degrees to redline.",
+      "supercharged": "Max cam advance (50 degrees) throughout rev range with ~10 degree retard above 7000 RPM.",
+      "turbocharged": "Less advance than stock due to exhaust backpressure. Small turbos may need 0 degrees at 8000 RPM.",
+      "part_throttle": "0-5 degrees at idle, 15-30 degrees at cruise, full-load values above cruise RPM for smooth shifting.",
+      "procedure": [
+        "Set VTEC high (6500+), tune low cam only",
+        "Tune fuel and ignition for each cam angle",
+        "Dyno runs at each cam angle, set angles to max power",
+        "Bracket with +/-5 degrees, then +/-2 degrees",
+        "Set VTEC low (3000) and repeat for high cam"
+      ]
+    },
+    "vtec_tuning": {
+      "procedure": "Two dyno runs: one VTEC low (3000), one high (6500). Set VTEC point at power curve intersection.",
+      "typical_points": {
+        "stock": "5500-5700 RPM",
+        "intake_exhaust": "4500-4800 RPM",
+        "supercharged": "3000-3200 RPM",
+        "aftermarket_cams": "Generally higher VTEC point needed"
+      },
+      "warnings": [
+        "Do not set below 2000 RPM (oil pressure too low)",
+        "Do not set above 6500 RPM (rocker arm float damage)"
+      ]
+    },
+    "knock_control": {
+      "formula": "Ignition advance = min(MBT Ignition, MBT Ignition + knock ignition limit - (knock retard x knock control))",
+      "tuning_recommendations": [
+        "Decrease MBT timing where knock limit tables are negative",
+        "For FI on pump fuel: knock limit 0 or less in boost columns",
+        "Increase knock sensitivity (reduce values) in columns 4+",
+        "Use 4-10 degree knock retard range",
+        "K.Control starts high after flash; hold steady RPM on dyno to reduce"
+      ]
+    }
+  }
+}
