@@ -30,3 +30,16 @@ html, body {
 html {
   -webkit-touch-callout:none;
 }
+
+/* ===== HIDE DEV-ONLY UI ===== */
+
+/* Throttle slider / sim controls on dashboard */
+.sim-bar { display:none !important; }
+
+/* Gauge grid: extend to fill space where sim bar was */
+.gauge-grid { bottom:4px !important; }
+
+/* OBD2 "SIMULATED" status — hide in prod (shows CONNECTED or nothing) */
+
+/* Picker button — keep it but make it touch-friendly */
+.picker-btn { padding:18px 32px !important; font-size:28px !important; }
