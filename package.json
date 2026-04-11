@@ -1,0 +1,28 @@
+{
+  "name": "hondadash",
+  "version": "1.0.0",
+  "description": "---",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "cypress run",
+    "test:open": "cypress open",
+    "serve": "python -m http.server 8000 --directory app/src/main/assets"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/heymann-mark/HondaDash.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/heymann-mark/HondaDash/issues"
+  },
+  "homepage": "https://github.com/heymann-mark/HondaDash#readme",
+  "devDependencies": {
+    "cypress": "^15.13.0"
+  }
+}
