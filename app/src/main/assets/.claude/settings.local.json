@@ -14,7 +14,16 @@
       "Bash(cd:*)",
       "Bash(python3 -c \":*)",
       "Bash(python -c \":*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(cp app/src/main/assets/index.html docs/)",
+      "Bash(cp app/src/main/assets/dashboard.html docs/)",
+      "Bash(cp app/src/main/assets/carview.html docs/)",
+      "Bash(cp app/src/main/assets/streetview.html docs/)",
+      "Bash(cp app/src/main/assets/music.html docs/)",
+      "Bash(gh api:*)",
+      "Bash(wc:*)",
+      "Bash(ls:*)",
+      "Bash(start:*)"
     ]
   }
 }

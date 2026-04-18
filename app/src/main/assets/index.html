@@ -75,8 +75,6 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
 <!-- IFRAMES — all pages -->
 <iframe id="frame-gauges" class="page-frame active" src="dashboard.html"></iframe>
 <iframe id="frame-vehicle" class="page-frame" src="about:blank"></iframe>
-<iframe id="frame-maps" class="page-frame" src="about:blank"></iframe>
-<iframe id="frame-music" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-tuner" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-drag" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-engine3d" class="page-frame" src="about:blank"></iframe>
@@ -96,8 +94,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
 <nav class="app-nav">
   <button class="nav-btn active" onclick="switchPage('gauges')">GAUGES</button>
   <button class="nav-btn" onclick="switchPage('tuner')">FLASHPRO</button>
-  <button class="nav-btn" onclick="switchPage('maps')">MAPS</button>
-  <button class="nav-btn" onclick="switchPage('music')">MUSIC</button>
+  <button class="nav-btn" onclick="switchPage('trips')">TRIPS</button>
   <button class="nav-btn" onclick="switchPage('drag')">DRAG</button>
   <button class="nav-btn" onclick="toggleMore()">MORE</button>
 </nav>
@@ -120,7 +117,6 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
       <div class="more-item" onclick="switchPage('datalog')">DATALOG</div>
 
       <div class="more-section-label">NAVIGATION</div>
-      <div class="more-item" onclick="switchPage('maps')">MAPS</div>
       <div class="more-item" onclick="switchPage('trips')">TRIPS</div>
       <div class="more-item" onclick="switchPage('playback')">PLAYBACK</div>
 
@@ -131,7 +127,6 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
       <div class="more-item" onclick="switchPage('battery')">BATTERY</div>
 
       <div class="more-section-label">SYSTEM</div>
-      <div class="more-item" onclick="switchPage('music')">MUSIC</div>
       <div class="more-item" onclick="switchPage('maintenance')">SERVICE</div>
       <div class="more-item" onclick="switchPage('settings')">SETTINGS</div>
     </div>
@@ -143,8 +138,6 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
 const pages = {
   gauges:      { src:'dashboard.html',       loaded:true },
   vehicle:     { src:'carview.html',         loaded:false },
-  maps:        { src:'streetview.html?v=28', loaded:false },
-  music:       { src:'music.html',           loaded:false },
   tuner:       { src:'hondata.html?v=6',     loaded:false },
   drag:        { src:'drag.html',            loaded:false },
   engine3d:    { src:'engine3d.html',        loaded:false },
@@ -162,16 +155,6 @@ const pages = {
 };
 
 let currentPage = 'gauges';
-
-// Spotify auth callback
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('code')) {
-  const musicUrl = 'music.html' + window.location.search;
-  document.getElementById('frame-music').src = musicUrl;
-  pages.music.loaded = true;
-  window.history.replaceState({}, '', window.location.pathname);
-  setTimeout(() => switchPage('music'), 100);
-}
 
 function switchPage(name) {
   // Close more menu
@@ -191,7 +174,7 @@ function switchPage(name) {
 
   // Update nav buttons — check if it's a main nav item
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  const mainNavMap = { gauges:0, tuner:1, maps:2, music:3, drag:4 };
+  const mainNavMap = { gauges:0, tuner:1, trips:2, drag:3 };
   if (name in mainNavMap) {
     document.querySelectorAll('.nav-btn')[mainNavMap[name]].classList.add('active');
   }
