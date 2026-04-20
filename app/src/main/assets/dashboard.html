@@ -286,7 +286,7 @@ let pendingGauges = [...activeGauges];
 let currentTheme = localStorage.getItem('hondadash-theme') || 'cyberpunk';
 let gaugeInstances = {};
 let racingAnimId = null;
-let latestData = { rpm:0,spd:0,clt:192,tps:0,o2:0.82,iat:85,ign:18,stft:1.2,ltft:-0.8,batt:14.1,idc:42 };
+let latestData = window.__PROD__ ? { rpm:0,spd:0,clt:0,tps:0,o2:0,iat:0,ign:0,stft:0,ltft:0,batt:0,idc:0 } : { rpm:0,spd:0,clt:192,tps:0,o2:0.82,iat:85,ign:18,stft:1.2,ltft:-0.8,batt:14.1,idc:42 };
 
 // ============================================================
 //  THEME SYSTEM
@@ -2035,13 +2035,13 @@ async function boot(){
   document.getElementById('progwrap').style.opacity='0';
   document.getElementById('srbox').style.opacity='0';
   await delay(400);
-  startSim();
+  if(!window.__PROD__) startSim();
 }
 
 // ============================================================
 //  SIMULATION
 // ============================================================
-let rpm=850,spd=0,clt=192,tps=0,o2v=0.82,iat=85,ign=18,stft=1.2,ltft=-0.8,batt=14.1,idc=42;
+let rpm=window.__PROD__?0:850,spd=0,clt=window.__PROD__?0:192,tps=0,o2v=window.__PROD__?0:0.82,iat=window.__PROD__?0:85,ign=window.__PROD__?0:18,stft=window.__PROD__?0:1.2,ltft=window.__PROD__?0:-0.8,batt=window.__PROD__?0:14.1,idc=window.__PROD__?0:42;
 let simRL=false,simDir=1,simVTECActive=false,inVTEC=false,manualMode=false;
 const VTEC_RPM=5800;
 let simGear=1, simSpeed=0, simRPM=850, simTPS=0, simT2=0;

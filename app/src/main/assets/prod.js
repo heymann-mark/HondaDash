@@ -23,4 +23,7 @@
   // Prevent pinch zoom on the page (not on canvases that need it)
   document.addEventListener('gesturestart', e => e.preventDefault(), true);
   document.addEventListener('gesturechange', e => e.preventDefault(), true);
+
+  // Flag to prevent simulation from starting — gauges wait for real OBD data
+  window.__PROD__ = true;
 })();
