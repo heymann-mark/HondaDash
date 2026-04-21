@@ -143,9 +143,9 @@ scene.add(fill);
 const rim = new THREE.DirectionalLight(0xff2200, 2);
 rim.position.set(0, -1, -6);
 scene.add(rim);
-const top = new THREE.DirectionalLight(0xffffff, 0.5);
-top.position.set(0, 10, 0);
-scene.add(top);
+const topLight = new THREE.DirectionalLight(0xffffff, 0.5);
+topLight.position.set(0, 10, 0);
+scene.add(topLight);
 
 // Ground glow
 const groundGeo = new THREE.PlaneGeometry(20, 20);
