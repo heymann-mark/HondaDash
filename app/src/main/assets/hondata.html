@@ -375,6 +375,19 @@ html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech
 
 
 <script>
+// Listen for OBD data from parent (Android WebView postMessage)
+window.addEventListener('message', function(e){
+  try {
+    var msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if(msg.type === 'obd' && msg.data) {
+      if(typeof updateFromFlashPro === 'function') updateFromFlashPro(msg.data);
+    }
+    if(msg.type === 'btstate') {
+      if(typeof updateConnectionStatus === 'function') updateConnectionStatus(msg.state);
+    }
+  } catch(ex){}
+});
+
 // ================================================================
 //  GLOBAL STATE
 // ================================================================
@@ -1247,7 +1260,7 @@ function updateFromFlashPro(data) {
 }
 
 // Main tick
-setInterval(() => { if (!connected) simSensors(); }, 100);
+setInterval(() => { if (!connected && !window.__PROD__) simSensors(); }, 100);
 
 
 // ================================================================

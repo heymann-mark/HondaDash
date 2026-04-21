@@ -138,6 +138,33 @@ html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech
 </div>
 
 <script>
+// Listen for OBD data from parent (Android WebView postMessage)
+window.addEventListener('message', function(e){
+  try {
+    var msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if(msg.type === 'obd' && msg.data) {
+      var d = msg.data;
+      if(typeof updateFromFlashPro === 'function') updateFromFlashPro(d);
+      if(typeof updateFromOBD === 'function'){
+        updateFromOBD('ECM','rpm',d.rpm);updateFromOBD('ECM','spd',d.speed);
+        updateFromOBD('ECM','ect',d.coolant);updateFromOBD('ECM','tps',d.throttle);
+        updateFromOBD('ECM','iat',d.iat);updateFromOBD('ECM','ign',d.ign);
+        updateFromOBD('ECM','stft',d.stft);updateFromOBD('ECM','ltft',d.ltft);
+        updateFromOBD('ECM','afr',d.afr);updateFromOBD('ECM','map',d.map);
+        updateFromOBD('ECM','inj',d.inj);updateFromOBD('BCM','batt',d.batt);
+      }
+      if(typeof updateBatteryFromOBD === 'function') updateBatteryFromOBD(d.batt);
+      if(typeof updateGauges === 'function') updateGauges(d.rpm,d.speed,d.coolant,d.throttle,d.afr,d.iat,d.ign,d.stft,d.ltft,d.batt,d.inj);
+    }
+    if(msg.type === 'btstate') {
+      if(typeof updateConnectionStatus === 'function') updateConnectionStatus(msg.state);
+    }
+    if(msg.type === 'dtc' && msg.codes) {
+      if(typeof updateDTC === 'function') updateDTC(msg.codes);
+    }
+  } catch(ex){}
+});
+
 // ============ SENSOR DEFINITIONS ============
 const SENSORS = {
   ENGINE: {
