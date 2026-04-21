@@ -1762,8 +1762,7 @@ THEMES.bttf = {
 // ============================================================
 function updateThemeGauges(d){
   const theme = THEMES[currentTheme];
-  const vtecOn = d.rpm >= VTEC_RPM && d.tps > 10;
-  theme.updateRPM(d.rpm, vtecOn);
+  theme.updateRPM(d.rpm, inVTEC);
   activeGauges.forEach(id => {
     const def = GAUGE_DEFS.find(g=>g.id===id);
     if(def && d[id] !== undefined) theme.updateGauge(id, d[id], def);
@@ -2058,6 +2057,7 @@ async function boot(){
 // ============================================================
 let rpm=window.__PROD__?0:850,spd=0,clt=window.__PROD__?0:192,tps=0,o2v=window.__PROD__?0:0.82,iat=window.__PROD__?0:85,ign=window.__PROD__?0:18,stft=window.__PROD__?0:1.2,ltft=window.__PROD__?0:-0.8,batt=window.__PROD__?0:14.1,idc=window.__PROD__?0:42;
 let simRL=false,simDir=1,simVTECActive=false,inVTEC=false,manualMode=false;
+let _prevRPM=0, _prevTPS=0, _vtecOffTimer=0;
 const VTEC_RPM=4500;
 let simGear=1, simSpeed=0, simRPM=850, simTPS=0, simT2=0;
 function jit(v,a){return v+(Math.random()-0.5)*a;}
@@ -2271,23 +2271,35 @@ function updateGearDisplay(rpm, speed){
 function updateGauges(r,s,c,t,o2,ia,ig,sf,lf,bv,id){
   latestData = {rpm:r,spd:s,clt:c,tps:t,o2:o2,iat:ia,ign:ig,stft:sf,ltft:lf,batt:bv,idc:id};
 
-  // Injectors (cyberpunk only)
-  const vtecOn = r>=VTEC_RPM && t>10;
-  updateInjectors(r, vtecOn);
+  // VTEC detection — RPM >= 4500 AND throttle not dropping
+  const tpsDropping = t < _prevTPS - 2;
+  _prevRPM = r;
+  _prevTPS = t;
+  const vtecOn = r>=VTEC_RPM && !tpsDropping && t>5;
 
-  // VTEC state — requires RPM above crossover AND throttle input
+  // Injectors (cyberpunk only)
+  updateInjectors(r, vtecOn || inVTEC);
+
+  // VTEC state — engage on accel, hold briefly before disengage
   if(vtecOn && !inVTEC){
     inVTEC=true;
+    _vtecOffTimer = 0;
     if(currentTheme==='bttf'){ startFlux(); } else { startWarp(); }
     showVTECText();
     document.getElementById('vtec-bar').style.opacity='1';
     const rl=document.getElementById('rpm-label');if(rl){rl.textContent='ENGINE RPM // i-VTEC ENGAGED';rl.style.color='#4488ffaa';}
     const vr=document.getElementById('val-rpm');if(vr)vr.style.color='#4488ff';
   } else if(!vtecOn && inVTEC){
-    inVTEC=false; stopWarp(); stopFlux();
-    document.getElementById('vtec-bar').style.opacity='0';
-    const rl=document.getElementById('rpm-label');if(rl){rl.textContent='ENGINE RPM // REDLINE 8200';rl.style.color='';}
-    const vr=document.getElementById('val-rpm');if(vr)vr.style.color='';
+    _vtecOffTimer++;
+    // Hold VTEC indicator for ~1s (roughly 6-8 OBD updates) before disengaging
+    if(_vtecOffTimer > 6 || r < VTEC_RPM - 500){
+      inVTEC=false; _vtecOffTimer=0; stopWarp(); stopFlux();
+      document.getElementById('vtec-bar').style.opacity='0';
+      const rl=document.getElementById('rpm-label');if(rl){rl.textContent='ENGINE RPM // REDLINE 8200';rl.style.color='';}
+      const vr=document.getElementById('val-rpm');if(vr)vr.style.color='';
+    }
+  } else if(vtecOn && inVTEC){
+    _vtecOffTimer = 0;
   }
 
   // Redline
