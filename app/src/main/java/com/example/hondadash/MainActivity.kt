@@ -22,6 +22,9 @@ import android.widget.Toast
 import android.graphics.Color
 import android.net.Uri
 import android.webkit.JavascriptInterface
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import androidx.activity.ComponentActivity
 import androidx.core.content.FileProvider
 import java.io.File
@@ -31,6 +34,11 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
     private val PERMISSION_REQUEST_CODE = 1001
+
+    // GPS
+    private var locationManager: LocationManager? = null
+    private var lastLat: Double = 0.0
+    private var lastLng: Double = 0.0
 
     // Bluetooth
     private var bluetoothService: BluetoothService? = null
@@ -59,6 +67,7 @@ class MainActivity : ComponentActivity() {
                         stft:${data.stft},ltft:${data.ltft},batt:${data.voltage},inj:${data.idc},
                         map:${data.map},speed:${data.speed},coolant:${data.coolant},throttle:${data.throttle},
                         o2Voltage:${data.o2Voltage},timing:${data.timing}};
+                    d.lat=${lastLat};d.lng=${lastLng};
                     window._obdData=d;
                     var msg=JSON.stringify({type:'obd',data:d});
                     var frames=document.querySelectorAll('iframe');
@@ -237,6 +246,48 @@ class MainActivity : ComponentActivity() {
     private fun bindBluetoothService() {
         val intent = Intent(this, BluetoothService::class.java)
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        startGPS()
+    }
+
+    // ============ GPS ============
+
+    @SuppressLint("MissingPermission")
+    private fun startGPS() {
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        val lm = locationManager ?: return
+
+        val listener = object : LocationListener {
+            override fun onLocationChanged(loc: Location) {
+                lastLat = loc.latitude
+                lastLng = loc.longitude
+            }
+            override fun onProviderEnabled(provider: String) {}
+            override fun onProviderDisabled(provider: String) {}
+            @Deprecated("Deprecated") override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+        }
+
+        // Try GPS first, fall back to network
+        try {
+            if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000L, 5f, listener)
+            }
+        } catch (_: Exception) {}
+
+        try {
+            if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000L, 10f, listener)
+            }
+        } catch (_: Exception) {}
+
+        // Get last known location as starting point
+        try {
+            val last = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                ?: lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            if (last != null) {
+                lastLat = last.latitude
+                lastLng = last.longitude
+            }
+        } catch (_: Exception) {}
     }
 
     // ============ BT DEVICE PICKER ============

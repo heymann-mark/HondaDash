@@ -148,6 +148,19 @@ body{background:#0a0000;overflow:hidden;font-family:'Share Tech Mono',monospace;
 </div>
 
 <script>
+// Listen for OBD + GPS data from parent
+window.addEventListener('message', function(e){
+  try {
+    var msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if(msg.type === 'obd' && msg.data) {
+      var d = msg.data;
+      if(typeof updateTripData === 'function'){
+        updateTripData(d.speed||d.vss||0, d.rpm||0, d.coolant||d.ect||0, d.lat||0, d.lng||0);
+      }
+    }
+  } catch(ex){}
+});
+
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const STORAGE_KEY = 'hondadash_trips_v2';
@@ -272,7 +285,7 @@ window.updateTripData = function(spd, rpm, clt, lat, lng){
     if(cltVal > currentTrip.maxCoolant) currentTrip.maxCoolant = Math.round(cltVal);
     if(speed > currentTrip.topSpeed) currentTrip.topSpeed = Math.round(speed);
     if(speed > 0) currentTrip.speedSamples.push(speed);
-    const vtecOn = rpmVal >= 5800;
+    const vtecOn = rpmVal >= 4500;
     if(vtecOn && !currentTrip.vtecWasOn) currentTrip.vtecCount++;
     currentTrip.vtecWasOn = vtecOn;
     if(latF && lngF && currentTrip.lastLat && currentTrip.lastLng){
