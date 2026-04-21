@@ -198,7 +198,7 @@ html.redlining .rpm-bar.red { animation:rpmbarflash 0.1s infinite; }
 <div class="vtec-overlay" id="vtec-overlay">
   <div>
     <div class="vtec-text" id="vtec-text">VTEC ENGAGED</div>
-    <div class="vtec-subtext" id="vtec-subtext">i-VTEC CROSSOVER // 5800 RPM</div>
+    <div class="vtec-subtext" id="vtec-subtext">i-VTEC CROSSOVER // 4500 RPM</div>
   </div>
 </div>
 
@@ -638,7 +638,7 @@ THEMES.racing = {
     const range = endA-startA;
     const pct = Math.min(1, r/8200);
     const valA = startA + pct*range;
-    const vtecA = startA + (5800/8200)*range;
+    const vtecA = startA + (4500/8200)*range;
     const redA = startA + (7800/8200)*range;
 
     // BG arc
@@ -2058,7 +2058,7 @@ async function boot(){
 // ============================================================
 let rpm=window.__PROD__?0:850,spd=0,clt=window.__PROD__?0:192,tps=0,o2v=window.__PROD__?0:0.82,iat=window.__PROD__?0:85,ign=window.__PROD__?0:18,stft=window.__PROD__?0:1.2,ltft=window.__PROD__?0:-0.8,batt=window.__PROD__?0:14.1,idc=window.__PROD__?0:42;
 let simRL=false,simDir=1,simVTECActive=false,inVTEC=false,manualMode=false;
-const VTEC_RPM=5800;
+const VTEC_RPM=4500;
 let simGear=1, simSpeed=0, simRPM=850, simTPS=0, simT2=0;
 function jit(v,a){return v+(Math.random()-0.5)*a;}
 function startSim(){setInterval(simTick,150);}
