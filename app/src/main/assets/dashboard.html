@@ -2308,9 +2308,21 @@ function updateGauges(r,s,c,t,o2,ia,ig,sf,lf,bv,id){
   const rlw=document.getElementById('rl-warn');if(rlw)rlw.style.opacity=isRL?'1':'0';
   document.getElementById('rl-strip').style.width=(r/8200*100)+'%';
 
+  // Cold engine warning — below 160°F
+  const isCold = c > 0 && c < 160;
+  const coldEl = document.getElementById('val-clt');
+  if(coldEl){
+    if(isCold){
+      coldEl.style.color = (Date.now() % 1000 < 500) ? '#4488ff' : '#2244aa';
+    } else if(c > 215){
+      coldEl.style.color = '#ff4400';
+    } else {
+      coldEl.style.color = '';
+    }
+  }
+
   // Warn colors (cyberpunk)
   if(currentTheme==='cyberpunk'){
-    const ce=document.getElementById('val-clt');if(ce)ce.style.color=c>215?'#ff4400':'';
     const be=document.getElementById('val-batt');if(be)be.style.color=bv<12.5?'#ff4400':'';
   }
 

@@ -82,9 +82,22 @@ html.day-mode .more-item.active { border-color:#1a4a7a; color:#1a4a7a; backgroun
 html.day-mode .more-close { border-color:#1a4a7a33; color:#1a4a7aaa; }
 html.day-mode .more-section-label { color:#1a4a7a66; }
 html.day-mode .page-frame { filter:invert(0.85) hue-rotate(180deg) saturate(1.6) brightness(1.15); }
+
+/* BOOT SCREEN */
+#boot-overlay {
+  position:fixed; inset:0; z-index:9999; background:#050000;
+  transition:opacity 0.6s;
+}
+#boot-overlay.hidden { opacity:0; pointer-events:none; }
+#boot-frame { width:100%; height:100%; border:none; }
 </style>
 </head>
 <body>
+
+<!-- BOOT SCREEN -->
+<div id="boot-overlay">
+  <iframe id="boot-frame" src="boot.html"></iframe>
+</div>
 
 <!-- IFRAMES — all pages -->
 <iframe id="frame-gauges" class="page-frame active" src="dashboard.html"></iframe>
@@ -104,8 +117,8 @@ html.day-mode .page-frame { filter:invert(0.85) hue-rotate(180deg) saturate(1.6)
 <iframe id="frame-maintenance" class="page-frame" src="about:blank"></iframe>
 <iframe id="frame-settings" class="page-frame" src="about:blank"></iframe>
 
-<!-- MAIN NAV -->
-<nav class="app-nav">
+<!-- MAIN NAV (hidden during boot) -->
+<nav class="app-nav" id="app-nav" style="display:none;">
   <button class="nav-btn active" onclick="switchPage('gauges')">GAUGES</button>
   <button class="nav-btn" onclick="switchPage('tuner')">FLASHPRO</button>
   <button class="nav-btn" onclick="switchPage('trips')">TRIPS</button>
@@ -211,6 +224,20 @@ function closeMore(e) {
     document.getElementById('more-overlay').classList.remove('open');
   }
 }
+
+// Boot sequence complete listener
+window.addEventListener('message', function(e){
+  try {
+    var msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if(msg.type === 'boot-complete'){
+      var overlay = document.getElementById('boot-overlay');
+      overlay.classList.add('hidden');
+      document.getElementById('app-nav').style.display = '';
+      // Remove boot iframe after fade
+      setTimeout(function(){ overlay.remove(); }, 700);
+    }
+  } catch(ex){}
+});
 
 // Bluetooth control — uses AndroidBT JS interface when running in the APK
 function toggleBT() {
