@@ -390,7 +390,13 @@ async function boot(){
   }
 }
 
-boot();
+boot().catch(function(err){
+  console.error('Boot error:', err);
+  // Always dismiss even on error
+  if(window.parent && window.parent !== window){
+    window.parent.postMessage(JSON.stringify({type:'boot-complete'}), '*');
+  }
+});
 </script>
 </body>
 </html>

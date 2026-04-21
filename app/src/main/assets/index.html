@@ -225,19 +225,25 @@ function closeMore(e) {
   }
 }
 
-// Boot sequence complete listener
+// Boot sequence complete
+function dismissBoot(){
+  var overlay = document.getElementById('boot-overlay');
+  if(!overlay) return;
+  overlay.classList.add('hidden');
+  document.getElementById('app-nav').style.display = '';
+  setTimeout(function(){ if(overlay.parentNode) overlay.remove(); }, 700);
+}
+
+// Listen for boot-complete from boot.html
 window.addEventListener('message', function(e){
   try {
     var msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-    if(msg.type === 'boot-complete'){
-      var overlay = document.getElementById('boot-overlay');
-      overlay.classList.add('hidden');
-      document.getElementById('app-nav').style.display = '';
-      // Remove boot iframe after fade
-      setTimeout(function(){ overlay.remove(); }, 700);
-    }
+    if(msg.type === 'boot-complete') dismissBoot();
   } catch(ex){}
 });
+
+// Safety timeout — if boot fails, show gauges after 15s
+setTimeout(function(){ dismissBoot(); }, 15000);
 
 // Bluetooth control — uses AndroidBT JS interface when running in the APK
 function toggleBT() {
