@@ -68,6 +68,20 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
   font-size:8px; color:#cc110044; letter-spacing:2px; padding:8px 4px 4px;
   grid-column:1/-1;
 }
+
+/* DAY MODE */
+html.day-mode, html.day-mode body { background:#e8e4e0; }
+html.day-mode .app-nav { background:#d8d4d0; border-top:1px solid #88440033; }
+html.day-mode .nav-btn { color:#884400aa; }
+html.day-mode .nav-btn:hover, html.day-mode .nav-btn.active { color:#884400; }
+html.day-mode .more-panel { background:#d8d4d0; border-top:1px solid #88440033; }
+html.day-mode .more-title { color:#884400aa; }
+html.day-mode .more-item { border-color:#88440022; color:#884400aa; }
+html.day-mode .more-item:hover { border-color:#884400; color:#884400; }
+html.day-mode .more-item.active { border-color:#884400; color:#884400; background:rgba(136,68,0,0.08); }
+html.day-mode .more-close { border-color:#88440033; color:#884400aa; }
+html.day-mode .more-section-label { color:#88440066; }
+html.day-mode .page-frame { filter:invert(0.85) hue-rotate(180deg) saturate(1.4) brightness(1.1); }
 </style>
 </head>
 <body>
@@ -98,6 +112,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:#0a0000; }
   <button class="nav-btn" onclick="switchPage('drag')">DRAG</button>
   <button class="nav-btn" onclick="toggleMore()">MORE</button>
   <button class="nav-btn" id="bt-btn" onclick="toggleBT()">BT</button>
+  <button class="nav-btn" id="daynight-btn" onclick="_dayNightToggle()" style="flex:0.5;font-size:18px;">&#9788;</button>
 </nav>
 
 <!-- MORE MENU -->
