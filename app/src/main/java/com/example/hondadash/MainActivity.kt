@@ -98,6 +98,10 @@ class MainActivity : ComponentActivity() {
             """.trimIndent()
             webView.evaluateJavascript(js, null)
         }
+
+        override fun onDebug(msg: String) {
+            Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")

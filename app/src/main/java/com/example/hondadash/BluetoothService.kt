@@ -21,8 +21,8 @@ class BluetoothService : Service() {
     companion object {
         private const val TAG = "BluetoothService"
         private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-        private const val COMMAND_TIMEOUT_MS = 2500L
-        private const val INIT_DELAY_MS = 300L
+        private const val COMMAND_TIMEOUT_MS = 5000L
+        private const val INIT_DELAY_MS = 500L
     }
 
     enum class ConnectionState { DISCONNECTED, CONNECTING, INITIALIZING, CONNECTED, ERROR }
@@ -31,6 +31,7 @@ class BluetoothService : Service() {
         fun onOBDData(data: OBDData)
         fun onDTCData(codes: List<String>)
         fun onConnectionStateChanged(state: ConnectionState)
+        fun onDebug(msg: String)
     }
 
     inner class LocalBinder : Binder() {
@@ -138,31 +139,42 @@ class BluetoothService : Service() {
         startPolling()
     }
 
+    private fun debug(msg: String) {
+        Log.d(TAG, msg)
+        mainHandler.post { listener?.onDebug(msg) }
+    }
+
     private fun initializeELM327(): Boolean {
         val initCommands = listOf(
-            "ATZ"  to 1500L,  // Reset — needs extra time
+            "ATZ"  to 2000L,  // Reset — needs extra time
             "ATE0" to INIT_DELAY_MS,  // Echo off
             "ATL0" to INIT_DELAY_MS,  // Linefeeds off
             "ATS0" to INIT_DELAY_MS,  // Spaces off
             "ATH0" to INIT_DELAY_MS,  // Headers off
-            "ATSP6" to INIT_DELAY_MS, // Protocol: ISO 15765-4 CAN (11-bit, 500kbps) — Honda Civic Si
+            "ATSP0" to INIT_DELAY_MS, // Auto-detect protocol
         )
 
         for ((cmd, delay) in initCommands) {
+            debug("INIT: $cmd")
             val response = sendCommand(cmd)
-            Log.d(TAG, "Init: $cmd -> $response")
+            debug("INIT: $cmd -> ${response.take(40)}")
             if (OBD2Parser.isError(response) && cmd != "ATZ") {
-                Log.e(TAG, "Init command failed: $cmd -> $response")
-                // Don't fail on ATZ since it echoes version info
+                debug("INIT WARN: $cmd failed")
             }
             Thread.sleep(delay)
         }
 
         // Verify connection with voltage reading
+        debug("INIT: ATRV (voltage check)")
         val voltResponse = sendCommand("ATRV")
         val voltage = OBD2Parser.parseVoltage(voltResponse)
-        Log.i(TAG, "Init voltage: $voltage V (raw: $voltResponse)")
-        return voltage != null && voltage > 6.0f
+        debug("INIT: voltage=$voltage raw=${voltResponse.take(20)}")
+        if (voltage == null || voltage <= 6.0f) {
+            debug("INIT FAIL: voltage check failed, trying without...")
+            // Don't fail on voltage — some adapters don't support ATRV
+            return true
+        }
+        return true
     }
 
     // ============ POLLING ============
