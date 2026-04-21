@@ -265,6 +265,21 @@ html.redlining .rpm-bar.red { animation:rpmbarflash 0.1s infinite; }
 <script src="https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js"></script>
 
 <script>
+// Listen for OBD data from parent (Android WebView postMessage)
+window.addEventListener('message', function(e){
+  try {
+    var msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if(msg.type === 'obd' && msg.data) {
+      var d = msg.data;
+      if(typeof updateGauges === 'function') updateGauges(d.rpm,d.speed,d.coolant,d.throttle,d.afr,d.iat,d.ign,d.stft,d.ltft,d.batt,d.inj);
+      if(typeof updateFromFlashPro === 'function') updateFromFlashPro(d);
+    }
+    if(msg.type === 'dtc' && msg.codes) {
+      if(typeof updateDTC === 'function') updateDTC(msg.codes);
+    }
+  } catch(ex){}
+});
+
 // ============================================================
 //  GAUGE DEFINITIONS
 // ============================================================

@@ -3,15 +3,15 @@ package com.example.hondadash
 data class OBDData(
     val rpm: Int = 0,
     val speed: Int = 0,
-    val coolant: Int = 185,
+    val coolant: Int = 0,
     val throttle: Int = 0,
     val o2Voltage: Float = 0f,
-    val iat: Int = 75,
+    val iat: Int = 0,
     val timing: Float = 0f,
     val stft: Float = 0f,
     val ltft: Float = 0f,
-    val voltage: Float = 12.6f,
-    val map: Int = 101,
+    val voltage: Float = 0f,
+    val map: Int = 0,
     val idc: Int = 0
 )
 

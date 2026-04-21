@@ -58,23 +58,11 @@ class MainActivity : ComponentActivity() {
                         stft:${data.stft},ltft:${data.ltft},batt:${data.voltage},inj:${data.idc},
                         map:${data.map},speed:${data.speed},coolant:${data.coolant},throttle:${data.throttle},
                         o2Voltage:${data.o2Voltage},timing:${data.timing}};
-                    if(typeof window._obdData==='undefined') window._obdData=d; else Object.assign(window._obdData,d);
+                    window._obdData=d;
+                    var msg=JSON.stringify({type:'obd',data:d});
                     var frames=document.querySelectorAll('iframe');
                     for(var i=0;i<frames.length;i++){
-                        try{
-                            var w=frames[i].contentWindow;
-                            if(w&&typeof w.updateGauges==='function') w.updateGauges(d.rpm,d.speed,d.coolant,d.throttle,d.afr,d.iat,d.ign,d.stft,d.ltft,d.batt,d.inj);
-                            if(w&&typeof w.updateFromFlashPro==='function') w.updateFromFlashPro(d);
-                            if(w&&typeof w.updateFromOBD==='function'){
-                                w.updateFromOBD('ECM','rpm',d.rpm);w.updateFromOBD('ECM','spd',d.speed);
-                                w.updateFromOBD('ECM','ect',d.coolant);w.updateFromOBD('ECM','tps',d.throttle);
-                                w.updateFromOBD('ECM','iat',d.iat);w.updateFromOBD('ECM','ign',d.ign);
-                                w.updateFromOBD('ECM','stft',d.stft);w.updateFromOBD('ECM','ltft',d.ltft);
-                                w.updateFromOBD('ECM','afr',d.afr);w.updateFromOBD('ECM','map',d.map);
-                                w.updateFromOBD('ECM','inj',d.inj);w.updateFromOBD('BCM','batt',d.batt);
-                            }
-                            if(w&&typeof w.updateBatteryFromOBD==='function') w.updateBatteryFromOBD(d.batt);
-                        }catch(e){}
+                        try{ frames[i].contentWindow.postMessage(msg,'*'); }catch(e){}
                     }
                 })()
             """.trimIndent()
@@ -85,12 +73,10 @@ class MainActivity : ComponentActivity() {
             val jsonArray = codes.joinToString(",") { "\"$it\"" }
             val js = """
                 (function(){
+                    var msg=JSON.stringify({type:'dtc',codes:[$jsonArray]});
                     var frames=document.querySelectorAll('iframe');
                     for(var i=0;i<frames.length;i++){
-                        try{
-                            var w=frames[i].contentWindow;
-                            if(w&&typeof w.updateDTC==='function') w.updateDTC([$jsonArray]);
-                        }catch(e){}
+                        try{ frames[i].contentWindow.postMessage(msg,'*'); }catch(e){}
                     }
                 })()
             """.trimIndent()
@@ -103,12 +89,10 @@ class MainActivity : ComponentActivity() {
             val js = """
                 (function(){
                     if(typeof window.updateBTStatus==='function') window.updateBTStatus('$stateStr');
+                    var msg=JSON.stringify({type:'btstate',state:'$stateStr'});
                     var frames=document.querySelectorAll('iframe');
                     for(var i=0;i<frames.length;i++){
-                        try{
-                            var w=frames[i].contentWindow;
-                            if(w&&typeof w.updateConnectionStatus==='function') w.updateConnectionStatus('$stateStr');
-                        }catch(e){}
+                        try{ frames[i].contentWindow.postMessage(msg,'*'); }catch(e){}
                     }
                 })()
             """.trimIndent()
