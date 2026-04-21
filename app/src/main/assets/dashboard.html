@@ -1762,7 +1762,7 @@ THEMES.bttf = {
 // ============================================================
 function updateThemeGauges(d){
   const theme = THEMES[currentTheme];
-  const vtecOn = d.rpm >= VTEC_RPM;
+  const vtecOn = d.rpm >= VTEC_RPM && d.tps > 10;
   theme.updateRPM(d.rpm, vtecOn);
   activeGauges.forEach(id => {
     const def = GAUGE_DEFS.find(g=>g.id===id);
@@ -2272,17 +2272,18 @@ function updateGauges(r,s,c,t,o2,ia,ig,sf,lf,bv,id){
   latestData = {rpm:r,spd:s,clt:c,tps:t,o2:o2,iat:ia,ign:ig,stft:sf,ltft:lf,batt:bv,idc:id};
 
   // Injectors (cyberpunk only)
-  updateInjectors(r, r>=VTEC_RPM);
+  const vtecOn = r>=VTEC_RPM && t>10;
+  updateInjectors(r, vtecOn);
 
-  // VTEC state
-  if(r>=VTEC_RPM && !inVTEC){
+  // VTEC state — requires RPM above crossover AND throttle input
+  if(vtecOn && !inVTEC){
     inVTEC=true;
     if(currentTheme==='bttf'){ startFlux(); } else { startWarp(); }
     showVTECText();
     document.getElementById('vtec-bar').style.opacity='1';
     const rl=document.getElementById('rpm-label');if(rl){rl.textContent='ENGINE RPM // i-VTEC ENGAGED';rl.style.color='#4488ffaa';}
     const vr=document.getElementById('val-rpm');if(vr)vr.style.color='#4488ff';
-  } else if(r<VTEC_RPM && inVTEC){
+  } else if(!vtecOn && inVTEC){
     inVTEC=false; stopWarp(); stopFlux();
     document.getElementById('vtec-bar').style.opacity='0';
     const rl=document.getElementById('rpm-label');if(rl){rl.textContent='ENGINE RPM // REDLINE 8200';rl.style.color='';}
