@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
             bluetoothService?.listener = obdDataListener
             serviceBound = true
             Log.d("MainActivity", "BluetoothService bound")
+            autoConnect()
         }
         override fun onServiceDisconnected(name: ComponentName?) {
             bluetoothService = null
@@ -257,8 +258,30 @@ class MainActivity : ComponentActivity() {
 
         DevicePickerDialog.show(this, devices) { device ->
             Toast.makeText(this, "Connecting to ${device.name ?: device.address}...", Toast.LENGTH_SHORT).show()
+            // Save as last device for auto-connect
+            getSharedPreferences("hondadash", MODE_PRIVATE).edit()
+                .putString("last_bt_address", device.address)
+                .putString("last_bt_name", device.name ?: "OBD")
+                .apply()
             service.connect(device)
         }
+    }
+
+    // ============ AUTO-CONNECT ============
+
+    @SuppressLint("MissingPermission")
+    private fun autoConnect() {
+        val prefs = getSharedPreferences("hondadash", MODE_PRIVATE)
+        val address = prefs.getString("last_bt_address", null) ?: return
+        val name = prefs.getString("last_bt_name", "OBD")
+        val service = bluetoothService ?: return
+
+        // Find the device in paired list
+        val device = service.getPairedDevices().find { it.address == address } ?: return
+
+        Log.d("MainActivity", "Auto-connecting to $name ($address)")
+        Toast.makeText(this, "Auto-connecting to $name...", Toast.LENGTH_SHORT).show()
+        service.connect(device)
     }
 
     // ============ SYSTEM UI ============
