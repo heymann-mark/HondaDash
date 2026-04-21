@@ -250,11 +250,11 @@ html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech
 
 <!-- SUB NAV -->
 <div class="sub-nav">
-  <button class="sub-btn active" onclick="switchTab('tables')">TABLES</button>
+  <button class="sub-btn" onclick="switchTab('tables')">TABLES</button>
   <button class="sub-btn" onclick="switchTab('calibration')">CALIBRATION</button>
   <button class="sub-btn" onclick="switchTab('dtc')">DTC</button>
   <button class="sub-btn" onclick="switchTab('datalogs')">DATALOGS</button>
-  <button class="sub-btn" onclick="switchTab('sensors')">SENSORS</button>
+  <button class="sub-btn active" onclick="switchTab('sensors')">SENSORS</button>
   <button class="sub-btn" onclick="switchTab('multi')">MULTI</button>
   <button class="sub-btn" onclick="switchTab('reference')">REFERENCE</button>
 </div>
@@ -265,7 +265,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech
   <!-- ============================================================
        TAB: TABLES — Fuel & Ignition Heatmap Editor
        ============================================================ -->
-  <div class="tab-panel active" id="panel-tables">
+  <div class="tab-panel" id="panel-tables">
     <div class="table-toolbar">
       <select class="table-select" id="table-selector" onchange="loadTable(this.value)">
         <option value="fuel_lo">FUEL — LOW CAM</option>
@@ -346,7 +346,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; font-family:'Share Tech
   <!-- ============================================================
        TAB: SENSORS — Real-time Dashboard
        ============================================================ -->
-  <div class="tab-panel" id="panel-sensors">
+  <div class="tab-panel active" id="panel-sensors">
     <div class="sensor-grid" id="sensor-grid"></div>
   </div>
 
@@ -391,7 +391,7 @@ window.addEventListener('message', function(e){
 // ================================================================
 //  GLOBAL STATE
 // ================================================================
-let currentTab = 'tables';
+let currentTab = 'sensors';
 let connected = false;
 
 // ================================================================
