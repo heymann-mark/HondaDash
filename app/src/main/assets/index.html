@@ -215,6 +215,13 @@ function toggleBT() {
 function updateBTStatus(state) {
   var btn = document.getElementById('bt-btn');
   if (!btn) return;
+  var labels = {
+    CONNECTED: 'BT ON',
+    CONNECTING: 'BT...',
+    INITIALIZING: 'BT INIT',
+    ERROR: 'BT ERR',
+    DISCONNECTED: 'BT'
+  };
   var colors = {
     CONNECTED: '#00ff41',
     CONNECTING: '#ffaa00',
@@ -222,6 +229,7 @@ function updateBTStatus(state) {
     ERROR: '#cc2200',
     DISCONNECTED: '#cc110066'
   };
+  btn.textContent = labels[state] || 'BT';
   btn.style.color = colors[state] || '#cc110066';
 }
 </script>

@@ -111,8 +111,10 @@ object DevicePickerDialog {
                 btAdapter?.cancelDiscovery()
                 try { activity.unregisterReceiver(receiver) } catch (_: Exception) {}
                 val device = allDevices[which]
+                val dName = device.name ?: device.address
                 // If not yet paired, initiate bonding first
                 if (device.bondState != BluetoothDevice.BOND_BONDED) {
+                    android.widget.Toast.makeText(activity, "Pairing with $dName...", android.widget.Toast.LENGTH_SHORT).show()
                     device.createBond()
                     // Wait for bond then connect
                     val bondReceiver = object : BroadcastReceiver() {
@@ -120,9 +122,11 @@ object DevicePickerDialog {
                             if (intent.action == BluetoothDevice.ACTION_BOND_STATE_CHANGED) {
                                 val state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE)
                                 if (state == BluetoothDevice.BOND_BONDED) {
+                                    android.widget.Toast.makeText(activity, "Paired! Connecting to $dName...", android.widget.Toast.LENGTH_SHORT).show()
                                     try { activity.unregisterReceiver(this) } catch (_: Exception) {}
                                     onDeviceSelected(device)
                                 } else if (state == BluetoothDevice.BOND_NONE) {
+                                    android.widget.Toast.makeText(activity, "Pairing failed with $dName", android.widget.Toast.LENGTH_SHORT).show()
                                     try { activity.unregisterReceiver(this) } catch (_: Exception) {}
                                 }
                             }

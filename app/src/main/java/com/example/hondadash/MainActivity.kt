@@ -266,12 +266,9 @@ class MainActivity : ComponentActivity() {
         }
 
         val devices = service.getPairedDevices()
-        if (devices.isEmpty()) {
-            Toast.makeText(this, "No paired Bluetooth devices found. Pair an OBD adapter in Settings first.", Toast.LENGTH_LONG).show()
-            return
-        }
 
         DevicePickerDialog.show(this, devices) { device ->
+            Toast.makeText(this, "Connecting to ${device.name ?: device.address}...", Toast.LENGTH_SHORT).show()
             service.connect(device)
         }
     }
