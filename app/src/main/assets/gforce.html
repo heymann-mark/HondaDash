@@ -250,7 +250,7 @@ function simTick(){
 //  UPDATE
 // ============================================================
 function update(){
-  if(!accelAvailable) simTick();
+  if(!accelAvailable && !window.__PROD__) simTick();
 
   // Smooth
   latG += (rawLatG - latG) * SMOOTH;

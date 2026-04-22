@@ -773,7 +773,7 @@ function simTick(){
 //  MAIN LOOP
 // ============================================================
 function tick(){
-  if(!connected) simTick();
+  if(!connected && !window.__PROD__) simTick();
   recordTick();
 
   // HUD

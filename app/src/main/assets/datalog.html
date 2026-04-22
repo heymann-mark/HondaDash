@@ -405,7 +405,7 @@ function loop() {
 }
 
 // Run sim at ~10Hz
-setInterval(simUpdate, 100);
+if(!window.__PROD__) setInterval(simUpdate, 100);
 // Render at 60fps
 requestAnimationFrame(function render() {
   updateGauges();

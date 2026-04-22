@@ -102,7 +102,7 @@ body:not(.theme-cyberpunk) .scanlines { opacity:0; }
 .sim-bar .sim-rpm-val { font-family:'Orbitron',monospace; font-size:18px; color:var(--accent); min-width:60px; text-align:right; }
 
 /* ===== BTTF SEVEN-SEGMENT ===== */
-@font-face { font-family:'DSEG7'; src:url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2'); font-weight:bold; }
+@font-face { font-family:'DSEG7'; src:url('DSEG7Classic-Bold.woff2') format('woff2'); font-weight:bold; }
 .seg7 { font-family:'DSEG7','Orbitron',monospace; }
 .seg7-ghost { position:absolute; font-family:'DSEG7','Orbitron',monospace; }
 .bttf-readout { position:relative; display:inline-block; background:#0d0800; border:1px solid #ff880022; padding:4px 10px; border-radius:2px; }
@@ -262,7 +262,7 @@ html.redlining .rpm-bar.red { animation:rpmbarflash 0.1s infinite; }
 </div>
 
 <!-- CDN Libraries -->
-<script src="https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js"></script>
+<script src="gauge.min.js"></script>
 
 <script>
 // Listen for OBD data from parent (Android WebView postMessage)

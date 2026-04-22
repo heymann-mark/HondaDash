@@ -518,7 +518,7 @@ function tick(){
   const dt = lastTickTime ? (now-lastTickTime)/1000 : 0.05;
   lastTickTime = now;
 
-  if(!connected) simTick();
+  if(!connected && !window.__PROD__) simTick();
 
   // Update all timers
   tick060(dt); tick0100(dt); tick600(dt); tickRoll(dt);
