@@ -8,15 +8,12 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body { width:100vw; height:100vh; overflow:hidden; background:#040810; font-family:'Share Tech Mono',monospace; }
 
-#boot-screen { position:fixed; inset:0; z-index:100; display:flex; }
-
-/* LEFT: 3D car */
-#car-viewport { flex:1.2; position:relative; overflow:hidden; }
-#car-canvas { width:100%; height:100%; display:block; }
+/* 3D car fills entire screen */
+#car-canvas { position:fixed; top:0; left:0; width:100vw; height:100vh; display:block; }
 
 /* Sensor dots overlaid on the car */
 .sensor-dot {
-  position:absolute; width:8px; height:8px; border-radius:50%;
+  position:fixed; width:8px; height:8px; border-radius:50%;
   background:#1a4a8033; border:1px solid #1a4a8044;
   transform:translate(-50%,-50%); transition:all 0.3s;
   z-index:10;
@@ -28,16 +25,18 @@ body { width:100vw; height:100vh; overflow:hidden; background:#040810; font-fami
 .sensor-dot.ok {
   background:#00ff41; border-color:#00ff41; box-shadow:0 0 8px #00ff4166;
 }
-.sensor-dot.label {
+.sensor-dot .dot-label {
   font-size:7px; color:#ffffff44; position:absolute; top:12px; left:50%;
   transform:translateX(-50%); white-space:nowrap; pointer-events:none;
 }
 @keyframes pulse-dot { 0%{transform:translate(-50%,-50%) scale(1);} 50%{transform:translate(-50%,-50%) scale(2.5);} 100%{transform:translate(-50%,-50%) scale(1);} }
 
-/* RIGHT: Console log */
+/* Console panel overlaid on right side */
 #console-panel {
-  flex:0.8; background:#030610; border-left:1px solid #1a4a8022;
+  position:fixed; top:0; right:0; width:35%; height:100%;
+  background:rgba(3,6,16,0.85); border-left:1px solid #1a4a8022;
   display:flex; flex-direction:column; padding:12px 16px; overflow:hidden;
+  z-index:20;
 }
 
 #boot-logo {
@@ -78,37 +77,31 @@ body { width:100vw; height:100vh; overflow:hidden; background:#040810; font-fami
   opacity:0; transition:opacity 0.3s;
 }
 #boot-status.ready { color:#00ff41; opacity:1; }
-
-/* Fade out */
-#boot-screen.done { opacity:0; transition:opacity 0.6s; pointer-events:none; }
 </style>
 </head>
 <body>
 
-<div id="boot-screen">
-  <div id="car-viewport">
-    <canvas id="car-canvas"></canvas>
-    <!-- Sensor dots positioned over the 3D car -->
-    <div class="sensor-dot" id="dot-ecu" style="top:42%;left:35%;"><span class="label">ECU</span></div>
-    <div class="sensor-dot" id="dot-rpm" style="top:38%;left:45%;"><span class="label">RPM</span></div>
-    <div class="sensor-dot" id="dot-o2" style="top:55%;left:25%;"><span class="label">O2</span></div>
-    <div class="sensor-dot" id="dot-ect" style="top:35%;left:55%;"><span class="label">ECT</span></div>
-    <div class="sensor-dot" id="dot-tps" style="top:40%;left:60%;"><span class="label">TPS</span></div>
-    <div class="sensor-dot" id="dot-map" style="top:45%;left:50%;"><span class="label">MAP</span></div>
-    <div class="sensor-dot" id="dot-iat" style="top:32%;left:40%;"><span class="label">IAT</span></div>
-    <div class="sensor-dot" id="dot-vtec" style="top:38%;left:52%;"><span class="label">VTEC</span></div>
-    <div class="sensor-dot" id="dot-ign" style="top:43%;left:42%;"><span class="label">IGN</span></div>
-    <div class="sensor-dot" id="dot-fuel" style="top:50%;left:30%;"><span class="label">FUEL</span></div>
-    <div class="sensor-dot" id="dot-batt" style="top:36%;left:30%;"><span class="label">BATT</span></div>
-  </div>
+<canvas id="car-canvas"></canvas>
 
-  <div id="console-panel">
-    <div id="boot-logo">HONDADASH</div>
-    <div id="boot-sub">K20Z3 // 2007 CIVIC Si FA5</div>
-    <div id="console-log"></div>
-    <div id="boot-progress-wrap"><div id="boot-progress-bar"></div></div>
-    <div id="boot-status">INITIALIZING</div>
-  </div>
+<!-- Sensor dots positioned over the 3D car -->
+<div class="sensor-dot" id="dot-ecu" style="top:42%;left:25%;"><span class="dot-label">ECU</span></div>
+<div class="sensor-dot" id="dot-rpm" style="top:38%;left:33%;"><span class="dot-label">RPM</span></div>
+<div class="sensor-dot" id="dot-o2" style="top:55%;left:18%;"><span class="dot-label">O2</span></div>
+<div class="sensor-dot" id="dot-ect" style="top:35%;left:40%;"><span class="dot-label">ECT</span></div>
+<div class="sensor-dot" id="dot-tps" style="top:40%;left:45%;"><span class="dot-label">TPS</span></div>
+<div class="sensor-dot" id="dot-map" style="top:45%;left:37%;"><span class="dot-label">MAP</span></div>
+<div class="sensor-dot" id="dot-iat" style="top:32%;left:28%;"><span class="dot-label">IAT</span></div>
+<div class="sensor-dot" id="dot-vtec" style="top:38%;left:38%;"><span class="dot-label">VTEC</span></div>
+<div class="sensor-dot" id="dot-ign" style="top:43%;left:30%;"><span class="dot-label">IGN</span></div>
+<div class="sensor-dot" id="dot-fuel" style="top:50%;left:22%;"><span class="dot-label">FUEL</span></div>
+<div class="sensor-dot" id="dot-batt" style="top:36%;left:20%;"><span class="dot-label">BATT</span></div>
+
+<div id="console-panel">
+  <div id="boot-logo">HONDADASH</div>
+  <div id="boot-sub">K20Z3 // 2007 CIVIC Si FA5</div>
+  <div id="console-log"></div>
+  <div id="boot-progress-wrap"><div id="boot-progress-bar"></div></div>
+  <div id="boot-status">INITIALIZING</div>
 </div>
 
 <script src="three.min.js"></script>
@@ -118,25 +111,29 @@ body { width:100vw; height:100vh; overflow:hidden; background:#040810; font-fami
 //  3D CAR SETUP
 // ============================================================
 const canvas = document.getElementById('car-canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+const W = window.innerWidth;
+const H = window.innerHeight;
+
+const renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:true, alpha:true });
 renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(W, H);
 renderer.shadowMap.enabled = true;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(40, canvas.clientWidth/canvas.clientHeight, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(40, W/H, 0.1, 100);
 camera.position.set(4, 2, 5);
 camera.lookAt(0, 0.5, 0);
 
-// Lighting — dramatic
+// Lighting — dramatic blue
 const ambient = new THREE.AmbientLight(0x0a1530, 2);
 scene.add(ambient);
-const key = new THREE.DirectionalLight(0x2288ff, 4);
-key.position.set(5, 6, 4);
-key.castShadow = true;
-scene.add(key);
+const keyLight = new THREE.DirectionalLight(0x2288ff, 4);
+keyLight.position.set(5, 6, 4);
+keyLight.castShadow = true;
+scene.add(keyLight);
 const fill = new THREE.DirectionalLight(0x0044aa, 2);
 fill.position.set(-5, 3, -5);
 scene.add(fill);
@@ -147,7 +144,7 @@ const topLight = new THREE.DirectionalLight(0xffffff, 0.5);
 topLight.position.set(0, 10, 0);
 scene.add(topLight);
 
-// Ground glow
+// Ground
 const groundGeo = new THREE.PlaneGeometry(20, 20);
 const groundMat = new THREE.MeshBasicMaterial({ color:0x040810, transparent:true, opacity:0.5 });
 const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -158,17 +155,12 @@ scene.add(ground);
 let carModel = null;
 let rotSpeed = 0.003;
 
-function resize(){
-  const vp = document.getElementById('car-viewport');
-  const w = vp.clientWidth || window.innerWidth * 0.6;
-  const h = vp.clientHeight || window.innerHeight;
+window.addEventListener('resize', function(){
+  const w = window.innerWidth, h = window.innerHeight;
   renderer.setSize(w, h);
   camera.aspect = w/h;
   camera.updateProjectionMatrix();
-}
-// Delay first resize to let layout settle
-setTimeout(resize, 50);
-window.addEventListener('resize', resize);
+});
 
 // Load car model
 const loader = new THREE.GLTFLoader();
@@ -181,7 +173,7 @@ loader.load('2007_honda_civic_si.glb', function(gltf){
   carModel.scale.setScalar(scale);
   const center = box.getCenter(new THREE.Vector3());
   carModel.position.sub(center.multiplyScalar(scale));
-  carModel.traverse(c => { if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; }});
+  carModel.traverse(function(c){ if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; }});
   scene.add(carModel);
 }, undefined, function(err){ console.error('Model load error:', err); });
 
@@ -199,23 +191,21 @@ const logEl = document.getElementById('console-log');
 const progressBar = document.getElementById('boot-progress-bar');
 const statusEl = document.getElementById('boot-status');
 
-function delay(ms){ return new Promise(r => setTimeout(r, ms)); }
+function delay(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
 
 function randHex(n){
-  let s='';
-  for(let i=0;i<n;i++) s+='0123456789ABCDEF'[Math.floor(Math.random()*16)];
+  var s='';
+  for(var i=0;i<n;i++) s+='0123456789ABCDEF'[Math.floor(Math.random()*16)];
   return s;
 }
 
 function log(html){
-  const line = document.createElement('div');
+  var line = document.createElement('div');
   line.className = 'log-line';
   line.innerHTML = html;
   logEl.appendChild(line);
-  // Auto-scroll
   logEl.scrollTop = logEl.scrollHeight;
-  // Fade in
-  requestAnimationFrame(() => line.classList.add('visible'));
+  requestAnimationFrame(function(){ line.classList.add('visible'); });
 }
 
 function setProgress(pct){
@@ -223,37 +213,33 @@ function setProgress(pct){
 }
 
 async function checkSensor(dotId, name, addr, extra){
-  const dot = document.getElementById(dotId);
+  var dot = document.getElementById(dotId);
   if(dot) dot.classList.add('checking');
 
-  log(`<span class="hex">0x${addr}</span> <span class="label">${name}</span> <span class="hex">INIT...</span>`);
+  log('<span class="hex">0x'+addr+'</span> <span class="label">'+name+'</span> <span class="hex">INIT...</span>');
   await delay(80 + Math.random()*120);
 
-  // Gibberish data burst
-  log(`<span class="hex">  ${randHex(2)} ${randHex(2)} ${randHex(2)} ${randHex(2)}  ${randHex(4)} ${randHex(4)}</span>`);
+  log('<span class="hex">  '+randHex(2)+' '+randHex(2)+' '+randHex(2)+' '+randHex(2)+'  '+randHex(4)+' '+randHex(4)+'</span>');
   await delay(60 + Math.random()*80);
 
   if(extra){
-    log(`<span class="hex">  ${extra}</span>`);
+    log('<span class="hex">  '+extra+'</span>');
     await delay(40);
   }
 
-  log(`<span class="hex">0x${addr}</span> <span class="label">${name}</span> <span class="ok">OK</span>`);
+  log('<span class="hex">0x'+addr+'</span> <span class="label">'+name+'</span> <span class="ok">OK</span>');
   if(dot){ dot.classList.remove('checking'); dot.classList.add('ok'); }
   await delay(30);
 }
 
-// Click sound via AudioContext
 function bootClick(){
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
     osc.frequency.value = 800 + Math.random()*400;
-    osc.type = 'square';
-    gain.gain.value = 0.03;
+    osc.type = 'square'; gain.gain.value = 0.03;
     osc.start();
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
     osc.stop(ctx.currentTime + 0.06);
@@ -262,14 +248,11 @@ function bootClick(){
 
 function bootBeep(freq, dur){
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = freq;
-    osc.type = 'sine';
-    gain.gain.value = 0.06;
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq; osc.type = 'sine'; gain.gain.value = 0.06;
     osc.start();
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
     osc.stop(ctx.currentTime + dur + 0.01);
@@ -279,7 +262,6 @@ function bootBeep(freq, dur){
 async function boot(){
   await delay(300);
 
-  // Logo fade in
   document.getElementById('boot-logo').style.opacity = '1';
   bootBeep(440, 0.15);
   await delay(400);
@@ -287,41 +269,38 @@ async function boot(){
   await delay(300);
   statusEl.style.opacity = '1';
 
-  // System init
   log('<span class="val">HONDADASH v8.0</span>');
-  log(`<span class="hex">BUILD ${new Date().toISOString().slice(0,10).replace(/-/g,'')}</span>`);
+  log('<span class="hex">BUILD '+new Date().toISOString().slice(0,10).replace(/-/g,'')+'</span>');
   setProgress(2);
   await delay(200);
 
   log('');
   log('<span class="label">SYSTEM INITIALIZATION</span>');
-  log(`<span class="hex">MEM  ${randHex(8)}  HEAP ${randHex(4)}</span>`);
+  log('<span class="hex">MEM  '+randHex(8)+'  HEAP '+randHex(4)+'</span>');
   bootClick();
   setProgress(5);
   await delay(150);
 
-  // ECU handshake
   statusEl.textContent = 'ECU HANDSHAKE';
   log('');
   log('<span class="label">ECU HANDSHAKE // K20Z3</span>');
-  log(`<span class="hex">REQ  ${randHex(4)} ${randHex(4)} ${randHex(2)}</span>`);
+  log('<span class="hex">REQ  '+randHex(4)+' '+randHex(4)+' '+randHex(2)+'</span>');
   bootClick();
   await delay(300);
-  log(`<span class="hex">ACK  ${randHex(4)} ${randHex(4)} ${randHex(2)}</span>`);
+  log('<span class="hex">ACK  '+randHex(4)+' '+randHex(4)+' '+randHex(2)+'</span>');
   log('<span class="label">ECU</span> <span class="ok">LINKED</span>');
   document.getElementById('dot-ecu').classList.add('ok');
   bootBeep(660, 0.1);
   setProgress(12);
   await delay(200);
 
-  // Sensor array
   statusEl.textContent = 'SENSOR ARRAY CHECK';
   log('');
   log('<span class="label">SENSOR ARRAY // 10 CHANNELS</span>');
   setProgress(15);
   await delay(150);
 
-  const sensors = [
+  var sensors = [
     ['dot-rpm',  'CRANKSHAFT POS',  '4F2A', 'RPM RANGE 0-8500  RES 1RPM'],
     ['dot-ect',  'COOLANT TEMP',    '4105', 'RANGE -40~215C  THERM NTC'],
     ['dot-tps',  'THROTTLE POS',    '4111', 'RANGE 0-100%  LIN 0.4%'],
@@ -334,47 +313,42 @@ async function boot(){
     ['dot-batt', 'BATTERY VOLTS',   '4142', 'RANGE 0-65.5V  RES 1mV'],
   ];
 
-  for(let i=0; i<sensors.length; i++){
-    const [dot, name, addr, extra] = sensors[i];
+  for(var i=0; i<sensors.length; i++){
     bootClick();
-    await checkSensor(dot, name, addr, extra);
+    await checkSensor(sensors[i][0], sensors[i][1], sensors[i][2], sensors[i][3]);
     setProgress(15 + Math.round((i+1)/sensors.length * 65));
   }
 
   await delay(200);
 
-  // Ignition system
   statusEl.textContent = 'IGNITION SYNC';
   log('');
   log('<span class="label">IGNITION TIMING SYNC</span>');
-  log(`<span class="hex">CYL  1:${randHex(2)}  2:${randHex(2)}  3:${randHex(2)}  4:${randHex(2)}</span>`);
+  log('<span class="hex">CYL  1:'+randHex(2)+'  2:'+randHex(2)+'  3:'+randHex(2)+'  4:'+randHex(2)+'</span>');
   bootClick();
   setProgress(85);
   await delay(200);
   log('<span class="label">TIMING</span> <span class="ok">SYNCHRONIZED</span>');
   bootBeep(880, 0.1);
 
-  // VTEC pressure
   log('');
   log('<span class="label">VTEC PRESSURE CHECK</span>');
-  log(`<span class="hex">OIL PSI ${(35 + Math.random()*10).toFixed(1)}  SOLENOID RDY</span>`);
+  log('<span class="hex">OIL PSI '+(35 + Math.random()*10).toFixed(1)+'  SOLENOID RDY</span>');
   setProgress(92);
   await delay(200);
   log('<span class="label">VTEC</span> <span class="ok">ARMED @ 4500 RPM</span>');
   bootBeep(1100, 0.08);
 
-  // Final
   setProgress(100);
   await delay(300);
 
   log('');
   log('<span class="val">ALL SYSTEMS NOMINAL</span>');
-  log(`<span class="hex">UPTIME ${randHex(4)}ms  LOAD 0x${randHex(4)}</span>`);
+  log('<span class="hex">UPTIME '+randHex(4)+'ms  LOAD 0x'+randHex(4)+'</span>');
 
   statusEl.textContent = 'SYSTEM READY';
   statusEl.classList.add('ready');
 
-  // Success tone
   bootBeep(660, 0.1);
   await delay(120);
   bootBeep(880, 0.1);
@@ -383,11 +357,9 @@ async function boot(){
 
   await delay(800);
 
-  // Speed up car rotation before exit
   rotSpeed = 0.015;
   await delay(600);
 
-  // Signal parent to dismiss boot screen
   if(window.parent && window.parent !== window){
     window.parent.postMessage(JSON.stringify({type:'boot-complete'}), '*');
   }
@@ -395,7 +367,6 @@ async function boot(){
 
 boot().catch(function(err){
   console.error('Boot error:', err);
-  // Always dismiss even on error
   if(window.parent && window.parent !== window){
     window.parent.postMessage(JSON.stringify({type:'boot-complete'}), '*');
   }
