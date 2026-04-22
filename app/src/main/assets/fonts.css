@@ -1,0 +1,29 @@
+/* Local font faces — no CDN needed */
+@font-face {
+  font-family: 'Orbitron';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('Orbitron-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Orbitron';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('Orbitron-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Orbitron';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('Orbitron-Black.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Share Tech Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('ShareTechMono-Regular.woff2') format('woff2');
+}
