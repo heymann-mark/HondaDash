@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <script src="prod.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<script>
+// Redirect to boot sequence if not coming from it
+if(!window.location.search.includes('skipboot') && !window.__bootDone){
+  window.location.href = 'boot.html';
+}
+</script>
 <script src="nightmode.js"></script>
 <style>
 @import url('fonts.css');

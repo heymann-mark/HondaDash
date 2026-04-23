@@ -371,16 +371,16 @@ async function boot(){
   await delay(600);
 
   // Navigate to main app
-  window.location.href = 'index.html';
+  window.location.href = 'index.html?skipboot';
 }
 
 boot().catch(function(err){
   console.error('Boot error:', err);
-  window.location.href = 'index.html';
+  window.location.href = 'index.html?skipboot';
 });
 
 // Safety timeout — go to app after 15s no matter what
-setTimeout(function(){ window.location.href = 'index.html'; }, 15000);
+setTimeout(function(){ window.location.href = 'index.html?skipboot'; }, 15000);
 </script>
 </body>
 </html>
