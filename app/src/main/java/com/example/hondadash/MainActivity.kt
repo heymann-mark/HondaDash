@@ -180,7 +180,7 @@ class MainActivity : ComponentActivity() {
         webView.addJavascriptInterface(CSVExporter(this), "Android")
         webView.addJavascriptInterface(BTInterface(), "AndroidBT")
 
-        webView.loadUrl("file:///android_asset/index.html")
+        webView.loadUrl("file:///android_asset/boot.html")
 
         val wvParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,

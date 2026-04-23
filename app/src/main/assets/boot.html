@@ -360,17 +360,17 @@ async function boot(){
   rotSpeed = 0.015;
   await delay(600);
 
-  if(window.parent && window.parent !== window){
-    window.parent.postMessage(JSON.stringify({type:'boot-complete'}), '*');
-  }
+  // Navigate to main app
+  window.location.href = 'index.html';
 }
 
 boot().catch(function(err){
   console.error('Boot error:', err);
-  if(window.parent && window.parent !== window){
-    window.parent.postMessage(JSON.stringify({type:'boot-complete'}), '*');
-  }
+  window.location.href = 'index.html';
 });
+
+// Safety timeout — go to app after 15s no matter what
+setTimeout(function(){ window.location.href = 'index.html'; }, 15000);
 </script>
 </body>
 </html>
