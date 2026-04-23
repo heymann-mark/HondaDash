@@ -452,10 +452,14 @@ function animate(){
 }
 animate();
 
-window.addEventListener('resize',()=>{
-  const W=container.clientWidth,H=container.clientHeight;
-  camera.aspect=W/H; camera.updateProjectionMatrix(); renderer.setSize(W,H);
-});
+function doResize(){
+  const W=container.clientWidth||window.innerWidth, H=container.clientHeight||window.innerHeight;
+  if(W>0 && H>0){ camera.aspect=W/H; camera.updateProjectionMatrix(); renderer.setSize(W,H); }
+}
+window.addEventListener('resize', doResize);
+// Re-check size when page becomes visible (iframe was display:none on load)
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) setTimeout(doResize, 50); });
+setInterval(function(){ if(renderer.domElement.width < 10) doResize(); }, 500);
 </script>
 </body>
 </html>
