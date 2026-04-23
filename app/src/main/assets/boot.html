@@ -162,20 +162,26 @@ window.addEventListener('resize', function(){
   camera.updateProjectionMatrix();
 });
 
-// Load car model
-const loader = new THREE.GLTFLoader();
-loader.load('2007_honda_civic_si.glb', function(gltf){
-  carModel = gltf.scene;
-  const box = new THREE.Box3().setFromObject(carModel);
-  const size = box.getSize(new THREE.Vector3());
-  const maxDim = Math.max(size.x, size.y, size.z);
-  const scale = 3.5 / maxDim;
-  carModel.scale.setScalar(scale);
-  const center = box.getCenter(new THREE.Vector3());
-  carModel.position.sub(center.multiplyScalar(scale));
-  carModel.traverse(function(c){ if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; }});
-  scene.add(carModel);
-}, undefined, function(err){ console.error('Model load error:', err); });
+// Load car model — returns a promise boot() can await
+var modelLoaded = new Promise(function(resolve){
+  var loader = new THREE.GLTFLoader();
+  loader.load('2007_honda_civic_si.glb', function(gltf){
+    carModel = gltf.scene;
+    var box = new THREE.Box3().setFromObject(carModel);
+    var size = box.getSize(new THREE.Vector3());
+    var maxDim = Math.max(size.x, size.y, size.z);
+    var scale = 3.5 / maxDim;
+    carModel.scale.setScalar(scale);
+    var center = box.getCenter(new THREE.Vector3());
+    carModel.position.sub(center.multiplyScalar(scale));
+    carModel.traverse(function(c){ if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; }});
+    scene.add(carModel);
+    resolve(true);
+  }, undefined, function(err){
+    console.error('Model load error:', err);
+    resolve(false);
+  });
+});
 
 function animate(){
   requestAnimationFrame(animate);
@@ -272,6 +278,13 @@ async function boot(){
   log('<span class="val">HONDADASH v8.0</span>');
   log('<span class="hex">BUILD '+new Date().toISOString().slice(0,10).replace(/-/g,'')+'</span>');
   setProgress(2);
+  await delay(200);
+
+  // Wait for 3D model to load before continuing
+  log('<span class="label">LOADING 3D MODEL...</span>');
+  await modelLoaded;
+  log('<span class="label">3D MODEL</span> <span class="ok">LOADED</span>');
+  setProgress(5);
   await delay(200);
 
   log('');
