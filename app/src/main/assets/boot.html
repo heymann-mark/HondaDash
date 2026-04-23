@@ -284,24 +284,6 @@ async function boot(){
   setProgress(2);
   await delay(200);
 
-  // Wait for 3D model to load before continuing
-  log('<span class="label">LOADING 3D MODEL // 2007 CIVIC Si</span>');
-  statusEl.textContent = 'LOADING MODEL';
-  // Show progress while model loads
-  var loadLogLine = document.createElement('div');
-  loadLogLine.className = 'log-line visible';
-  loadLogLine.innerHTML = '<span class="hex">  0%</span>';
-  logEl.appendChild(loadLogLine);
-  var loadInterval = setInterval(function(){
-    loadLogLine.innerHTML = '<span class="hex">  ' + modelLoadPct + '%</span>';
-  }, 200);
-  await modelLoaded;
-  clearInterval(loadInterval);
-  loadLogLine.innerHTML = '<span class="hex">  100%</span>';
-  log('<span class="label">3D MODEL</span> <span class="ok">LOADED</span>');
-  setProgress(5);
-  await delay(500);
-
   log('');
   log('<span class="label">SYSTEM INITIALIZATION</span>');
   log('<span class="hex">MEM  '+randHex(8)+'  HEAP '+randHex(4)+'</span>');
